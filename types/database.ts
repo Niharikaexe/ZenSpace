@@ -214,8 +214,9 @@ export interface Database {
         Update: never
       }
     }
-    Views: {}
-    Functions: {}
+    Views: { [_ in never]: never }
+    Functions: { [_ in never]: never }
+    CompositeTypes: { [_ in never]: never }
     Enums: {
       user_role: UserRole
       subscription_status: SubscriptionStatus

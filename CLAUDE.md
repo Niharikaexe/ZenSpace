@@ -53,13 +53,13 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 
 ## Therapist Flow
 
-1. **Therapist onboarding page** (link sent by admin)
+1. **Therapist onboarding page** (invite code link shared by admin)
    - Name, photo, license number, specializations, bio, approach, languages, availability
 2. **Dashboard**
    - Matched client's profile (name, concerns, goals)
    - Chat with client (Supabase Realtime)
    - Schedule & join video sessions (Daily.co)
-   - Write session notes (private to therapist + visible to admin)
+   - Write session notes (private to therapist)
 
 ---
 
@@ -192,14 +192,14 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 
 ## Gaps / Open Questions (to clarify with Niharika)
 
-1. **Currency & pricing** — INR? What are the exact plan prices (per-session, weekly, monthly)?
-2. **Therapist onboarding link** — one-time magic link or a fixed `/therapist/onboard` page with an invite code?
-3. **Session notes visibility** — should clients ever see their session notes, or are they strictly private to the therapist/admin?
-4. **Video scheduling** — does the therapist propose a time, or does the client request a slot?
-5. **Notifications** — email only, or also in-app? (e.g., "Your therapist has been matched!")
-6. **Therapist payout** — is therapist compensation handled inside the platform or outside?
-7. **Multiple therapists** — can a client ever be re-matched or have more than one therapist at a time?
-8. **Client cancellation** — what happens to the subscription if a client wants to stop?
+1. **Currency & pricing** — Pricing will be in INR, with options for session-wise, weekly or monthhly
+2. **Therapist onboarding link** — fixed `/therapist/onboard` page with an invite code?
+3. **Session notes visibility** — Clients can view the session notes, therapists add session notes, and admin can't view them.
+4. **Video scheduling** — The therapist will schedule a time suitable for them, in the client's timezone. Hourly based sessions.
+5. **Notifications** — email and in-app
+6. **Therapist payout** — The therapist payout is handled off-app for now
+7. **Multiple therapists** — Client can be re-matched to a different therapist if not aligned, by contacting admin/support. No multiple therapists for one client.
+8. **Client cancellation** — The subscription is non-refundable.
 
 ---
 
