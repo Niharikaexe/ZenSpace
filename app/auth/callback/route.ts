@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single() as { data: { role: string } | null; error: unknown }
+    .maybeSingle() as { data: { role: string } | null; error: unknown }
 
   if (profileError) {
     logger.error('auth/callback', 'Failed to fetch profile after code exchange', profileError, {
@@ -39,7 +39,24 @@ export async function GET(request: Request) {
     })
   }
 
-  const role = profile?.role ?? 'client'
+  // Safety net: profile missing — create it from auth metadata
+  if (!profile) {
+    logger.warn('auth/callback', 'Profile row missing — creating via admin client', { userId: user.id })
+    const { createAdminClient } = await import('@/lib/supabase/server')
+    const admin = createAdminClient()
+    const { error: upsertErr } = await (admin as any).from('profiles').upsert({
+      id: user.id,
+      full_name: user.user_metadata?.full_name ?? user.email ?? 'User',
+      role: (user.user_metadata?.role as string) ?? 'client',
+    })
+    if (upsertErr) {
+      logger.error('auth/callback', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
+    } else {
+      logger.info('auth/callback', 'Missing profile created', { userId: user.id })
+    }
+  }
+
+  const role = profile?.role ?? (user.user_metadata?.role as string) ?? 'client'
   const destination =
     role === 'admin' ? '/admin' :
     role === 'therapist' ? '/therapist/dashboard' :

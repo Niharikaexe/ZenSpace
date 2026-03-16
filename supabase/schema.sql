@@ -254,18 +254,26 @@ CREATE POLICY "Clients manage own questionnaire" ON questionnaire_responses
 -- ============================================================
 
 -- Auto-create profile on signup
+-- Uses CASE to validate role before casting (prevents trigger crash on bad/missing metadata)
+-- SET search_path = public ensures table resolution works in all Supabase environments
+-- ON CONFLICT DO NOTHING prevents duplicate-key errors if trigger fires twice
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO profiles (id, full_name, role)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'client')
-  );
+    COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''), NEW.email),
+    CASE
+      WHEN NEW.raw_user_meta_data->>'role' IN ('client', 'therapist', 'admin')
+        THEN (NEW.raw_user_meta_data->>'role')::user_role
+      ELSE 'client'::user_role
+    END
+  )
+  ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 import { MatchedDashboard } from '@/components/dashboard/MatchedDashboard'
 
+// Always render fresh — subscription and match status must never be stale
+export const dynamic = 'force-dynamic'
+
 export default async function ClientDashboard() {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -15,23 +18,40 @@ export default async function ClientDashboard() {
     redirect('/login')
   }
 
-  // Fetch profile
+  // Use maybeSingle() — never throws on 0 rows, returns null instead
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role, full_name')
     .eq('id', user.id)
-    .single() as { data: { role: string; full_name: string } | null; error: unknown }
+    .maybeSingle() as { data: { role: string; full_name: string } | null; error: unknown }
 
   if (profileError) {
     logger.error('dashboard/client', 'Failed to fetch profile', profileError, { userId: user.id })
   }
 
-  if (!profile || profile.role !== 'client') {
-    logger.warn('dashboard/client', 'Profile missing or wrong role', { userId: user.id, role: profile?.role })
-    redirect('/login')
+  // Safety net: profile row missing (user existed before schema was applied) — create it
+  if (!profile) {
+    logger.warn('dashboard/client', 'Profile row missing — creating via admin client', { userId: user.id })
+    const admin = createAdminClient()
+    const { error: upsertErr } = await (admin as any).from('profiles').upsert({
+      id: user.id,
+      full_name: user.user_metadata?.full_name ?? user.email ?? 'User',
+      role: (user.user_metadata?.role as string) ?? 'client',
+    })
+    if (upsertErr) {
+      logger.error('dashboard/client', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
+      redirect('/login')
+    }
+    logger.info('dashboard/client', 'Missing profile created — reloading', { userId: user.id })
+    redirect('/dashboard')
   }
 
-  // Fetch active match
+  if (profile.role !== 'client') {
+    logger.warn('dashboard/client', 'Wrong role for client dashboard', { userId: user.id, role: profile.role })
+    redirect(profile.role === 'admin' ? '/admin' : '/therapist/dashboard')
+  }
+
+  // Fetch active match — safe, returns null if none
   const { data: match, error: matchError } = await supabase
     .from('matches')
     .select('id, status, therapist_id, created_at')
@@ -43,10 +63,12 @@ export default async function ClientDashboard() {
     }
 
   if (matchError) {
-    logger.error('dashboard/client', 'Failed to fetch match', matchError, { userId: user.id })
+    logger.error('dashboard/client', 'Failed to fetch match — defaulting to unmatched', matchError, {
+      userId: user.id,
+    })
   }
 
-  // Fetch latest active subscription
+  // Fetch latest active subscription — safe, returns null if none
   const { data: subscription, error: subError } = await supabase
     .from('subscriptions')
     .select('id, plan, status, current_period_end')
@@ -60,13 +82,15 @@ export default async function ClientDashboard() {
     }
 
   if (subError) {
-    logger.error('dashboard/client', 'Failed to fetch subscription', subError, { userId: user.id })
+    logger.error('dashboard/client', 'Failed to fetch subscription — defaulting to no subscription', subError, {
+      userId: user.id,
+    })
   }
 
   const isMatched = !!match
   const hasActiveSubscription = !!subscription
 
-  // If matched, fetch therapist details using admin client (profiles RLS only allows self-read)
+  // If matched, fetch therapist details via admin client (RLS on profiles only allows self-read)
   let therapistData: {
     fullName: string
     avatarUrl: string | null
@@ -80,32 +104,34 @@ export default async function ClientDashboard() {
   if (match) {
     const admin = createAdminClient()
 
-    const [{ data: tProfile, error: tProfileErr }, { data: tUser, error: tUserErr }] =
-      await Promise.all([
-        (admin as any)
-          .from('therapist_profiles')
-          .select('specializations, bio, approach, years_experience, languages')
-          .eq('user_id', match.therapist_id)
-          .single(),
-        (admin as any)
-          .from('profiles')
-          .select('full_name, avatar_url')
-          .eq('id', match.therapist_id)
-          .single(),
-      ])
+    const [tProfileResult, tUserResult] = await Promise.all([
+      (admin as any)
+        .from('therapist_profiles')
+        .select('specializations, bio, approach, years_experience, languages')
+        .eq('user_id', match.therapist_id)
+        .maybeSingle(),
+      (admin as any)
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', match.therapist_id)
+        .maybeSingle(),
+    ])
 
-    if (tProfileErr) {
-      logger.error('dashboard/client', 'Failed to fetch therapist_profiles', tProfileErr, {
+    if (tProfileResult.error) {
+      logger.error('dashboard/client', 'Failed to fetch therapist_profiles', tProfileResult.error, {
         userId: user.id,
         therapistId: match.therapist_id,
       })
     }
-    if (tUserErr) {
-      logger.error('dashboard/client', 'Failed to fetch therapist profiles row', tUserErr, {
+    if (tUserResult.error) {
+      logger.error('dashboard/client', 'Failed to fetch therapist profile row', tUserResult.error, {
         userId: user.id,
         therapistId: match.therapist_id,
       })
     }
+
+    const tProfile = tProfileResult.data
+    const tUser = tUserResult.data
 
     if (tProfile && tUser) {
       therapistData = {
@@ -118,9 +144,11 @@ export default async function ClientDashboard() {
         languages: tProfile.languages ?? ['English'],
       }
     } else {
-      logger.warn('dashboard/client', 'Therapist data incomplete — falling back to pending view', {
+      logger.warn('dashboard/client', 'Therapist data incomplete — showing pending view as fallback', {
         userId: user.id,
         therapistId: match.therapist_id,
+        hasTherapistProfile: !!tProfile,
+        hasTherapistUser: !!tUser,
       })
     }
   }

@@ -65,10 +65,19 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
 
   if (error) {
     logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role })
-    return { error: error.message }
+    // Surface a clearer message for the most common config issue
+    const message = error.message.toLowerCase().includes('confirmation email')
+      ? 'Account creation is temporarily unavailable. Please try again later.'
+      : error.message
+    return { error: message }
   }
 
   logger.info('auth/signUp', 'Account created', { userId: signUpData?.user?.id, email, role })
+
+  // Detect whether Supabase immediately created a session (email confirmation disabled)
+  // vs sent a confirmation email (confirmation enabled).
+  // When a session is returned immediately, signUpData.session is non-null.
+  const sessionCreatedImmediately = !!signUpData?.session
 
   // Save questionnaire data if present (client sign-ups only)
   const questionnaireRaw = formData.get('questionnaireData')
@@ -131,6 +140,21 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     }
   }
 
+  // If Supabase gave us a session immediately (email confirmation off),
+  // redirect straight to the dashboard — no "check your email" needed.
+  if (sessionCreatedImmediately) {
+    const userRole = signUpData?.user?.user_metadata?.role ?? role
+    logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', {
+      userId: signUpData?.user?.id,
+      role: userRole,
+    })
+    redirect(
+      userRole === 'admin' ? '/admin' :
+      userRole === 'therapist' ? '/therapist/dashboard' :
+      '/dashboard'
+    )
+  }
+
   return { success: true }
 }
 
@@ -162,13 +186,29 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single() as { data: { role: string } | null; error: unknown }
+      .maybeSingle() as { data: { role: string } | null; error: unknown }
 
     if (profileErr) {
       logger.error('auth/signIn', 'Failed to fetch profile after sign in', profileErr, { userId: user.id })
     }
 
-    const userRole = profile?.role ?? 'client'
+    // Safety net: profile missing (user created before schema was applied) — create it now
+    if (!profile) {
+      logger.warn('auth/signIn', 'Profile row missing — creating via admin client', { userId: user.id })
+      const admin = createAdminClient()
+      const { error: upsertErr } = await (admin as any).from('profiles').upsert({
+        id: user.id,
+        full_name: user.user_metadata?.full_name ?? user.email ?? 'User',
+        role: (user.user_metadata?.role as string) ?? 'client',
+      })
+      if (upsertErr) {
+        logger.error('auth/signIn', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
+      } else {
+        logger.info('auth/signIn', 'Missing profile created', { userId: user.id })
+      }
+    }
+
+    const userRole = profile?.role ?? (user.user_metadata?.role as string) ?? 'client'
     logger.info('auth/signIn', 'Sign in successful', { userId: user.id, role: userRole })
     redirect(userRole === 'admin' ? '/admin' : userRole === 'therapist' ? '/therapist/dashboard' : '/dashboard')
   }

@@ -12,7 +12,7 @@ async function getRole(
     .from('profiles')
     .select('role')
     .eq('id', userId)
-    .single() as { data: ProfileRow | null; error: unknown }
+    .maybeSingle() as { data: ProfileRow | null; error: unknown }
 
   if (error) {
     logger.error('middleware/getRole', 'Failed to fetch role', error, { userId })
@@ -45,7 +45,8 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-  if (authError) {
+  // AuthSessionMissingError is normal for unauthenticated visitors — not a real error
+  if (authError && authError.name !== 'AuthSessionMissingError') {
     logger.error('middleware', 'supabase.auth.getUser() failed', authError, {
       path: request.nextUrl.pathname,
     })
