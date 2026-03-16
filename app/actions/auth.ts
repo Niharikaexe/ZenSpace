@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 
@@ -46,6 +47,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (!parsed.success) {
+    logger.warn('auth/signUp', 'Validation failed', { reason: parsed.error.issues[0].message })
     return { error: parsed.error.issues[0].message }
   }
 
@@ -62,21 +64,30 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (error) {
+    logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role })
     return { error: error.message }
   }
+
+  logger.info('auth/signUp', 'Account created', { userId: signUpData?.user?.id, email, role })
 
   // Save questionnaire data if present (client sign-ups only)
   const questionnaireRaw = formData.get('questionnaireData')
   if (role === 'client' && questionnaireRaw && signUpData?.user) {
     try {
       const qParsed = questionnaireSchema.safeParse(JSON.parse(String(questionnaireRaw)))
-      if (qParsed.success) {
+
+      if (!qParsed.success) {
+        logger.warn('auth/signUp', 'Questionnaire validation failed — skipping save', {
+          userId: signUpData.user.id,
+          reason: qParsed.error.issues[0].message,
+        })
+      } else {
         const qData = qParsed.data
         const admin = createAdminClient()
 
         const questionnairePayload: QuestionnaireInsert = {
           client_id: signUpData.user.id,
-          responses: qData as Json,
+          responses: qData as unknown as Json,
         }
 
         const clientProfilePayload: ClientProfileInsert = {
@@ -89,18 +100,34 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
           preferred_session_type: qData.preferred_session_type,
         }
 
-        // Save full questionnaire JSON (cast to any to avoid client type inference issues)
-        await (admin as any)
+        const { error: qErr } = await (admin as any)
           .from('questionnaire_responses')
           .insert(questionnairePayload)
 
-        // Save structured fields to client_profiles
-        await (admin as any)
+        if (qErr) {
+          logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, {
+            userId: signUpData.user.id,
+          })
+        }
+
+        const { error: cpErr } = await (admin as any)
           .from('client_profiles')
           .insert(clientProfilePayload)
+
+        if (cpErr) {
+          logger.error('auth/signUp', 'Failed to save client_profiles', cpErr, {
+            userId: signUpData.user.id,
+          })
+        }
+
+        if (!qErr && !cpErr) {
+          logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
+        }
       }
-    } catch {
-      // Non-fatal: questionnaire save failed, account still created
+    } catch (err) {
+      logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, {
+        userId: signUpData.user.id,
+      })
     }
   }
 
@@ -114,6 +141,7 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (!parsed.success) {
+    logger.warn('auth/signIn', 'Validation failed', { reason: parsed.error.issues[0].message })
     return { error: parsed.error.issues[0].message }
   }
 
@@ -123,19 +151,25 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
+    logger.warn('auth/signIn', 'Sign in failed', { email, reason: error.message })
     return { error: error.message }
   }
 
-  // Get role for redirect
   const { data: { user } } = await supabase.auth.getUser()
+
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single() as { data: { role: string } | null, error: unknown }
+      .single() as { data: { role: string } | null; error: unknown }
+
+    if (profileErr) {
+      logger.error('auth/signIn', 'Failed to fetch profile after sign in', profileErr, { userId: user.id })
+    }
 
     const userRole = profile?.role ?? 'client'
+    logger.info('auth/signIn', 'Sign in successful', { userId: user.id, role: userRole })
     redirect(userRole === 'admin' ? '/admin' : userRole === 'therapist' ? '/therapist/dashboard' : '/dashboard')
   }
 
@@ -144,6 +178,8 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
 
 export async function signOut() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   await supabase.auth.signOut()
+  logger.info('auth/signOut', 'User signed out', { userId: user?.id })
   redirect('/login')
 }
