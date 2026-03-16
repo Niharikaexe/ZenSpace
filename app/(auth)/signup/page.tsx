@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { signUp } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,18 @@ const initialState = { error: undefined, success: false }
 
 export default function SignupPage() {
   const [state, action, isPending] = useActionState(signUp, initialState)
+  const [questionnaireData, setQuestionnaireData] = useState('')
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem('zenspace_questionnaire')
+    if (stored) setQuestionnaireData(stored)
+  }, [])
+
+  useEffect(() => {
+    if (state.success) {
+      sessionStorage.removeItem('zenspace_questionnaire')
+    }
+  }, [state.success])
 
   if (state.success) {
     return (
@@ -36,7 +48,9 @@ export default function SignupPage() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
         <CardDescription className="text-center">
-          Start your journey to better mental wellness
+          {questionnaireData
+            ? 'Almost there — just a few details to get started'
+            : 'Start your journey to better mental wellness'}
         </CardDescription>
       </CardHeader>
 
@@ -48,8 +62,8 @@ export default function SignupPage() {
         )}
 
         <form action={action} className="space-y-4">
-          {/* Role is always client for self-signup */}
           <input type="hidden" name="role" value="client" />
+          <input type="hidden" name="questionnaireData" value={questionnaireData} />
 
           <div className="space-y-2">
             <Label htmlFor="fullName">Full name</Label>
