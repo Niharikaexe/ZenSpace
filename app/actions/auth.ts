@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 
@@ -46,6 +47,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (!parsed.success) {
+    logger.warn('auth/signUp', 'Validation failed', { reason: parsed.error.issues[0].message })
     return { error: parsed.error.issues[0].message }
   }
 
@@ -62,21 +64,39 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (error) {
-    return { error: error.message }
+    logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role })
+    // Surface a clearer message for the most common config issue
+    const message = error.message.toLowerCase().includes('confirmation email')
+      ? 'Account creation is temporarily unavailable. Please try again later.'
+      : error.message
+    return { error: message }
   }
+
+  logger.info('auth/signUp', 'Account created', { userId: signUpData?.user?.id, email, role })
+
+  // Detect whether Supabase immediately created a session (email confirmation disabled)
+  // vs sent a confirmation email (confirmation enabled).
+  // When a session is returned immediately, signUpData.session is non-null.
+  const sessionCreatedImmediately = !!signUpData?.session
 
   // Save questionnaire data if present (client sign-ups only)
   const questionnaireRaw = formData.get('questionnaireData')
   if (role === 'client' && questionnaireRaw && signUpData?.user) {
     try {
       const qParsed = questionnaireSchema.safeParse(JSON.parse(String(questionnaireRaw)))
-      if (qParsed.success) {
+
+      if (!qParsed.success) {
+        logger.warn('auth/signUp', 'Questionnaire validation failed — skipping save', {
+          userId: signUpData.user.id,
+          reason: qParsed.error.issues[0].message,
+        })
+      } else {
         const qData = qParsed.data
         const admin = createAdminClient()
 
         const questionnairePayload: QuestionnaireInsert = {
           client_id: signUpData.user.id,
-          responses: qData as Json,
+          responses: qData as unknown as Json,
         }
 
         const clientProfilePayload: ClientProfileInsert = {
@@ -89,19 +109,50 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
           preferred_session_type: qData.preferred_session_type,
         }
 
-        // Save full questionnaire JSON (cast to any to avoid client type inference issues)
-        await (admin as any)
+        const { error: qErr } = await (admin as any)
           .from('questionnaire_responses')
           .insert(questionnairePayload)
 
-        // Save structured fields to client_profiles
-        await (admin as any)
+        if (qErr) {
+          logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, {
+            userId: signUpData.user.id,
+          })
+        }
+
+        const { error: cpErr } = await (admin as any)
           .from('client_profiles')
           .insert(clientProfilePayload)
+
+        if (cpErr) {
+          logger.error('auth/signUp', 'Failed to save client_profiles', cpErr, {
+            userId: signUpData.user.id,
+          })
+        }
+
+        if (!qErr && !cpErr) {
+          logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
+        }
       }
-    } catch {
-      // Non-fatal: questionnaire save failed, account still created
+    } catch (err) {
+      logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, {
+        userId: signUpData.user.id,
+      })
     }
+  }
+
+  // If Supabase gave us a session immediately (email confirmation off),
+  // redirect straight to the dashboard — no "check your email" needed.
+  if (sessionCreatedImmediately) {
+    const userRole = signUpData?.user?.user_metadata?.role ?? role
+    logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', {
+      userId: signUpData?.user?.id,
+      role: userRole,
+    })
+    redirect(
+      userRole === 'admin' ? '/admin' :
+      userRole === 'therapist' ? '/therapist/dashboard' :
+      '/dashboard'
+    )
   }
 
   return { success: true }
@@ -114,6 +165,7 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (!parsed.success) {
+    logger.warn('auth/signIn', 'Validation failed', { reason: parsed.error.issues[0].message })
     return { error: parsed.error.issues[0].message }
   }
 
@@ -123,19 +175,41 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
+    logger.warn('auth/signIn', 'Sign in failed', { email, reason: error.message })
     return { error: error.message }
   }
 
-  // Get role for redirect
   const { data: { user } } = await supabase.auth.getUser()
+
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single() as { data: { role: string } | null, error: unknown }
+      .maybeSingle() as { data: { role: string } | null; error: unknown }
 
-    const userRole = profile?.role ?? 'client'
+    if (profileErr) {
+      logger.error('auth/signIn', 'Failed to fetch profile after sign in', profileErr, { userId: user.id })
+    }
+
+    // Safety net: profile missing (user created before schema was applied) — create it now
+    if (!profile) {
+      logger.warn('auth/signIn', 'Profile row missing — creating via admin client', { userId: user.id })
+      const admin = createAdminClient()
+      const { error: upsertErr } = await (admin as any).from('profiles').upsert({
+        id: user.id,
+        full_name: user.user_metadata?.full_name ?? user.email ?? 'User',
+        role: (user.user_metadata?.role as string) ?? 'client',
+      })
+      if (upsertErr) {
+        logger.error('auth/signIn', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
+      } else {
+        logger.info('auth/signIn', 'Missing profile created', { userId: user.id })
+      }
+    }
+
+    const userRole = profile?.role ?? (user.user_metadata?.role as string) ?? 'client'
+    logger.info('auth/signIn', 'Sign in successful', { userId: user.id, role: userRole })
     redirect(userRole === 'admin' ? '/admin' : userRole === 'therapist' ? '/therapist/dashboard' : '/dashboard')
   }
 
@@ -144,6 +218,8 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
 
 export async function signOut() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
   await supabase.auth.signOut()
+  logger.info('auth/signOut', 'User signed out', { userId: user?.id })
   redirect('/login')
 }
