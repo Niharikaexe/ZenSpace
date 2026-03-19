@@ -28,6 +28,16 @@ export default async function ClientChatPage() {
 
   if (!match) redirect('/dashboard')
 
+  // Subscription gate — only active subscribers can access chat
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('client_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { status: string } | null; error: unknown }
+
+  if (!subscription) redirect('/dashboard')
+
   const admin = createAdminClient()
   const { data: therapistUser } = await (admin as any)
     .from('profiles')
