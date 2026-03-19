@@ -61,6 +61,7 @@ export async function updateSession(request: NextRequest) {
     pathname === '/signup' ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/questionnaire') ||
+    pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
     pathname.startsWith('/api/payment/webhook') // webhook must be unauthenticated
 
   if (!user && !isPublic) {

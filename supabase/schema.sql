@@ -302,6 +302,22 @@ CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ============================================================
+-- THERAPIST INVITES (admin-generated single-use codes)
+-- ============================================================
+
+CREATE TABLE therapist_invites (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code TEXT UNIQUE NOT NULL,
+  created_by UUID NOT NULL REFERENCES profiles(id),
+  used_by UUID REFERENCES profiles(id),
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE therapist_invites ENABLE ROW LEVEL SECURITY;
+-- All access goes through service role (admin client) — no public policies needed.
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 
