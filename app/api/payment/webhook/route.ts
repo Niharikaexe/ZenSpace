@@ -57,12 +57,31 @@ export async function POST(request: Request) {
 
     const { id: paymentId, order_id: orderId } = payment
 
+    // Look up the pending subscription to get the plan (needed to compute period_end)
+    const { data: existing } = await (admin as any)
+      .from('subscriptions')
+      .select('plan, status')
+      .eq('razorpay_plan_id', orderId)
+      .maybeSingle()
+
+    // Skip if already activated by the verify endpoint
+    if (existing?.status === 'active') {
+      logger.info('api/payment/webhook', 'Subscription already active — skipping webhook update', { orderId })
+      return NextResponse.json({ received: true })
+    }
+
+    const now = new Date()
+    const periodEnd = new Date(now)
+    if (existing?.plan === 'weekly') periodEnd.setDate(periodEnd.getDate() + 7)
+    else periodEnd.setMonth(periodEnd.getMonth() + 1)
+
     const { error: dbErr } = await (admin as any)
       .from('subscriptions')
       .update({
         status: 'active',
         razorpay_subscription_id: paymentId,
-        current_period_start: new Date().toISOString(),
+        current_period_start: now.toISOString(),
+        current_period_end: periodEnd.toISOString(),
       })
       .eq('razorpay_plan_id', orderId)
 

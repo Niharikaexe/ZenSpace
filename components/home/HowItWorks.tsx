@@ -1,93 +1,164 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowDown } from "lucide-react"
-import Image from "next/image"
+import Link from "next/link"
 
 const steps = [
   {
-    image: "/assets/how-it-works-1.png",
-    title: "Get matched to the best therapist for you",
+    number: "1",
+    title: "Easy",
     description:
-      "Answer a few questions to find a qualified therapist who fits your needs and preferences. Tap into the largest online network of credentialed providers.",
+      "Whether you use our assessment or search our therapist profiles, it&apos;s easy to find the right practitioner and begin your therapy journey.",
   },
   {
-    image: "/assets/how-it-works-2.png",
-    title: "Communicate your way",
+    number: "2",
+    title: "Flexible",
     description:
-      "Talk to your therapist however you feel comfortable — text, chat, audio, or video. You can expect the same professionalism as an in-office therapist.",
+      "Access support in the way that makes sense to you — online, face-to-face, or through a blend of both that you can change whenever you need to.",
   },
   {
-    image: "/assets/how-it-works-3.png",
-    title: "Therapy when you need it",
+    number: "3",
+    title: "Personal",
     description:
-      "You can message your therapist at any time, from anywhere. Schedule live sessions when it&apos;s convenient for you, and connect from any device.",
+      "Our technology is highly capable, but there&apos;s no substitute for human expertise when it comes to empowering happier, healthier people.",
   },
 ]
 
+/* Decorative leaf SVG */
+const Leaf = ({ w = 32, h = 48, rotate = 0, color = "#7EC0B7", opacity = 0.55 }: {
+  w?: number; h?: number; rotate?: number; color?: string; opacity?: number
+}) => (
+  <svg viewBox="0 0 32 48" fill="none" style={{ width: w, height: h, transform: `rotate(${rotate}deg)`, opacity }}>
+    <path d="M16,46 C16,46 0,32 0,16 C0,0 16,0 16,0 C16,0 32,0 32,16 C32,32 16,46 16,46 Z" fill={color} />
+    <path d="M16,46 L16,0" stroke={color} strokeWidth="1.2" strokeOpacity="0.5" />
+  </svg>
+)
+
 const HowItWorks = () => {
   return (
-    <section id="how-it-works" className="bg-background py-20 md:py-28">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <motion.h2
-          className="font-display text-3xl md:text-4xl font-bold text-foreground text-center mb-20"
-          initial={{ opacity: 0, y: 20 }}
+    <section id="how-it-works" className="bg-[#FFF5F2] py-20 md:py-28 relative overflow-hidden">
+
+      {/* Decorative floating leaves */}
+      <div className="absolute top-10 left-6 float-slow float-delay-1 pointer-events-none">
+        <Leaf w={28} h={42} rotate={-25} color="#7EC0B7" opacity={0.45} />
+      </div>
+      <div className="absolute top-24 right-8 float-medium pointer-events-none">
+        <Leaf w={22} h={34} rotate={40} color="#E8926A" opacity={0.35} />
+      </div>
+      <div className="absolute bottom-16 left-1/4 float-slow float-delay-2 pointer-events-none">
+        <Leaf w={18} h={28} rotate={-10} color="#7EC0B7" opacity={0.35} />
+      </div>
+      <div className="absolute bottom-10 right-1/4 float-medium float-delay-1 pointer-events-none">
+        <Leaf w={24} h={36} rotate={30} color="#E8926A" opacity={0.3} />
+      </div>
+
+      <div className="max-w-6xl mx-auto px-6 relative z-10">
+
+        {/* Section heading */}
+        <motion.div
+          className="text-center mb-16 max-w-xl mx-auto"
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.7 }}
         >
-          How it works
-        </motion.h2>
+          <h2
+            className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
+            style={{ fontFamily: 'var(--font-lato)' }}
+          >
+            Why us? A fresh<br />new perspective
+          </h2>
+          <p className="text-[#233551]/55 text-base leading-relaxed">
+            When you&apos;re ready to engage with therapy, the quality of your experience counts.
+          </p>
+        </motion.div>
 
-        <div className="space-y-8">
-          {steps.map((step, i) => (
-            <div key={step.title}>
+        {/* 2-column body */}
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 items-start">
+
+          {/* LEFT: Numbered list */}
+          <div className="flex-1 space-y-10">
+            {steps.map((step, i) => (
               <motion.div
-                className="flex flex-col md:flex-row items-center gap-8 md:gap-12"
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.7, ease: "easeOut" }}
+                key={step.title}
+                initial={{ opacity: 0, x: -24 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.6, delay: i * 0.15 }}
+                className="flex gap-5"
               >
-                <motion.div
-                  className="flex-shrink-0"
-                  whileInView={{ scale: [0.9, 1] }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <Image
-                    src={step.image}
-                    alt={step.title}
-                    width={256}
-                    height={208}
-                    className="w-64 h-52 object-contain"
-                  />
-                </motion.div>
-
-                <div className="text-center md:text-left">
-                  <h3 className="font-display text-xl md:text-2xl font-semibold text-foreground mb-3">
+                {/* Number circle */}
+                <div className="flex-shrink-0 w-11 h-11 rounded-full bg-[#233551] flex items-center justify-center shadow-md shadow-[#233551]/20">
+                  <span className="text-white text-sm font-black" style={{ fontFamily: 'var(--font-lato)' }}>
+                    {step.number}
+                  </span>
+                </div>
+                {/* Text */}
+                <div className="pt-1">
+                  <h3 className="text-lg font-black text-[#233551] mb-1.5" style={{ fontFamily: 'var(--font-lato)' }}>
                     {step.title}
                   </h3>
-                  <p className="text-muted-foreground leading-relaxed max-w-md">
-                    {step.description}
-                  </p>
+                  <p
+                    className="text-sm text-[#233551]/55 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: step.description }}
+                  />
                 </div>
               </motion.div>
+            ))}
+          </div>
 
-              {i < steps.length - 1 && (
-                <motion.div
-                  className="flex justify-center my-8"
-                  initial={{ opacity: 0, scale: 0 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <ArrowDown size={28} className="text-primary" />
-                </motion.div>
-              )}
+          {/* RIGHT: White expert card */}
+          <motion.div
+            className="flex-1 lg:max-w-sm w-full"
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+          >
+            <div className="bg-white rounded-3xl p-8 shadow-xl shadow-[#233551]/8 border border-white relative overflow-hidden">
+              {/* Decorative corner leaf inside card */}
+              <div className="absolute -top-3 -right-3 opacity-20 rotate-45">
+                <Leaf w={48} h={72} rotate={0} color="#7EC0B7" opacity={1} />
+              </div>
+              <div className="absolute -bottom-4 -left-3 opacity-15 -rotate-30">
+                <Leaf w={40} h={60} rotate={0} color="#E8926A" opacity={1} />
+              </div>
+
+              {/* Card content */}
+              <span className="inline-block bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full mb-5">
+                Founded by therapists
+              </span>
+
+              <h3
+                className="text-xl font-black text-[#233551] leading-snug mb-4"
+                style={{ fontFamily: 'var(--font-lato)' }}
+              >
+                Experience created by therapy professionals
+              </h3>
+
+              <p className="text-sm text-[#233551]/55 leading-relaxed mb-6">
+                Our founders bring together decades of clinical expertise and experience to give you a place where you can feel confident about the support that&apos;s available.
+              </p>
+
+              <Link
+                href="/questionnaire"
+                className="inline-flex items-center gap-2 text-sm font-bold text-[#233551] border-2 border-[#233551]/20 px-5 py-2.5 rounded-full hover:border-[#233551]/50 hover:bg-[#233551]/4 transition-all duration-200"
+              >
+                Explore ZenSpace →
+              </Link>
             </div>
-          ))}
+          </motion.div>
         </div>
+      </div>
+
+      {/* Bottom wave → dark navy section */}
+      <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
+        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20">
+          <path
+            d="M0,36 C280,72 560,0 840,36 C1020,60 1220,10 1440,36 L1440,72 L0,72 Z"
+            fill="#233551"
+          />
+        </svg>
       </div>
     </section>
   )

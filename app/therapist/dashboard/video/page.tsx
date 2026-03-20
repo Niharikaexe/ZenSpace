@@ -61,10 +61,12 @@ export default async function TherapistVideoPage() {
 
   const now = new Date()
   const upcoming = (sessions ?? []).filter(
-    (s: Session) => new Date(s.scheduled_at) > new Date(now.getTime() - 3600000) && s.status !== 'cancelled'
+    (s: Session) => s.status !== 'completed' && s.status !== 'cancelled' &&
+      new Date(s.scheduled_at) > new Date(now.getTime() - 3600000)
   )
   const past = (sessions ?? []).filter(
-    (s: Session) => new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000) || s.status === 'completed' || s.status === 'cancelled'
+    (s: Session) => s.status === 'completed' || s.status === 'cancelled' ||
+      new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000)
   )
 
   const clientName = clientUser?.full_name ?? 'Your Client'

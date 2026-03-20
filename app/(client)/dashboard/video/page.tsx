@@ -52,6 +52,16 @@ export default async function ClientVideoPage() {
 
   if (!match) redirect('/dashboard')
 
+  // Subscription gate — only active subscribers can access sessions
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('status')
+    .eq('client_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { status: string } | null; error: unknown }
+
+  if (!subscription) redirect('/dashboard')
+
   const admin = createAdminClient()
   const { data: therapistUser } = await (admin as any)
     .from('profiles')
@@ -67,10 +77,12 @@ export default async function ClientVideoPage() {
 
   const now = new Date()
   const upcoming = (sessions ?? []).filter(
-    (s: Session) => new Date(s.scheduled_at) > new Date(now.getTime() - 3600000) && s.status !== 'cancelled'
+    (s: Session) => s.status !== 'completed' && s.status !== 'cancelled' &&
+      new Date(s.scheduled_at) > new Date(now.getTime() - 3600000)
   )
   const past = (sessions ?? []).filter(
-    (s: Session) => new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000) || s.status === 'completed' || s.status === 'cancelled'
+    (s: Session) => s.status === 'completed' || s.status === 'cancelled' ||
+      new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000)
   )
 
   const therapistName = therapistUser?.full_name ?? 'Your Therapist'
