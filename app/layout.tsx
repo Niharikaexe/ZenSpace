@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Lora } from "next/font/google";
+import { Inter, Lora, Lato } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,6 +11,13 @@ const inter = Inter({
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const lato = Lato({
+  variable: "--font-lato",
+  subsets: ["latin"],
+  weight: ["300", "400", "700", "900"],
   display: "swap",
 });
 
@@ -26,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.variable} ${lora.variable} antialiased`}>
+      <body className={`${inter.variable} ${lora.variable} ${lato.variable} antialiased`}>
         {children}
       </body>
     </html>
