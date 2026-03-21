@@ -6,24 +6,28 @@ import { Plus, Minus } from "lucide-react"
 
 const faqs = [
   {
-    q: "Is online therapy effective?",
-    a: "Yes. Numerous studies show that online therapy is just as effective as in-person therapy for most conditions including anxiety, depression, and relationship issues.",
+    q: "Does online therapy actually work?",
+    a: "For most people, yes. The research is pretty clear — and honestly, not having to commute to a clinic means you actually show up. A good therapist is a good therapist, regardless of whether they're in the same room.",
   },
   {
-    q: "How much does it cost?",
-    a: "Plans start at ₹1,200/week or ₹3,999/month. We offer flexible options to make therapy accessible and affordable for everyone.",
+    q: "What does it cost?",
+    a: "Our Essentials plan is ₹2,999/week — that's one 50-minute video session plus unlimited text messaging with your therapist. Premium is ₹4,499/week and includes access to our foreign-trained therapists. Couples therapy starts at ₹5,999/week. If you want to commit to a month, that's ₹9,999 for four sessions.",
   },
   {
-    q: "How quickly can I get matched?",
-    a: "Most people are matched with a licensed therapist within 24–48 hours of completing the questionnaire.",
+    q: "Can I try before I pay?",
+    a: "Yes. Before any money changes hands, you get a free 15-minute call with your potential therapist. If it doesn't feel right, you pick someone else. No invoice, no awkwardness.",
   },
   {
-    q: "Can I switch therapists?",
-    a: "Absolutely. You can switch therapists at any time, free of charge. Finding the right fit is important to us.",
+    q: "What if my therapist and I don't click?",
+    a: "You switch. That's it. No explanation needed, no guilt trip. You're not firing anyone — you're finding your person. Therapist fit matters more than most people realise.",
   },
   {
-    q: "Is my information confidential?",
-    a: "Yes. We are fully compliant and use 256-bit encryption to protect all communications. Your privacy is our top priority.",
+    q: "Will anyone know I'm here?",
+    a: "No. Not your employer, not your family, not anyone in your building. Your sessions and messages are encrypted and private. This is yours.",
+  },
+  {
+    q: "Do you prescribe medication?",
+    a: "We don't. ZenSpace is a talk therapy and counselling platform — no prescriptions, no diagnoses. If you think you need medication, we'll say so honestly and help you find the right person for that.",
   },
 ]
 

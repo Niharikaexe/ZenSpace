@@ -1,5 +1,89 @@
 # ZenSpace — Project Brief for Claude
 
+---
+
+## COMPANY CONTEXT
+
+ZenSpace is a subscription-based online therapy platform focused exclusively
+on the Indian market. It offers:
+- Weekly therapy sessions (video) with globally trained therapists
+- Unlimited async text messaging with your therapist between sessions
+- A fully online experience — no clinics, no waiting rooms, no prescriptions
+- The ability to switch therapists anytime, no explanation needed
+- A therapist portal where therapists can write and publish SEO blogs
+- Admin oversight of all therapist-client assignments
+- A free 15-minute introductory call before any payment
+
+**IMPORTANT CONSTRAINT:** ZenSpace does not prescribe medication. It is
+a talk therapy and counselling platform only. Never imply or suggest
+diagnostic or prescription services.
+
+### PRICING TIERS
+- **Essentials:** ₹2,999/week — 1 video session (50 min) + unlimited async text
+- **Premium:** ₹4,499/week — 1 session + priority text + foreign therapist access
+- **Couples:** ₹5,999/week — 1 couples session (60 min) + text for both partners
+- **Monthly Bundle:** ₹9,999/month — 4 sessions + text + switch therapist anytime
+
+---
+
+## TONE OF VOICE — READ THIS BEFORE WRITING ANYTHING
+
+The tone is: **HONEST. WARM. DIRECT. QUIETLY CONFIDENT.**
+
+Think of how a very smart, very empathetic friend who happens to be a therapist
+would text you — not a hospital, not a startup, not a motivational poster.
+
+**WHAT THIS SOUNDS LIKE:**
+- "You've probably Googled your symptoms at 2 AM. We've got something better."
+- "Your Indian therapist told you to meditate. We're not going to do that."
+- "You don't need to explain yourself before you start. Just show up."
+- Sentences that end a little early. Like this. It feels real.
+- Short paragraphs. One idea per paragraph. White space is trust.
+
+**WHAT TO AVOID:**
+- NEVER use: "holistic", "wellness journey", "safe space", "evidence-based",
+  "on your terms", "world-class", "revolutionary", "cutting-edge",
+  "certified professionals", "healing journey", "empower"
+- NEVER start a page with a question like "Are you struggling?"
+- NEVER use corporate wellness language — this is not an HR tool
+- NEVER use clinical jargon unless it's on a blog explaining a concept simply
+- NEVER write sentences that could be on a poster at a chemist shop
+
+**THE BRAND VOICE IN ONE SENTENCE:**
+"We say the things that everyone is thinking but no one in your life will say to you."
+
+**PERSONALITY TRAITS:**
+- Culturally self-aware (knows India, doesn't preach India)
+- Comfortable with nuance — doesn't oversimplify mental health
+- Never exploits pain — acknowledges it and moves forward
+- Slightly dry humor is okay. Never sarcastic about pain.
+- Treats the reader as intelligent, not fragile
+
+### CORE USPs (weave in as felt truths, never list as features)
+
+**USP 1 — FOREIGN & GLOBALLY TRAINED THERAPISTS**
+Our therapists trained in environments where mental health isn't seen as something
+to be ashamed of. They've worked with people from very different backgrounds.
+They have no cultural stake in your choices.
+
+**USP 2 — SWITCH YOUR THERAPIST ANYTIME**
+If the fit isn't right, you change. No guilt trip, no explanation required.
+You're not firing anyone — you're finding your person.
+
+**USP 3 — TEXT YOUR THERAPIST BETWEEN SESSIONS**
+A week is a long time. When something happens on a Tuesday, you don't have
+to wait until Sunday to tell someone.
+
+**USP 4 — COMPLETE PRIVACY**
+No one in your building, your office, or your family will know you're here.
+Not because we're hiding something — because it's yours.
+
+**USP 5 — FREE INTRO CALL**
+Before you pay anything, talk to your potential therapist for 15 minutes.
+If it doesn't feel right, you pick someone else. No pressure. No invoice.
+
+---
+
 ## What We Are Building
 
 A BetterHelp/TalkSpace-style therapy marketplace MVP where:
