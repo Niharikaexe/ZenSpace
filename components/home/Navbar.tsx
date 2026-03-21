@@ -29,8 +29,14 @@ const Navbar = () => {
           <Link href="#therapists" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             Our Therapists
           </Link>
-          <Link href="#faq" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
-            FAQ
+          <Link href="/blog" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            Blog
+          </Link>
+          <Link href="/market-reports" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            Market Reports
+          </Link>
+          <Link href="/help" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            Help
           </Link>
         </div>
 
@@ -65,7 +71,9 @@ const Navbar = () => {
         <div className="md:hidden border-t border-slate-100 bg-white px-6 py-5 flex flex-col gap-4">
           <Link href="#how-it-works" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>How It Works</Link>
           <Link href="#therapists" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Our Therapists</Link>
-          <Link href="#faq" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>FAQ</Link>
+          <Link href="/blog" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Blog</Link>
+          <Link href="/market-reports" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Market Reports</Link>
+          <Link href="/help" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Help</Link>
           <div className="flex gap-3 pt-2">
             <Link href="/login" className="flex-1 text-center text-sm font-semibold text-[#233551] py-2 rounded-full border border-[#233551]/20" onClick={() => setMobileOpen(false)}>
               Log in

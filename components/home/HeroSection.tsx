@@ -112,8 +112,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Effective therapy<br />
-              that starts with you
+              Therapy that treats<br />
+              you like an adult
             </motion.h1>
 
             {/* Subtitle */}
@@ -123,7 +123,7 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-              See how we make getting support faster, easier and more impactful — matched to a licensed therapist just for you.
+              You&apos;ve probably Googled what you&apos;re feeling. That&apos;s a start. We&apos;ll take it from here — with a real therapist, real sessions, and no waiting rooms.
             </motion.p>
 
             {/* CTA buttons */}

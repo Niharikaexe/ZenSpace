@@ -76,17 +76,17 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Company */}
+          {/* Resources */}
           <div className="space-y-4">
             <h4 className="text-xs font-black text-white/40 uppercase tracking-widest" style={{ fontFamily: 'var(--font-lato)' }}>
-              Company
+              Resources
             </h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { label: "About Us", href: "#" },
+                { label: "Blog", href: "/blog" },
+                { label: "Market Reports", href: "/market-reports" },
+                { label: "Help Centre", href: "/help" },
                 { label: "For Therapists", href: "/therapist/onboard" },
-                { label: "Careers", href: "#" },
-                { label: "Contact", href: "#" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
@@ -104,7 +104,8 @@ const Footer = () => {
               {[
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
-                { label: "Accessibility", href: "#" },
+                { label: "About Us", href: "#" },
+                { label: "Contact", href: "#" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
