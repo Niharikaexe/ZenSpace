@@ -1,6 +1,7 @@
 import Navbar from "@/components/home/Navbar"
 import HeroSection from "@/components/home/HeroSection"
 import TrustBar from "@/components/home/TrustBar"
+import ProblemRecognition from "@/components/home/ProblemRecognition"
 import TherapyNeeds from "@/components/home/TherapyNeeds"
 import HowItWorks from "@/components/home/HowItWorks"
 import TherapistCards from "@/components/home/TherapistCards"
@@ -14,6 +15,7 @@ export default function HomePage() {
       <Navbar />
       <HeroSection />
       <TrustBar />
+      <ProblemRecognition />
       <TherapyNeeds />
       <HowItWorks />
       <TherapistCards />

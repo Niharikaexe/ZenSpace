@@ -147,11 +147,50 @@ const HeroSection = () => {
               </Link>
             </motion.div>
 
+            {/* ── Avatar social proof ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.55 }}
+              className="flex items-center gap-3"
+            >
+              {/* Overlapping initials circles */}
+              <div className="flex -space-x-2.5">
+                {[
+                  { i: "RK", bg: "#233551" },
+                  { i: "PA", bg: "#2d4568" },
+                  { i: "SM", bg: "#233551" },
+                  { i: "AJ", bg: "#1d2d47" },
+                ].map(({ i, bg }, idx) => (
+                  <div
+                    key={i}
+                    className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: bg, zIndex: 4 - idx }}
+                  >
+                    <span className="text-[9px] font-black text-[#7EC0B7]">{i}</span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                {/* Star row */}
+                <div className="flex items-center gap-0.5 mb-0.5">
+                  {[1,2,3,4,5].map(s => (
+                    <svg key={s} viewBox="0 0 12 12" fill="#F59E0B" className="w-3 h-3">
+                      <path d="M6 0L7.35 4.15H12L8.5 6.7 9.85 10.85 6 8.3 2.15 10.85 3.5 6.7 0 4.15H4.65L6 0Z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-xs text-[#233551]/50 font-medium leading-none">
+                  Joined by 5,000+ people across India
+                </p>
+              </div>
+            </motion.div>
+
             {/* Therapy type pills */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
               className="flex flex-wrap gap-2 pt-1"
             >
               <span className="text-xs text-[#233551]/40 font-medium self-center">Looking for:</span>
