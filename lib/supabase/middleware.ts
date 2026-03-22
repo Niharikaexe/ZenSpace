@@ -59,6 +59,8 @@ export async function updateSession(request: NextRequest) {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/signup' ||
+    pathname === '/therapist/login' ||
+    pathname === '/admin/login' ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/questionnaire') ||
     pathname.startsWith('/blog') ||
@@ -74,7 +76,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/therapist/login' ||
+    pathname === '/admin/login'
+
+  if (user && isAuthPage) {
     const role = await getRole(supabase, user.id)
     const url = request.nextUrl.clone()
     url.pathname = role === 'admin' ? '/admin' : role === 'therapist' ? '/therapist/dashboard' : '/dashboard'
