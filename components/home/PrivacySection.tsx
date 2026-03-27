@@ -55,10 +55,6 @@ const PrivacySection = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/20 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7]" />
-            Privacy
-          </span>
           <h2
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}

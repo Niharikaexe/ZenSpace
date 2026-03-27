@@ -67,6 +67,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/market-reports') ||
     pathname.startsWith('/help') ||
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
+    pathname.startsWith('/for') ||              // audience landing pages (public marketing)
     pathname.startsWith('/api/payment/webhook') // webhook must be unauthenticated
 
   if (!user && !isPublic) {
