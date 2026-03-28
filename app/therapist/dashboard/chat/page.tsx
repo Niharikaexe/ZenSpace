@@ -46,7 +46,7 @@ export default async function TherapistChatPage() {
 
   return (
     <div className="h-screen flex flex-col bg-white">
-      <TherapistNav therapistName={profile!.full_name} unreadCount={0} isMatched={true} />
+      <TherapistNav therapistName={profile!.full_name} userId={user.id} unreadCount={0} isMatched={true} />
 
       {/* Chat fills remaining height */}
       <div className="flex-1 overflow-hidden">

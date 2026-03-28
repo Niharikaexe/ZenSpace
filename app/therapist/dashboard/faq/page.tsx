@@ -1,5 +1,5 @@
 import { TherapistNav } from '@/components/therapist/TherapistNav'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
@@ -52,9 +52,13 @@ export default async function TherapistFaqPage() {
 
   if (profile?.role !== 'therapist') redirect('/login')
 
+  const admin = createAdminClient()
+  const { data: match } = await (admin as any)
+    .from('matches').select('id').eq('therapist_id', user.id).eq('status', 'active').maybeSingle()
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <TherapistNav therapistName={profile!.full_name} />
+      <TherapistNav therapistName={profile!.full_name} userId={user.id} isMatched={!!match} />
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div>

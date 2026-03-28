@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import { getNotifications } from '@/app/actions/notifications'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,12 +169,20 @@ export default async function TherapistDashboard() {
     }
   }
 
+  const [initialNotifications] = await Promise.all([getNotifications()])
+
   const dayOfWeek = new Date().toLocaleDateString('en-IN', { weekday: 'long' })
   const dateStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <TherapistNav therapistName={profile!.full_name} unreadCount={unreadCount} isMatched={!!match} />
+      <TherapistNav
+        therapistName={profile!.full_name}
+        userId={user.id}
+        initialNotifications={initialNotifications}
+        unreadCount={unreadCount}
+        isMatched={!!match}
+      />
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 

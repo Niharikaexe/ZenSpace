@@ -5,28 +5,34 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { signOut } from '@/app/actions/auth'
+import { NotificationBell } from '@/components/therapist/NotificationBell'
+import type { Notification } from '@/app/actions/notifications'
 
 interface TherapistNavProps {
   therapistName: string
+  userId: string
+  initialNotifications?: Notification[]
   unreadCount?: number
   isMatched?: boolean
-  notificationCount?: number
 }
 
-export function TherapistNav({ therapistName, unreadCount = 0, isMatched = true, notificationCount = 0 }: TherapistNavProps) {
+export function TherapistNav({
+  therapistName,
+  userId,
+  initialNotifications = [],
+  unreadCount = 0,
+  isMatched = true,
+}: TherapistNavProps) {
   const pathname = usePathname()
   const [helpOpen, setHelpOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
   const helpRef = useRef<HTMLDivElement>(null)
   const accountRef = useRef<HTMLDivElement>(null)
-  const notifRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (helpRef.current && !helpRef.current.contains(e.target as Node)) setHelpOpen(false)
       if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false)
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -86,49 +92,8 @@ export function TherapistNav({ therapistName, unreadCount = 0, isMatched = true,
         {/* Right: Help + Name dropdowns */}
         <div className="flex items-center gap-2">
 
-          {/* Notifications */}
-          <div className="relative" ref={notifRef}>
-            <button
-              onClick={() => { setNotifOpen(o => !o); setHelpOpen(false); setAccountOpen(false) }}
-              className={cn(
-                'relative w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-                notifOpen ? 'bg-slate-100' : 'hover:bg-slate-50',
-              )}
-              aria-label="Notifications"
-            >
-              <svg className="w-4.5 h-4.5 text-[#233551]/60" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              {notificationCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#E8926A] text-white text-[9px] font-bold flex items-center justify-center">
-                  {notificationCount > 9 ? '9+' : notificationCount}
-                </span>
-              )}
-            </button>
-            {notifOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-72 bg-white border border-slate-100 rounded-xl shadow-lg z-50 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
-                  <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Notifications</p>
-                  {notificationCount > 0 && (
-                    <span className="text-xs font-semibold text-[#E8926A]">{notificationCount} new</span>
-                  )}
-                </div>
-                {notificationCount === 0 ? (
-                  <div className="px-4 py-6 text-center">
-                    <p className="text-sm text-[#233551]/40">You&apos;re all caught up.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-50 max-h-64 overflow-y-auto">
-                    {/* Placeholder notifications — wire to real data when notification system is built */}
-                    <div className="px-4 py-3 hover:bg-slate-50 transition-colors">
-                      <p className="text-sm font-medium text-[#233551]">New client matched</p>
-                      <p className="text-xs text-[#233551]/45 mt-0.5">You have been assigned a new client.</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Notifications — real-time bell */}
+          <NotificationBell userId={userId} initialNotifications={initialNotifications} />
 
           {/* Help dropdown */}
           <div className="relative" ref={helpRef}>

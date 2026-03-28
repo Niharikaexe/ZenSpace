@@ -19,11 +19,19 @@ export default async function TherapistAccountPage() {
   if (profile?.role !== 'therapist') redirect('/login')
 
   const admin = createAdminClient()
-  const { data: tProfile } = await (admin as any)
-    .from('therapist_profiles')
-    .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, is_verified')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const [{ data: tProfile }, { data: match }] = await Promise.all([
+    (admin as any)
+      .from('therapist_profiles')
+      .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, is_verified')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    (admin as any)
+      .from('matches')
+      .select('id')
+      .eq('therapist_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle(),
+  ])
 
   const initialData = {
     fullName: profile!.full_name,
@@ -40,7 +48,7 @@ export default async function TherapistAccountPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <TherapistNav therapistName={profile!.full_name} />
+      <TherapistNav therapistName={profile!.full_name} userId={user.id} isMatched={!!match} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="mb-6">

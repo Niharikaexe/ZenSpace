@@ -35,11 +35,13 @@ export default async function TherapistPaymentPage() {
 
   const admin = createAdminClient()
 
-  // Get all matches for this therapist
+  // Get all matches for this therapist (including active check)
   const { data: matches } = await (admin as any)
     .from('matches')
     .select('id, client_id, created_at, status')
     .eq('therapist_id', user.id)
+
+  const isMatched = (matches ?? []).some((m: { status: string }) => m.status === 'active')
 
   const matchIds = (matches ?? []).map((m: { id: string }) => m.id)
 
@@ -112,7 +114,7 @@ export default async function TherapistPaymentPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <TherapistNav therapistName={profile!.full_name} />
+      <TherapistNav therapistName={profile!.full_name} userId={user.id} isMatched={isMatched} />
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 

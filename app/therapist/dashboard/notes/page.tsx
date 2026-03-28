@@ -61,7 +61,7 @@ export default async function TherapistNotesPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <TherapistNav therapistName={profile!.full_name} isMatched={true} />
+      <TherapistNav therapistName={profile!.full_name} userId={user.id} isMatched={true} />
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         <div className="mb-5">
