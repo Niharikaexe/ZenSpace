@@ -7,7 +7,7 @@ import { getNotifications } from '@/app/actions/notifications'
 export const dynamic = 'force-dynamic'
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function formatDateTime(iso: string) {
@@ -20,21 +20,34 @@ function formatDateTime(iso: string) {
 function Initials({ name }: { name: string }) {
   const init = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
   return (
-    <div className="w-14 h-14 rounded-2xl bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-lg flex items-center justify-center flex-shrink-0"
-      style={{ fontFamily: 'var(--font-lato)' }}>
+    <div
+      className="w-12 h-12 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-base flex items-center justify-center flex-shrink-0"
+      style={{ fontFamily: 'var(--font-lato)' }}
+    >
       {init}
     </div>
   )
 }
 
-function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
-  return (
-    <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4">
-      <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">{label}</p>
-      <p className="text-2xl font-black text-[#233551] mt-1" style={{ fontFamily: 'var(--font-lato)' }}>{value}</p>
-      {sub && <p className="text-xs text-[#233551]/40 mt-0.5">{sub}</p>}
-    </div>
-  )
+type ClientCard = {
+  matchId: string
+  clientName: string
+  email: string
+  concerns: string[]
+  subscriptionPlan: string | null
+  subscriptionStatus: string | null
+  unreadCount: number
+  sessionCount: number
+  matchedSince: string
+}
+
+type UpcomingSession = {
+  sessionId: string
+  matchId: string
+  clientName: string
+  scheduledAt: string
+  sessionType: string
+  roomUrl: string | null
 }
 
 export default async function TherapistDashboard() {
@@ -52,125 +65,125 @@ export default async function TherapistDashboard() {
 
   const admin = createAdminClient()
 
-  // Active match
-  const { data: match } = await (admin as any)
-    .from('matches')
-    .select('id, client_id, created_at, status')
-    .eq('therapist_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle()
+  const [{ data: allMatches }, { data: tProfile }] = await Promise.all([
+    (admin as any)
+      .from('matches')
+      .select('id, client_id, created_at')
+      .eq('therapist_id', user.id)
+      .eq('status', 'active'),
+    (admin as any)
+      .from('therapist_profiles')
+      .select('specializations, bio, years_experience, weekly_capacity')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  ])
 
-  // Therapist profile (for specializations display)
-  const { data: tProfile } = await (admin as any)
-    .from('therapist_profiles')
-    .select('specializations, bio, years_experience, weekly_capacity')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  const isMatched = (allMatches ?? []).length > 0
 
-  let clientData: {
-    fullName: string
-    email: string
-    concerns: string[]
-    therapistGender: string | null
-    subscriptionStatus: string | null
-    subscriptionPlan: string | null
-    questionnaireType: string | null
-  } | null = null
+  let clientCards: ClientCard[] = []
+  let upcomingSessions: UpcomingSession[] = []
+  let totalUnread = 0
 
-  let nextSession: { scheduled_at: string; session_type: string; daily_room_url: string | null } | null = null
-  let unreadCount = 0
-  let sessionCount = 0
+  if (isMatched) {
+    const cardResults = await Promise.all(
+      (allMatches as { id: string; client_id: string; created_at: string }[]).map(async m => {
+        const twoWeeksOut = new Date(Date.now() + 14 * 24 * 3600000).toISOString()
 
-  if (match) {
-    const [cpResult, subResult, sessResult, msgResult, sessCountResult, clientUserResult] = await Promise.all([
-      (admin as any)
-        .from('questionnaire_responses')
-        .select('responses')
-        .eq('client_id', match.client_id)
-        .order('submitted_at', { ascending: false })
-        .limit(1),
-      (admin as any)
-        .from('subscriptions')
-        .select('status, plan')
-        .eq('client_id', match.client_id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      (admin as any)
-        .from('sessions')
-        .select('scheduled_at, session_type, daily_room_url')
-        .eq('match_id', match.id)
-        .eq('status', 'scheduled')
-        .gte('scheduled_at', new Date().toISOString())
-        .order('scheduled_at', { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-      (admin as any)
-        .from('messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('match_id', match.id)
-        .neq('sender_id', user.id)
-        .eq('is_read', false),
-      (admin as any)
-        .from('sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('match_id', match.id)
-        .eq('status', 'completed'),
-      (admin as any)
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', match.client_id)
-        .single(),
-    ])
+        const [clientResult, subResult, unreadResult, sessCountResult, qResult, upSessResult] = await Promise.all([
+          (admin as any).from('profiles').select('full_name, email').eq('id', m.client_id).single(),
+          (admin as any)
+            .from('subscriptions')
+            .select('status, plan')
+            .eq('client_id', m.client_id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          (admin as any)
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('match_id', m.id)
+            .neq('sender_id', user.id)
+            .eq('is_read', false),
+          (admin as any)
+            .from('sessions')
+            .select('id', { count: 'exact', head: true })
+            .eq('match_id', m.id)
+            .eq('status', 'completed'),
+          (admin as any)
+            .from('questionnaire_responses')
+            .select('responses')
+            .eq('client_id', m.client_id)
+            .order('submitted_at', { ascending: false })
+            .limit(1),
+          (admin as any)
+            .from('sessions')
+            .select('id, scheduled_at, session_type, daily_room_url')
+            .eq('match_id', m.id)
+            .in('status', ['scheduled', 'ongoing'])
+            .gte('scheduled_at', new Date().toISOString())
+            .lte('scheduled_at', twoWeeksOut)
+            .order('scheduled_at', { ascending: true }),
+        ])
 
-    unreadCount = msgResult.count ?? 0
-    sessionCount = sessCountResult.count ?? 0
-    nextSession = sessResult.data ?? null
-
-    const qRows: { responses: unknown }[] | null = cpResult.data
-    const qRow = qRows?.[0] ?? null
-    const subscription = subResult.data
-    const clientUser = clientUserResult.data
-
-    // Parse questionnaire for concerns
-    let concerns: string[] = []
-    let therapistGender: string | null = null
-    let qType: string | null = null
-    if (qRow?.responses) {
-      try {
-        const r = qRow.responses as Record<string, unknown>
-        qType = r.type as string
-        if (qType === 'individual') {
-          const a = r.answers as Record<string, unknown>
-          concerns = (a?.q1 as string[] | undefined) ?? []
-          therapistGender = (a?.q8 as string | undefined) ?? null
-        } else if (qType === 'couples') {
-          const s = r.shared as Record<string, unknown> | undefined
-          concerns = (s?.q3 as string[] | undefined) ?? []
-          therapistGender = (s?.q9 as string | undefined) ?? null
-        } else if (qType === 'teen') {
-          const a = r.answers as Record<string, unknown>
-          concerns = (a?.q1 as string[] | undefined) ?? []
+        // Parse questionnaire concerns
+        let concerns: string[] = []
+        const qRow = (qResult.data ?? [])[0] ?? null
+        if (qRow?.responses) {
+          try {
+            const r = qRow.responses as Record<string, unknown>
+            const qType = r.type as string
+            if (qType === 'individual') {
+              const a = r.answers as Record<string, unknown>
+              concerns = (a?.q1 as string[] | undefined) ?? []
+            } else if (qType === 'couples') {
+              const s = r.shared as Record<string, unknown> | undefined
+              concerns = (s?.q3 as string[] | undefined) ?? []
+            } else if (qType === 'teen') {
+              const a = r.answers as Record<string, unknown>
+              concerns = (a?.q1 as string[] | undefined) ?? []
+            }
+          } catch { /* ignore */ }
         }
-      } catch { /* ignore */ }
-    }
 
-    if (clientUser) {
-      clientData = {
-        fullName: clientUser.full_name,
-        email: clientUser.email ?? '',
-        concerns,
-        therapistGender,
-        subscriptionStatus: subscription?.status ?? null,
-        subscriptionPlan: subscription?.plan ?? null,
-        questionnaireType: qType,
-      }
-    }
+        const clientName = clientResult.data?.full_name ?? 'Client'
+
+        const upcoming: UpcomingSession[] = (upSessResult.data ?? []).map(
+          (s: { id: string; scheduled_at: string; session_type: string; daily_room_url: string | null }) => ({
+            sessionId: s.id,
+            matchId: m.id,
+            clientName,
+            scheduledAt: s.scheduled_at,
+            sessionType: s.session_type,
+            roomUrl: s.daily_room_url,
+          })
+        )
+
+        return {
+          card: {
+            matchId: m.id,
+            clientName,
+            email: clientResult.data?.email ?? '',
+            concerns,
+            subscriptionPlan: subResult.data?.plan ?? null,
+            subscriptionStatus: subResult.data?.status ?? null,
+            unreadCount: unreadResult.count ?? 0,
+            sessionCount: sessCountResult.count ?? 0,
+            matchedSince: m.created_at,
+          } as ClientCard,
+          upcoming,
+        }
+      })
+    )
+
+    clientCards = cardResults.map(r => r.card)
+    upcomingSessions = cardResults
+      .flatMap(r => r.upcoming)
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    totalUnread = clientCards.reduce((sum, c) => sum + c.unreadCount, 0)
   }
 
-  const [initialNotifications] = await Promise.all([getNotifications()])
-
+  const initialNotifications = await getNotifications()
   const dayOfWeek = new Date().toLocaleDateString('en-IN', { weekday: 'long' })
   const dateStr = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -180,13 +193,13 @@ export default async function TherapistDashboard() {
         therapistName={profile!.full_name}
         userId={user.id}
         initialNotifications={initialNotifications}
-        unreadCount={unreadCount}
-        isMatched={!!match}
+        unreadCount={totalUnread}
+        isMatched={isMatched}
       />
 
       <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
 
-        {/* Welcome row */}
+        {/* Welcome */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest">{dayOfWeek}</p>
@@ -210,152 +223,156 @@ export default async function TherapistDashboard() {
           )}
         </div>
 
-        {match && clientData ? (
+        {isMatched ? (
           <>
-            {/* Next session banner */}
-            {nextSession && (
-              <div className="bg-[#233551] text-white rounded-2xl px-5 py-4 flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold text-[#7EC0B7] uppercase tracking-widest">Next Session</p>
-                  <p className="font-semibold mt-1 text-sm">
-                    {nextSession.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDateTime(nextSession.scheduled_at)}
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4">
+                <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Active clients</p>
+                <p className="text-2xl font-black text-[#233551] mt-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                  {clientCards.length}
+                </p>
+              </div>
+              <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4">
+                <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Unread messages</p>
+                <p className="text-2xl font-black text-[#233551] mt-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                  {totalUnread}
+                </p>
+              </div>
+              <div className="bg-white border border-slate-100 rounded-2xl px-5 py-4">
+                <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Upcoming sessions</p>
+                <p className="text-2xl font-black text-[#233551] mt-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                  {upcomingSessions.length}
+                </p>
+              </div>
+            </div>
+
+            {/* Upcoming sessions — next 14 days */}
+            {upcomingSessions.length > 0 && (
+              <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-50 flex items-center justify-between">
+                  <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">
+                    Upcoming — Next 14 Days
                   </p>
-                </div>
-                {nextSession.daily_room_url ? (
-                  <a
-                    href={nextSession.daily_room_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-shrink-0 px-5 py-2.5 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors"
-                  >
-                    Join Now
-                  </a>
-                ) : (
                   <Link
                     href="/therapist/dashboard/video"
-                    className="flex-shrink-0 px-5 py-2.5 bg-white/10 text-white text-sm font-medium rounded-xl hover:bg-white/20 transition-colors"
+                    className="text-xs font-semibold text-[#3D8A80] hover:text-[#233551] transition-colors"
                   >
-                    View →
+                    Manage all →
                   </Link>
-                )}
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {upcomingSessions.slice(0, 6).map(s => (
+                    <div key={s.sessionId} className="flex items-center justify-between px-5 py-3.5 gap-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-[#233551]/5 flex items-center justify-center text-base flex-shrink-0">
+                          {s.sessionType === 'video' ? '📹' : '💬'}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[#233551] truncate">{s.clientName}</p>
+                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt)}</p>
+                        </div>
+                      </div>
+                      {s.roomUrl ? (
+                        <a
+                          href={s.roomUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-shrink-0 text-xs font-bold px-3 py-1.5 bg-[#7EC0B7] text-[#233551] rounded-lg hover:bg-[#6db5ac] transition-colors"
+                        >
+                          Join
+                        </a>
+                      ) : (
+                        <Link
+                          href="/therapist/dashboard/video"
+                          className="flex-shrink-0 text-xs font-medium text-[#3D8A80] hover:text-[#233551] transition-colors"
+                        >
+                          View →
+                        </Link>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
-              <StatCard label="Sessions completed" value={sessionCount} />
-              <StatCard label="Unread messages" value={unreadCount} sub="from client" />
-              <StatCard label="Matched since" value={formatDate(match.created_at).split(' ').slice(0, 2).join(' ')} />
-            </div>
+            {/* Client cards */}
+            <div>
+              <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Your Clients</p>
+              <div className={`grid gap-4 ${clientCards.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {clientCards.map(c => (
+                  <div key={c.matchId} className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
 
-            {/* Two-column: Client + Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-              {/* Client card */}
-              <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-50 flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Your Client</span>
-                  {clientData.subscriptionPlan && (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                      clientData.subscriptionStatus === 'active'
-                        ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
-                        : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {clientData.subscriptionPlan} · {clientData.subscriptionStatus}
-                    </span>
-                  )}
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    <Initials name={clientData.fullName} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-[#233551] text-base" style={{ fontFamily: 'var(--font-lato)' }}>
-                        {clientData.fullName}
-                      </p>
-                      <p className="text-xs text-[#233551]/40 mt-0.5">{clientData.email}</p>
-
-                      {clientData.questionnaireType && (
-                        <span className="inline-block mt-2 text-xs px-2.5 py-0.5 rounded-full bg-[#233551]/6 text-[#233551]/60 font-medium capitalize">
-                          {clientData.questionnaireType} therapy
+                    {/* Card header */}
+                    <div className="px-5 py-4 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Initials name={c.clientName} />
+                        <div className="min-w-0">
+                          <p className="font-black text-[#233551] truncate" style={{ fontFamily: 'var(--font-lato)' }}>
+                            {c.clientName}
+                          </p>
+                          <p className="text-xs text-[#233551]/40 truncate">{c.email}</p>
+                        </div>
+                      </div>
+                      {c.subscriptionPlan && (
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 capitalize ${
+                          c.subscriptionStatus === 'active'
+                            ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
+                            : 'bg-amber-50 text-amber-600'
+                        }`}>
+                          {c.subscriptionPlan}
                         </span>
                       )}
+                    </div>
 
-                      {clientData.concerns.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-1.5">What they're dealing with</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {clientData.concerns.slice(0, 5).map((c, i) => (
-                              <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-slate-200 text-[#233551]/70">
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    {/* Concerns */}
+                    {c.concerns.length > 0 && (
+                      <div className="px-5 pb-3.5 flex flex-wrap gap-1.5">
+                        {c.concerns.slice(0, 4).map((con, i) => (
+                          <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-slate-200 text-[#233551]/60">
+                            {con}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
-                      {clientData.therapistGender && (
-                        <p className="text-xs text-[#233551]/45 mt-3">
-                          Therapist preference: <span className="font-medium text-[#233551]/65">{clientData.therapistGender}</span>
-                        </p>
+                    {/* Meta row */}
+                    <div className="px-5 py-3 border-t border-slate-50 flex items-center gap-4 text-xs text-[#233551]/40">
+                      <span>{c.sessionCount} sessions</span>
+                      {c.unreadCount > 0 && (
+                        <span className="text-[#E8926A] font-semibold">{c.unreadCount} unread</span>
                       )}
+                      <span>Since {formatDate(c.matchedSince)}</span>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="px-5 pb-4 pt-2 flex items-center gap-2">
+                      <Link
+                        href="/therapist/dashboard/chat"
+                        className="relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#7EC0B7]/10 text-[#3D8A80] text-xs font-semibold hover:bg-[#7EC0B7]/20 transition-colors"
+                      >
+                        💬 Chat
+                        {c.unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#E8926A] text-white text-[9px] font-bold flex items-center justify-center">
+                            {c.unreadCount > 9 ? '9+' : c.unreadCount}
+                          </span>
+                        )}
+                      </Link>
+                      <Link
+                        href="/therapist/dashboard/video"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#233551]/5 text-[#233551] text-xs font-semibold hover:bg-[#233551]/10 transition-colors"
+                      >
+                        📹 Sessions
+                      </Link>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Action cards */}
-              <div className="flex flex-col gap-3">
-                <Link
-                  href="/therapist/dashboard/chat"
-                  className="relative flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-4 py-3.5 hover:border-[#7EC0B7] hover:shadow-sm transition-all group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-[#7EC0B7]/15 text-[#3D8A80] flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-[#7EC0B7]/25 transition-colors">
-                    💬
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#233551]">Chat</p>
-                    <p className="text-xs text-[#233551]/40">Message your client</p>
-                  </div>
-                  {unreadCount > 0 && (
-                    <span className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#E8926A] text-white text-xs font-bold flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Link>
-
-                <Link
-                  href="/therapist/dashboard/video"
-                  className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-4 py-3.5 hover:border-[#7EC0B7] hover:shadow-sm transition-all group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-[#233551]/6 text-[#233551] flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-[#233551]/10 transition-colors">
-                    📹
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#233551]">Sessions</p>
-                    <p className="text-xs text-[#233551]/40">Schedule & join video</p>
-                  </div>
-                </Link>
-
-                <Link
-                  href="/therapist/dashboard/notes"
-                  className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-4 py-3.5 hover:border-[#7EC0B7] hover:shadow-sm transition-all group"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-[#E8926A]/10 text-[#E8926A] flex items-center justify-center text-lg flex-shrink-0 group-hover:bg-[#E8926A]/20 transition-colors">
-                    📋
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-[#233551]">Notes</p>
-                    <p className="text-xs text-[#233551]/40">Session notes</p>
-                  </div>
-                </Link>
+                ))}
               </div>
             </div>
           </>
         ) : (
-          /* No match state */
+          /* ── No clients ── */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-            {/* Empty state card */}
             <div className="md:col-span-2 bg-white border border-slate-100 rounded-2xl p-10 text-center">
               <div className="w-16 h-16 rounded-2xl bg-[#7EC0B7]/15 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-[#3D8A80]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -375,7 +392,6 @@ export default async function TherapistDashboard() {
               </div>
             </div>
 
-            {/* Profile completeness nudge */}
             {tProfile && (
               <>
                 <div className="bg-white border border-slate-100 rounded-2xl p-5 space-y-3">

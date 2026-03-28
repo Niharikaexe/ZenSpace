@@ -43,7 +43,6 @@ export function TherapistNav({
   const navLinks = [
     { href: '/therapist/dashboard/chat', label: 'Chat', badge: unreadCount },
     { href: '/therapist/dashboard/video', label: 'Sessions' },
-    { href: '/therapist/dashboard/notes', label: 'Notes' },
   ].filter(() => isMatched)
 
   const isActive = (href: string, exact?: boolean) =>
