@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { saveQuestionnaire } from '@/app/actions/questionnaire'
 
 type SharedAnswers = {
   q1: string   // How long together
@@ -63,6 +65,16 @@ export default function CouplesQuestionnairePage() {
   const [phase, setPhase] = useState<Phase>('shared-a')
   const [privateQ, setPrivateQ] = useState(5)
   const [currentPartner, setCurrentPartner] = useState<1 | 2>(1)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user)
+    })
+  }, [])
 
   function updateShared<K extends keyof SharedAnswers>(key: K, value: SharedAnswers[K]) {
     setShared(prev => ({ ...prev, [key]: value }))
@@ -103,7 +115,7 @@ export default function CouplesQuestionnairePage() {
     return true
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (phase === 'shared-a') {
       if (current < 4) { setCurrent(c => c + 1); return }
       if (attendingAlone) { setPhase('shared-c'); setCurrent(9); return }
@@ -126,8 +138,17 @@ export default function CouplesQuestionnairePage() {
         partner1,
         ...(attendingAlone ? {} : { partner2 }),
       }
-      sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
-      router.push('/signup')
+      if (isAuthenticated) {
+        setSubmitting(true)
+        setSaveError(null)
+        const result = await saveQuestionnaire(data)
+        setSubmitting(false)
+        if (result.error) { setSaveError(result.error); return }
+        router.push('/dashboard')
+      } else {
+        sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
+        router.push('/signup')
+      }
     }
   }
 
@@ -419,19 +440,24 @@ export default function CouplesQuestionnairePage() {
             <button
               type="button"
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || submitting}
               className="flex-1 py-3 rounded-full bg-[#233551] text-white text-sm font-bold hover:bg-[#2d4568] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              {phase === 'shared-c' && current === 11 ? 'Find our therapist →' : 'Continue'}
+              {submitting ? 'Saving...' : phase === 'shared-c' && current === 11 ? 'Find our therapist →' : 'Continue'}
             </button>
           </div>
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2.5 mt-3">{saveError}</p>
+          )}
         </div>
 
-        <p className="text-center text-xs text-[#233551]/35 mt-5">
-          Already have an account?{' '}
-          <Link href="/login" className="text-[#3D8A80] hover:underline">Sign in</Link>
-        </p>
+        {isAuthenticated === false && (
+          <p className="text-center text-xs text-[#233551]/35 mt-5">
+            Already have an account?{' '}
+            <Link href="/login" className="text-[#3D8A80] hover:underline">Sign in</Link>
+          </p>
+        )}
       </div>
     </div>
   )

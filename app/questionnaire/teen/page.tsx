@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { saveQuestionnaire } from '@/app/actions/questionnaire'
 
 const TOTAL_QUESTIONS = 8
 
@@ -67,6 +69,16 @@ export default function TeenQuestionnairePage() {
   const router = useRouter()
   const [current, setCurrent] = useState(1)
   const [answers, setAnswers] = useState<Answers>(initialAnswers)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user)
+    })
+  }, [])
 
   function toggleMulti(key: 'q1' | 'q3' | 'q7', value: string) {
     setAnswers(prev => {
@@ -94,14 +106,21 @@ export default function TeenQuestionnairePage() {
     return true
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (current < TOTAL_QUESTIONS) {
       setCurrent(c => c + 1)
+      return
+    }
+    const data = { type: 'teen', answers }
+    if (isAuthenticated) {
+      setSubmitting(true)
+      setSaveError(null)
+      const result = await saveQuestionnaire(data)
+      setSubmitting(false)
+      if (result.error) { setSaveError(result.error); return }
+      router.push('/dashboard')
     } else {
-      sessionStorage.setItem(
-        'zenspace_questionnaire',
-        JSON.stringify({ type: 'teen', answers })
-      )
+      sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
       router.push('/signup')
     }
   }
@@ -346,19 +365,24 @@ export default function TeenQuestionnairePage() {
             <button
               type="button"
               onClick={handleNext}
-              disabled={!canProceed()}
+              disabled={!canProceed() || submitting}
               className="flex-1 py-3 rounded-full bg-[#233551] text-white text-sm font-bold hover:bg-[#2d4568] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              {current === TOTAL_QUESTIONS ? 'Find my therapist →' : 'Continue'}
+              {submitting ? 'Saving...' : current === TOTAL_QUESTIONS ? 'Find my therapist →' : 'Continue'}
             </button>
           </div>
+          {saveError && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2.5 mt-3">{saveError}</p>
+          )}
         </div>
 
-        <p className="text-center text-xs text-[#233551]/35 mt-5">
-          Already have an account?{' '}
-          <Link href="/login" className="text-[#3D8A80] hover:underline">Sign in</Link>
-        </p>
+        {isAuthenticated === false && (
+          <p className="text-center text-xs text-[#233551]/35 mt-5">
+            Already have an account?{' '}
+            <Link href="/login" className="text-[#3D8A80] hover:underline">Sign in</Link>
+          </p>
+        )}
       </div>
     </div>
   )

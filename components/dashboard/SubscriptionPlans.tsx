@@ -139,23 +139,23 @@ export function SubscriptionPlans({ userName, userEmail, onSuccess }: Props) {
             type="button"
             onClick={() => setSelectedPlan(key)}
             className={cn(
-              'relative text-left p-4 rounded-xl border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500',
+              'relative text-left p-4 rounded-xl border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7EC0B7]',
               selectedPlan === key
-                ? 'border-teal-600 bg-teal-50'
-                : 'border-slate-200 bg-white hover:border-teal-300'
+                ? 'border-[#7EC0B7] bg-[#7EC0B7]/8'
+                : 'border-slate-200 bg-white hover:border-[#7EC0B7]/50'
             )}
           >
             {plan.badge && (
-              <Badge className="absolute top-3 right-3 bg-teal-600 text-white text-xs">
+              <Badge className="absolute top-3 right-3 bg-[#233551] text-white text-xs">
                 {plan.badge}
               </Badge>
             )}
-            <p className="text-sm font-medium text-slate-500">{plan.label}</p>
+            <p className="text-sm font-medium text-[#233551]/50">{plan.label}</p>
             <p className="mt-1">
-              <span className="text-2xl font-bold text-slate-900">{plan.display}</span>
-              <span className="text-slate-500 text-sm ml-1">{plan.subtext}</span>
+              <span className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.display}</span>
+              <span className="text-[#233551]/50 text-sm ml-1">{plan.subtext}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-1">{plan.description}</p>
+            <p className="text-xs text-[#233551]/50 mt-1">{plan.description}</p>
           </button>
         ))}
       </div>
@@ -165,14 +165,15 @@ export function SubscriptionPlans({ userName, userEmail, onSuccess }: Props) {
       )}
 
       <Button
-        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-5 text-base font-semibold"
+        className="w-full bg-[#233551] hover:bg-[#2d4568] text-white py-5 text-base font-bold"
+        style={{ fontFamily: 'var(--font-lato)' }}
         onClick={handleSubscribe}
         disabled={isLoading}
       >
         {isLoading ? 'Opening payment...' : `Subscribe — ${PLANS[selectedPlan].display}`}
       </Button>
 
-      <p className="text-xs text-center text-slate-400">
+      <p className="text-xs text-center text-[#233551]/35">
         Secure payments via Razorpay · Subscription is non-refundable
       </p>
     </div>
