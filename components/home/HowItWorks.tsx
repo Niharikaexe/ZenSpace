@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 
 /* ── Step data ── */
 const steps = [
@@ -209,10 +208,11 @@ const HowItWorks = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
         >
-          <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7]" />
-            How it works
-          </span>
+          <div className="flex items-center justify-center gap-3 mb-5">
+            <div className="h-px w-12 bg-[#7EC0B7]" />
+            <span className="text-[#3D8A80] text-xs font-black uppercase tracking-[0.2em]">How it works</span>
+            <div className="h-px w-12 bg-[#7EC0B7]" />
+          </div>
           <h2
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
@@ -249,23 +249,6 @@ const HowItWorks = () => {
           </div>
         </motion.div>
 
-        {/* ── CTA ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.7 }}
-          className="text-center mt-10"
-        >
-          <Link
-            href="/questionnaire"
-            className="inline-flex items-center gap-2 bg-[#233551] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#2d4568] transition-all duration-200 shadow-lg shadow-[#233551]/25 hover:-translate-y-0.5 hover:shadow-xl"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            Start — it&apos;s free
-          </Link>
-          <p className="text-xs text-[#233551]/40 mt-3">No credit card needed to get matched</p>
-        </motion.div>
       </div>
 
       {/* ── Bottom wave → dark navy (TherapistCards) ── */}

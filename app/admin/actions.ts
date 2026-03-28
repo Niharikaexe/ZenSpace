@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createNotification } from '@/lib/notifications'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -33,6 +34,20 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   })
 
   if (error) throw new Error(error.message)
+
+  // Notify the therapist (reuse admin client from above)
+  const { data: clientProfile } = await (admin as any)
+    .from('profiles').select('full_name').eq('id', clientId).single()
+  const clientName = clientProfile?.full_name ?? 'A new client'
+
+  createNotification({
+    userId: therapistId,
+    type: 'client_matched',
+    title: 'New client matched',
+    body: `${clientName} has been assigned to you. Check their profile and reach out.`,
+    metadata: { clientId, clientName },
+  }).catch(() => {}) // fire-and-forget
+
   revalidatePath('/admin')
 }
 
@@ -46,6 +61,22 @@ export async function toggleTherapistVerification(therapistProfileId: string, cu
     .eq('id', therapistProfileId)
 
   if (error) throw new Error(error.message)
+
+  // Notify therapist when newly verified (not when revoked)
+  if (!currentValue) {
+    const { data: tProfile } = await (admin as any)
+      .from('therapist_profiles').select('user_id').eq('id', therapistProfileId).single()
+    if (tProfile?.user_id) {
+      createNotification({
+        userId: tProfile.user_id,
+        type: 'profile_verified',
+        title: 'Profile verified',
+        body: 'Your ZenSpace profile has been verified. You are now eligible to receive client matches.',
+        metadata: {},
+      }).catch(() => {})
+    }
+  }
+
   revalidatePath('/admin')
 }
 
@@ -90,11 +121,33 @@ export async function endMatch(matchId: string) {
   await assertAdmin()
   const admin = createAdminClient()
 
+  // Fetch match details before ending so we can notify
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('therapist_id, client_id')
+    .eq('id', matchId)
+    .single()
+
   const { error } = await (admin as any)
     .from('matches')
     .update({ status: 'ended', ended_at: new Date().toISOString() })
     .eq('id', matchId)
 
   if (error) throw new Error(error.message)
+
+  if (match) {
+    const { data: clientProfile } = await (admin as any)
+      .from('profiles').select('full_name').eq('id', match.client_id).single()
+    const clientName = clientProfile?.full_name ?? 'Your client'
+
+    createNotification({
+      userId: match.therapist_id,
+      type: 'client_unmatched',
+      title: 'Match ended',
+      body: `Your match with ${clientName} has been ended by the admin.`,
+      metadata: { clientId: match.client_id, clientName },
+    }).catch(() => {})
+  }
+
   revalidatePath('/admin')
 }

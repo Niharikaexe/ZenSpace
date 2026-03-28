@@ -5,7 +5,6 @@ import ProblemRecognition from "@/components/home/ProblemRecognition"
 import TherapyNeeds from "@/components/home/TherapyNeeds"
 import HowItWorks from "@/components/home/HowItWorks"
 import TherapistCards from "@/components/home/TherapistCards"
-import PricingPlans from "@/components/home/PricingPlans"
 import Testimonials from "@/components/home/Testimonials"
 import PrivacySection from "@/components/home/PrivacySection"
 import CTASection from "@/components/home/CTASection"
@@ -22,7 +21,6 @@ export default function HomePage() {
       <TherapyNeeds />
       <HowItWorks />
       <TherapistCards />
-      <PricingPlans />
       <Testimonials />
       <PrivacySection />
       <CTASection />

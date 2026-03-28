@@ -23,11 +23,11 @@ const Navbar = () => {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          <Link href="#how-it-works" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
-            How It Works
+          <Link href="/about" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            About Us
           </Link>
-          <Link href="#therapists" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
-            Our Therapists
+          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            Join as Therapist
           </Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             Blog
@@ -35,8 +35,8 @@ const Navbar = () => {
           <Link href="/market-reports" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             Market Reports
           </Link>
-          <Link href="/help" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
-            Help
+          <Link href="/contact" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+            Contact
           </Link>
         </div>
 
@@ -49,7 +49,7 @@ const Navbar = () => {
             Log in
           </Link>
           <Link
-            href="/questionnaire"
+            href="/signup"
             className="text-sm font-semibold text-white bg-[#233551] px-5 py-2 rounded-full hover:bg-[#2d4568] transition-colors"
           >
             Sign up
@@ -69,16 +69,16 @@ const Navbar = () => {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-6 py-5 flex flex-col gap-4">
-          <Link href="#how-it-works" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>How It Works</Link>
-          <Link href="#therapists" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Our Therapists</Link>
+          <Link href="/about" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>About Us</Link>
+          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Join as Therapist</Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/market-reports" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Market Reports</Link>
-          <Link href="/help" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Help</Link>
+          <Link href="/contact" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Contact</Link>
           <div className="flex gap-3 pt-2">
             <Link href="/login" className="flex-1 text-center text-sm font-semibold text-[#233551] py-2 rounded-full border border-[#233551]/20" onClick={() => setMobileOpen(false)}>
               Log in
             </Link>
-            <Link href="/questionnaire" className="flex-1 text-center text-sm font-semibold text-white bg-[#233551] py-2 rounded-full" onClick={() => setMobileOpen(false)}>
+            <Link href="/signup" className="flex-1 text-center text-sm font-semibold text-white bg-[#233551] py-2 rounded-full" onClick={() => setMobileOpen(false)}>
               Sign up
             </Link>
           </div>

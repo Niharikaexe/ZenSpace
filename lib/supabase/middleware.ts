@@ -67,6 +67,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/market-reports') ||
     pathname.startsWith('/help') ||
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
+    pathname === '/therapist/apply' ||          // public application form (no account yet)
+    pathname.startsWith('/for') ||              // audience landing pages (public marketing)
     pathname.startsWith('/api/payment/webhook') // webhook must be unauthenticated
 
   if (!user && !isPublic) {
@@ -104,7 +106,13 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (user && pathname.startsWith('/therapist')) {
+  // /therapist/apply and /therapist/onboard are public — skip role check for them
+  if (
+    user &&
+    pathname.startsWith('/therapist') &&
+    pathname !== '/therapist/apply' &&
+    pathname !== '/therapist/onboard'
+  ) {
     const role = await getRole(supabase, user.id)
     if (role !== 'therapist' && role !== 'admin') {
       logger.warn('middleware', 'Non-therapist accessing /therapist — blocked', { userId: user.id, role })

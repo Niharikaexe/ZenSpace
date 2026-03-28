@@ -128,13 +128,6 @@ const ProblemRecognition = () => {
                 Therapy isn&apos;t for people who are broken. It&apos;s for people who are tired of carrying things alone.
               </p>
 
-              <Link
-                href="/questionnaire"
-                className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#6AADA4] transition-all duration-200 shadow-lg shadow-[#7EC0B7]/25 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#7EC0B7]/30"
-                style={{ fontFamily: 'var(--font-lato)' }}
-              >
-                Take the 5-min assessment →
-              </Link>
             </motion.div>
           </div>
         </div>

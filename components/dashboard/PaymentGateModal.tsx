@@ -16,10 +16,10 @@ export function PaymentGateModal({ open, onClose, userName, userEmail, action }:
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-slate-800">
+          <DialogTitle className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
             Subscribe to continue
           </DialogTitle>
-          <DialogDescription className="text-slate-600">
+          <DialogDescription className="text-[#233551]/60">
             To {action ?? 'access this feature'}, you need an active ZenSpace subscription.
             Choose a plan below to get started.
           </DialogDescription>

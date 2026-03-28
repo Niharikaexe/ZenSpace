@@ -40,16 +40,25 @@ export async function submitTherapistOnboarding(
 
   const admin = createAdminClient()
 
-  // Validate invite code against DB (single-use, must be unused)
-  const { data: invite, error: inviteError } = await (admin as any)
-    .from('therapist_invites')
-    .select('id, used_by')
-    .eq('code', inviteCode.trim().toUpperCase())
-    .is('used_by', null)
-    .maybeSingle()
+  // TEST CODE — always valid, never marked as used
+  const TEST_CODE = 'ZENSPACE2026'
+  const isTestCode = inviteCode.trim().toUpperCase() === TEST_CODE
 
-  if (inviteError || !invite) {
-    return { error: 'Invalid or already used invite code. Please contact the ZenSpace admin.' }
+  let invite: { id: string } | null = null
+
+  if (!isTestCode) {
+    // Validate invite code against DB (single-use, must be unused)
+    const { data, error: inviteError } = await (admin as any)
+      .from('therapist_invites')
+      .select('id, used_by')
+      .eq('code', inviteCode.trim().toUpperCase())
+      .is('used_by', null)
+      .maybeSingle()
+
+    if (inviteError || !data) {
+      return { error: 'Invalid or already used invite code. Please contact the ZenSpace admin.' }
+    }
+    invite = data
   }
 
   // Create auth user via admin (auto-confirms email, sets role metadata)
@@ -98,11 +107,13 @@ export async function submitTherapistOnboarding(
     return { error: 'Failed to save profile. Please try again.' }
   }
 
-  // Mark invite code as used
-  await (admin as any)
-    .from('therapist_invites')
-    .update({ used_by: userId, used_at: new Date().toISOString() })
-    .eq('id', invite.id)
+  // Mark invite code as used (skip for test code)
+  if (!isTestCode && invite) {
+    await (admin as any)
+      .from('therapist_invites')
+      .update({ used_by: userId, used_at: new Date().toISOString() })
+      .eq('id', invite.id)
+  }
 
   // Sign in the new therapist
   const supabase = await createClient()

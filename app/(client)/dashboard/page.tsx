@@ -1,12 +1,10 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { signOut } from '@/app/actions/auth'
 import { logger } from '@/lib/logger'
-import { Button } from '@/components/ui/button'
+import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 import { MatchedDashboard } from '@/components/dashboard/MatchedDashboard'
 
-// Always render fresh — subscription and match status must never be stale
 export const dynamic = 'force-dynamic'
 
 export default async function ClientDashboard() {
@@ -18,7 +16,6 @@ export default async function ClientDashboard() {
     redirect('/login')
   }
 
-  // Use maybeSingle() — never throws on 0 rows, returns null instead
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role, full_name')
@@ -29,7 +26,6 @@ export default async function ClientDashboard() {
     logger.error('dashboard/client', 'Failed to fetch profile', profileError, { userId: user.id })
   }
 
-  // Safety net: profile row missing (user existed before schema was applied) — create it
   if (!profile) {
     logger.warn('dashboard/client', 'Profile row missing — creating via admin client', { userId: user.id })
     const admin = createAdminClient()
@@ -42,16 +38,14 @@ export default async function ClientDashboard() {
       logger.error('dashboard/client', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
       redirect('/login')
     }
-    logger.info('dashboard/client', 'Missing profile created — reloading', { userId: user.id })
     redirect('/dashboard')
   }
 
   if (profile.role !== 'client') {
-    logger.warn('dashboard/client', 'Wrong role for client dashboard', { userId: user.id, role: profile.role })
     redirect(profile.role === 'admin' ? '/admin' : '/therapist/dashboard')
   }
 
-  // Fetch active match — safe, returns null if none
+  // Fetch active match
   const { data: match, error: matchError } = await supabase
     .from('matches')
     .select('id, status, therapist_id, created_at')
@@ -63,12 +57,10 @@ export default async function ClientDashboard() {
     }
 
   if (matchError) {
-    logger.error('dashboard/client', 'Failed to fetch match — defaulting to unmatched', matchError, {
-      userId: user.id,
-    })
+    logger.error('dashboard/client', 'Failed to fetch match', matchError, { userId: user.id })
   }
 
-  // Fetch latest active subscription — safe, returns null if none
+  // Fetch active subscription
   const { data: subscription, error: subError } = await supabase
     .from('subscriptions')
     .select('id, plan, status, current_period_end')
@@ -82,15 +74,63 @@ export default async function ClientDashboard() {
     }
 
   if (subError) {
-    logger.error('dashboard/client', 'Failed to fetch subscription — defaulting to no subscription', subError, {
-      userId: user.id,
-    })
+    logger.error('dashboard/client', 'Failed to fetch subscription', subError, { userId: user.id })
+  }
+
+  // Fetch questionnaire_responses
+  // Use limit(1) + single() to safely handle any duplicate rows
+  const { data: questionnaireRows } = await supabase
+    .from('questionnaire_responses')
+    .select('responses')
+    .eq('client_id', user.id)
+    .order('submitted_at', { ascending: false })
+    .limit(1) as { data: { responses: unknown }[] | null; error: unknown }
+
+  const questionnaireRow = questionnaireRows?.[0] ?? null
+
+  // Extract preferences from questionnaire JSON
+  let questionnairePrefs: {
+    type: 'individual' | 'couples' | 'teen'
+    concerns: string[]
+    therapistGender: string | null
+  } | null = null
+
+  if (questionnaireRow?.responses) {
+    try {
+      const data = questionnaireRow.responses as Record<string, unknown>
+      const type = data.type as string
+      if (type === 'individual') {
+        const answers = data.answers as Record<string, unknown>
+        questionnairePrefs = {
+          type: 'individual',
+          concerns: (answers?.q1 as string[] | undefined) ?? [],
+          therapistGender: (answers?.q8 as string | undefined) ?? null,
+        }
+      } else if (type === 'couples') {
+        const shared = data.shared as Record<string, unknown> | undefined
+        questionnairePrefs = {
+          type: 'couples',
+          concerns: (shared?.q3 as string[] | undefined) ?? [],
+          therapistGender: (shared?.q9 as string | undefined) ?? null,
+        }
+      } else if (type === 'teen') {
+        const answers = data.answers as Record<string, unknown>
+        questionnairePrefs = {
+          type: 'teen',
+          concerns: (answers?.q1 as string[] | undefined) ?? [],
+          therapistGender: null,
+        }
+      }
+    } catch {
+      // Malformed questionnaire JSON — treat as no questionnaire
+    }
   }
 
   const isMatched = !!match
   const hasActiveSubscription = !!subscription
+  const hasQuestionnaire = !!questionnaireRow
 
-  // If matched, fetch therapist details via admin client (RLS on profiles only allows self-read)
+  // Fetch therapist details if matched
   let therapistData: {
     fullName: string
     avatarUrl: string | null
@@ -103,7 +143,6 @@ export default async function ClientDashboard() {
 
   if (match) {
     const admin = createAdminClient()
-
     const [tProfileResult, tUserResult] = await Promise.all([
       (admin as any)
         .from('therapist_profiles')
@@ -116,19 +155,6 @@ export default async function ClientDashboard() {
         .eq('id', match.therapist_id)
         .maybeSingle(),
     ])
-
-    if (tProfileResult.error) {
-      logger.error('dashboard/client', 'Failed to fetch therapist_profiles', tProfileResult.error, {
-        userId: user.id,
-        therapistId: match.therapist_id,
-      })
-    }
-    if (tUserResult.error) {
-      logger.error('dashboard/client', 'Failed to fetch therapist profile row', tUserResult.error, {
-        userId: user.id,
-        therapistId: match.therapist_id,
-      })
-    }
 
     const tProfile = tProfileResult.data
     const tUser = tUserResult.data
@@ -143,13 +169,6 @@ export default async function ClientDashboard() {
         yearsExperience: tProfile.years_experience ?? 0,
         languages: tProfile.languages ?? ['English'],
       }
-    } else {
-      logger.warn('dashboard/client', 'Therapist data incomplete — showing pending view as fallback', {
-        userId: user.id,
-        therapistId: match.therapist_id,
-        hasTherapistProfile: !!tProfile,
-        hasTherapistUser: !!tUser,
-      })
     }
   }
 
@@ -157,23 +176,14 @@ export default async function ClientDashboard() {
     userId: user.id,
     isMatched,
     hasActiveSubscription,
+    hasQuestionnaire,
   })
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-100 px-6 py-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div>
-            <span className="text-lg font-bold text-teal-700">ZenSpace</span>
-            <p className="text-xs text-slate-500 mt-0.5">Welcome back, {profile.full_name}</p>
-          </div>
-          <form action={signOut}>
-            <Button variant="outline" type="submit" size="sm">Sign out</Button>
-          </form>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#FAFAFA]">
+      <DashboardNav userName={profile.full_name} isMatched={isMatched} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-5xl mx-auto px-4 py-8">
         {isMatched && therapistData ? (
           <MatchedDashboard
             userName={profile.full_name}
@@ -191,6 +201,8 @@ export default async function ClientDashboard() {
             userName={profile.full_name}
             userEmail={user.email ?? ''}
             hasActiveSubscription={hasActiveSubscription}
+            hasQuestionnaire={hasQuestionnaire}
+            questionnairePrefs={questionnairePrefs}
           />
         )}
       </main>

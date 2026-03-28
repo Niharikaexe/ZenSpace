@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
 
 async function getAuthUser() {
   const supabase = await createClient()
@@ -27,6 +28,36 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
   })
 
   if (error) return { error: error.message }
+
+  // Notify the OTHER party (debounced — once per 5 min per match)
+  try {
+    const admin = createAdminClient()
+    const { data: match } = await (admin as any)
+      .from('matches')
+      .select('client_id, therapist_id')
+      .eq('id', matchId)
+      .single()
+
+    if (match) {
+      const recipientId = user.id === match.client_id ? match.therapist_id : match.client_id
+      const shouldNotify = await shouldNotifyMessage(recipientId, matchId)
+
+      if (shouldNotify) {
+        const { data: senderProfile } = await (admin as any)
+          .from('profiles').select('full_name').eq('id', user.id).single()
+        const senderName = senderProfile?.full_name ?? 'Someone'
+
+        createNotification({
+          userId: recipientId,
+          type: 'client_message',
+          title: 'New message',
+          body: `${senderName} sent you a message.`,
+          metadata: { matchId, senderId: user.id, clientName: senderName },
+        }).catch(() => {})
+      }
+    }
+  } catch { /* notification failure must not break message send */ }
+
   return {}
 }
 
@@ -101,6 +132,30 @@ export async function scheduleSession(
   })
 
   if (error) return { error: error.message }
+
+  // Notify the client about the scheduled session
+  try {
+    const admin = createAdminClient()
+    const { data: match } = await (admin as any)
+      .from('matches')
+      .select('client_id')
+      .eq('id', matchId)
+      .single()
+
+    if (match?.client_id) {
+      const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+      })
+      createNotification({
+        userId: match.client_id,
+        type: 'session_scheduled',
+        title: 'Session scheduled',
+        body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
+        metadata: { matchId, scheduledAt, sessionType, dateStr },
+      }).catch(() => {})
+    }
+  } catch { /* non-fatal */ }
 
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/video')
