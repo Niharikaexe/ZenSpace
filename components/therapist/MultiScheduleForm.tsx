@@ -73,10 +73,10 @@ export default function MultiScheduleForm({ clients }: Props) {
       </div>
 
       <div className="space-y-4">
-        {/* Client picker — shown only when multiple clients */}
-        {clients.length > 1 && (
-          <div>
-            <label className="text-xs font-bold text-[#233551]/40 uppercase tracking-widest block mb-1.5">Client</label>
+        {/* Client — dropdown if multiple, read-only label if single */}
+        <div>
+          <label className="text-xs font-bold text-[#233551]/40 uppercase tracking-widest block mb-1.5">Scheduling with</label>
+          {clients.length > 1 ? (
             <select
               value={matchId}
               onChange={e => setMatchId(e.target.value)}
@@ -86,8 +86,15 @@ export default function MultiScheduleForm({ clients }: Props) {
                 <option key={c.matchId} value={c.matchId}>{c.clientName}</option>
               ))}
             </select>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center gap-2.5 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="w-6 h-6 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] text-xs font-bold flex items-center justify-center flex-shrink-0">
+                {clients[0]?.clientName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+              </div>
+              <p className="text-sm font-semibold text-[#233551]">{clients[0]?.clientName}</p>
+            </div>
+          )}
+        </div>
 
         {/* Session type */}
         <div>
