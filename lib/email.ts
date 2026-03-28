@@ -166,7 +166,9 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       html = tplSessionScheduled(name, meta.dateStr ?? '', meta.sessionType ?? 'video')
       break
     case 'session_reminder':
-      subject = `Reminder: session in 1 hour`
+      subject = meta.window === '24h'
+        ? `Tomorrow: your ${meta.sessionType ?? 'therapy'} session — ${meta.dateStr ?? ''}`
+        : `Starting soon: your ${meta.sessionType ?? 'therapy'} session — ${meta.dateStr ?? ''}`
       html = tplSessionReminder(name, meta.dateStr ?? '', meta.sessionType ?? 'video')
       break
   }
