@@ -26,7 +26,7 @@ const Navbar = () => {
           <Link href="/about" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             About Us
           </Link>
-          <Link href="/therapist/onboard" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             Join as Therapist
           </Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
@@ -70,7 +70,7 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-6 py-5 flex flex-col gap-4">
           <Link href="/about" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>About Us</Link>
-          <Link href="/therapist/onboard" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Join as Therapist</Link>
+          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Join as Therapist</Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/market-reports" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Market Reports</Link>
           <Link href="/contact" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Contact</Link>

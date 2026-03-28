@@ -86,7 +86,7 @@ const Footer = () => {
                 { label: "Blog", href: "/blog" },
                 { label: "Market Reports", href: "/market-reports" },
                 { label: "Help Centre", href: "/help" },
-                { label: "For Therapists", href: "/therapist/onboard" },
+                { label: "For Therapists", href: "/therapist/apply" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
