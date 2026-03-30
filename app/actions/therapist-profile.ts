@@ -21,6 +21,7 @@ export async function updateTherapistProfile(
   const specializationsRaw = formData.get('specializations') as string | null
   const languagesRaw = formData.get('languages') as string | null
   const acceptsNewClients = formData.get('acceptsNewClients') === 'true'
+  const availabilityText = (formData.get('availabilityText') as string | null)?.trim() || null
 
   if (!fullName || fullName.length < 2) return { error: 'Name is required.' }
   if (!bio || bio.length < 10) return { error: 'Bio must be at least 10 characters.' }
@@ -64,6 +65,7 @@ export async function updateTherapistProfile(
       specializations,
       languages,
       accepts_new_clients: acceptsNewClients,
+      availability_text: availabilityText,
     })
     .eq('user_id', user.id)
 

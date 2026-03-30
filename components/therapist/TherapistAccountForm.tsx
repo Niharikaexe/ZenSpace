@@ -51,6 +51,7 @@ interface Props {
     specializations: string[]
     languages: string[]
     acceptsNewClients: boolean
+    availabilityText: string
     email: string
     isVerified: boolean
   }
@@ -69,6 +70,7 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [specializations, setSpecializations] = useState<string[]>(initialData.specializations)
   const [languages, setLanguages] = useState<string[]>(initialData.languages)
   const [acceptsNew, setAcceptsNew] = useState(initialData.acceptsNewClients)
+  const [availabilityText, setAvailabilityText] = useState(initialData.availabilityText)
 
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -99,6 +101,7 @@ export function TherapistAccountForm({ initialData }: Props) {
       <input type="hidden" name="specializations" value={JSON.stringify(specializations)} />
       <input type="hidden" name="languages" value={JSON.stringify(languages)} />
       <input type="hidden" name="acceptsNewClients" value={String(acceptsNew)} />
+      <input type="hidden" name="availabilityText" value={availabilityText} />
 
       {/* Section: Identity */}
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">
@@ -191,6 +194,16 @@ export function TherapistAccountForm({ initialData }: Props) {
             />
           </Field>
         </div>
+
+        <Field label="Availability" hint="Shown to matched clients when they book sessions">
+          <textarea
+            value={availabilityText}
+            onChange={e => setAvailabilityText(e.target.value)}
+            rows={3}
+            placeholder="e.g. Mon–Fri 10am–6pm IST, Sat 10am–2pm IST"
+            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
+          />
+        </Field>
 
         <Field label="Accepting new clients">
           <div className="flex items-center gap-3 mt-1">
@@ -302,14 +315,13 @@ export function TherapistAccountForm({ initialData }: Props) {
       )}
 
       <div className="flex items-center justify-between gap-4">
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors"
-          >
-            Sign out
-          </button>
-        </form>
+        <button
+          type="submit"
+          formAction={signOut}
+          className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors"
+        >
+          Sign out
+        </button>
         <button
           type="submit"
           disabled={isPending}

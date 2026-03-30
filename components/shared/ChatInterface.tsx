@@ -18,6 +18,8 @@ interface Props {
   currentUserName: string
   otherPartyName: string
   initialMessages: Message[]
+  sendDisabled?: boolean
+  onSendDisabled?: () => void
 }
 
 function formatTime(iso: string) {
@@ -39,6 +41,8 @@ export default function ChatInterface({
   currentUserId,
   otherPartyName,
   initialMessages,
+  sendDisabled = false,
+  onSendDisabled,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
@@ -88,6 +92,7 @@ export default function ChatInterface({
 
   function handleSend() {
     if (!input.trim() || isSending) return
+    if (sendDisabled) { onSendDisabled?.(); return }
     const content = input.trim()
     setInput('')
     setSendError(null)
@@ -209,7 +214,7 @@ export default function ChatInterface({
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() || isSending}
+            disabled={!input.trim() && !sendDisabled}
             className="w-10 h-10 rounded-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-px"
           >
             <svg className="w-4 h-4 rotate-90" fill="currentColor" viewBox="0 0 24 24">
@@ -217,7 +222,13 @@ export default function ChatInterface({
             </svg>
           </button>
         </div>
-        <p className="text-xs text-slate-400 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>
+        {sendDisabled ? (
+          <p className="text-xs text-[#3D8A80] text-center mt-1.5 font-medium">
+            Subscribe to send messages · <button onClick={() => onSendDisabled?.()} className="underline">View plans</button>
+          </p>
+        ) : (
+          <p className="text-xs text-slate-400 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>
+        )}
       </div>
     </div>
   )

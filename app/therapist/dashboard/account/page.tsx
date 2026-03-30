@@ -22,7 +22,7 @@ export default async function TherapistAccountPage() {
   const [{ data: tProfile }, { data: match }] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, is_verified')
+      .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, availability_text, is_verified')
       .eq('user_id', user.id)
       .maybeSingle(),
     (admin as any)
@@ -43,6 +43,7 @@ export default async function TherapistAccountPage() {
     specializations: (tProfile?.specializations as string[]) ?? [],
     languages: (tProfile?.languages as string[]) ?? ['English'],
     acceptsNewClients: tProfile?.accepts_new_clients ?? true,
+    availabilityText: tProfile?.availability_text ?? '',
     isVerified: tProfile?.is_verified ?? false,
   }
 

@@ -158,7 +158,7 @@ export async function scheduleSession(
   } catch { /* non-fatal */ }
 
   revalidatePath('/therapist/dashboard/video')
-  revalidatePath('/dashboard/video')
+  revalidatePath('/dashboard/sessions')
   return {}
 }
 
@@ -198,6 +198,6 @@ export async function updateSessionStatus(
   if (error) return { error: error.message }
 
   revalidatePath('/therapist/dashboard/video')
-  revalidatePath('/dashboard/video')
+  revalidatePath('/dashboard/sessions')
   return {}
 }
