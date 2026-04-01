@@ -312,11 +312,6 @@ Remove items as they are completed.
 - [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
 - [ ] Cookie consent banner (if using analytics)
 
-**Admin: therapist application management**
-- [ ] Admin view for pending therapist applications (`therapist_applications` table)
-- [ ] Approve / reject action with admin notes
-- [ ] Generate invite code and send it to approved applicant via email
-
 **Infrastructure (one-time setup)**
 - [ ] Run `supabase/migrations/20260329_notifications.sql` in Supabase SQL editor
 - [ ] Run `alter publication supabase_realtime add table notifications;` in Supabase SQL editor

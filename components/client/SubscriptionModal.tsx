@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 interface Props {
   onClose: () => void
   trigger?: 'chat' | 'session'
+  therapyType?: string | null // 'individual' | 'couples' | 'teen' | null
 }
 
-const PLANS = [
+const INDIVIDUAL_PLANS = [
   {
-    name: 'Essentials',
-    price: '₹2,999',
+    name: 'Basic',
+    price: '₹1,799',
     per: 'week',
     features: ['1 video session (50 min)', 'Unlimited async text messaging'],
     highlight: false,
@@ -19,24 +20,32 @@ const PLANS = [
     name: 'Premium',
     price: '₹4,499',
     per: 'week',
-    features: ['1 session + priority text', 'Access to foreign therapists'],
+    features: ['Priority text response', 'Foreign therapist access'],
     highlight: true,
-  },
-  {
-    name: 'Monthly Bundle',
-    price: '₹9,999',
-    per: 'month',
-    features: ['4 sessions + text', 'Switch therapist anytime'],
-    highlight: false,
   },
 ]
 
-export default function SubscriptionModal({ onClose, trigger = 'chat' }: Props) {
+const COUPLES_PLANS = [
+  {
+    name: 'Couples Basic',
+    price: '₹3,200',
+    per: 'week',
+    features: ['1 couples session (60 min)', 'Text for both partners'],
+    highlight: false,
+  },
+  {
+    name: 'Couples Premium',
+    price: '₹7,499',
+    per: 'week',
+    features: ['Priority text response', 'Foreign therapist access'],
+    highlight: true,
+  },
+]
+
+export default function SubscriptionModal({ onClose, trigger = 'chat', therapyType }: Props) {
   const router = useRouter()
 
-  function handleSubscribe() {
-    router.push('/dashboard/subscribe')
-  }
+  const plans = therapyType === 'couples' ? COUPLES_PLANS : INDIVIDUAL_PLANS
 
   const heading =
     trigger === 'session'
@@ -53,10 +62,8 @@ export default function SubscriptionModal({ onClose, trigger = 'chat' }: Props) 
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
       <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-[#233551] px-6 pt-6 pb-5">
@@ -75,7 +82,7 @@ export default function SubscriptionModal({ onClose, trigger = 'chat' }: Props) 
 
         {/* Plans */}
         <div className="px-6 py-5 space-y-3">
-          {PLANS.map(plan => (
+          {plans.map(plan => (
             <div
               key={plan.name}
               className={`rounded-2xl border-2 px-4 py-3.5 flex items-center justify-between gap-4 ${
@@ -108,7 +115,7 @@ export default function SubscriptionModal({ onClose, trigger = 'chat' }: Props) 
         {/* CTA */}
         <div className="px-6 pb-6">
           <button
-            onClick={handleSubscribe}
+            onClick={() => router.push('/dashboard/subscribe')}
             className="w-full py-3.5 bg-[#233551] text-white font-black text-sm rounded-2xl hover:bg-[#1e2d47] transition-colors"
           >
             See all plans and subscribe →

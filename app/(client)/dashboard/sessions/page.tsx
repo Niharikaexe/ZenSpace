@@ -40,12 +40,22 @@ export default async function ClientSessionsPage() {
 
   const { data: subscription } = await (admin as any)
     .from('subscriptions')
-    .select('status, plan')
+    .select('status, plan, current_period_end')
     .eq('client_id', user.id)
     .eq('status', 'active')
-    .maybeSingle() as { data: { status: string; plan: string } | null; error: unknown }
+    .gt('current_period_end', new Date().toISOString())
+    .maybeSingle() as { data: { status: string; plan: string; current_period_end: string } | null; error: unknown }
 
   const isSubscribed = !!subscription
+
+  const { data: questionnaire } = await (admin as any)
+    .from('questionnaire_responses')
+    .select('responses')
+    .eq('client_id', user.id)
+    .maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
+
+  const therapyType = (questionnaire?.responses?.type as string) ?? null
+
   const [tProfileResult, tUserResult, sessionsResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
@@ -113,6 +123,7 @@ export default async function ClientSessionsPage() {
       sessionsThisWeek={sessionsThisWeek}
       upcoming={upcoming}
       past={past}
+      therapyType={therapyType}
     />
   )
 }

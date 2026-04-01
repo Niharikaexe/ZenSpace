@@ -21,6 +21,7 @@ interface Props {
   therapist: TherapistPanelData
   initialMessages: Message[]
   isSubscribed: boolean
+  therapyType: string | null
 }
 
 function initials(name: string) {
@@ -34,6 +35,7 @@ export default function ClientChatView({
   therapist,
   initialMessages,
   isSubscribed,
+  therapyType,
 }: Props) {
   const [showSubModal, setShowSubModal] = useState(false)
 
@@ -75,7 +77,7 @@ export default function ClientChatView({
       </div>
 
       {showSubModal && (
-        <SubscriptionModal trigger="chat" onClose={() => setShowSubModal(false)} />
+        <SubscriptionModal trigger="chat" onClose={() => setShowSubModal(false)} therapyType={therapyType} />
       )}
     </div>
   )

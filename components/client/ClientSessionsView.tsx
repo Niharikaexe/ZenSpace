@@ -29,6 +29,7 @@ interface Props {
   sessionsThisWeek: number
   upcoming: Session[]
   past: Session[]
+  therapyType: string | null
 }
 
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
@@ -220,6 +221,7 @@ export default function ClientSessionsView({
   sessionsThisWeek,
   upcoming,
   past,
+  therapyType,
 }: Props) {
   const [showSubModal, setShowSubModal]     = useState(false)
   const [selectedDay, setSelectedDay]       = useState<string | null>(null)
@@ -267,14 +269,6 @@ export default function ClientSessionsView({
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black text-[#233551]/35 uppercase tracking-widest">Book a Session</h2>
-                {!isSubscribed && (
-                  <button
-                    onClick={() => setShowSubModal(true)}
-                    className="text-xs font-bold text-[#3D8A80] hover:underline"
-                  >
-                    View plans →
-                  </button>
-                )}
               </div>
 
               {bookedLabel && (
@@ -458,7 +452,7 @@ export default function ClientSessionsView({
       </div>
 
       {showSubModal && (
-        <SubscriptionModal trigger="session" onClose={() => setShowSubModal(false)} />
+        <SubscriptionModal trigger="session" onClose={() => setShowSubModal(false)} therapyType={therapyType} />
       )}
     </div>
   )

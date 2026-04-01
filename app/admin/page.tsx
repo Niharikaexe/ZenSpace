@@ -6,6 +6,7 @@ import type {
   TherapistWithProfile,
   ActiveMatch,
   InviteCode,
+  TherapistApplication,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +35,7 @@ export default async function AdminPage() {
     { data: allActiveMatches },
     { data: therapistProfiles },
     { data: rawInvites },
+    { data: rawApplications },
   ] = await Promise.all([
     admin.from('profiles')
       .select('id, full_name, avatar_url, created_at')
@@ -49,6 +51,10 @@ export default async function AdminPage() {
     admin.from('therapist_invites')
       .select('id, code, created_at, used_by')
       .order('created_at', { ascending: false }),
+    admin.from('therapist_applications')
+      .select('*')
+      .eq('status', 'pending')
+      .order('submitted_at', { ascending: false }),
   ])
 
   const matchedClientIds = new Set<string>((allActiveMatches ?? []).map((m: any) => m.client_id))
@@ -134,6 +140,24 @@ export default async function AdminPage() {
     used_by: inv.used_by ?? null,
   }))
 
+  const applications: TherapistApplication[] = (rawApplications ?? []).map((a: any) => ({
+    id: a.id,
+    full_name: a.full_name,
+    email: a.email,
+    phone: a.phone ?? null,
+    city: a.city ?? null,
+    license_number: a.license_number,
+    license_body: a.license_body ?? null,
+    years_experience: a.years_experience ?? 0,
+    education: a.education ?? null,
+    specializations: a.specializations ?? [],
+    languages: a.languages ?? [],
+    bio: a.bio,
+    why_zenspace: a.why_zenspace ?? null,
+    status: a.status,
+    submitted_at: a.submitted_at,
+  }))
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -142,6 +166,7 @@ export default async function AdminPage() {
       activeMatches={activeMatches}
       totalClientCount={(allClients ?? []).length}
       inviteCodes={inviteCodes}
+      applications={applications}
     />
   )
 }

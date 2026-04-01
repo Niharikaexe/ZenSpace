@@ -27,14 +27,23 @@ export default async function ClientChatPage() {
 
   if (!match) redirect('/dashboard')
 
-  const { data: subscription } = await (admin as any)
-    .from('subscriptions')
-    .select('status')
-    .eq('client_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle() as { data: { status: string } | null; error: unknown }
+  const [{ data: subscription }, { data: questionnaire }] = await Promise.all([
+    (admin as any)
+      .from('subscriptions')
+      .select('status, current_period_end')
+      .eq('client_id', user.id)
+      .eq('status', 'active')
+      .gt('current_period_end', new Date().toISOString())
+      .maybeSingle() as Promise<{ data: { status: string; current_period_end: string } | null; error: unknown }>,
+    (admin as any)
+      .from('questionnaire_responses')
+      .select('responses')
+      .eq('client_id', user.id)
+      .maybeSingle() as Promise<{ data: { responses: Record<string, unknown> } | null; error: unknown }>,
+  ])
 
   const isSubscribed = !!subscription
+  const therapyType = (questionnaire?.responses?.type as string) ?? null
   const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
@@ -78,6 +87,7 @@ export default async function ClientChatPage() {
       therapist={therapist}
       initialMessages={messages}
       isSubscribed={isSubscribed}
+      therapyType={therapyType}
     />
   )
 }

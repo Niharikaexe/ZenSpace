@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
+import { sendApplicationInviteEmail } from '@/lib/email'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -112,6 +113,69 @@ export async function revokeInviteCode(inviteId: string) {
     .from('therapist_invites')
     .delete()
     .eq('id', inviteId)
+
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin')
+}
+
+export async function approveApplication(applicationId: string, adminNotes: string) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  // Fetch the application to get name + email
+  const { data: application, error: fetchErr } = await (admin as any)
+    .from('therapist_applications')
+    .select('full_name, email, status')
+    .eq('id', applicationId)
+    .single()
+
+  if (fetchErr || !application) throw new Error('Application not found')
+  if (application.status === 'invited') throw new Error('Already approved')
+
+  // Generate invite code
+  const code = makeInviteCode()
+  const { error: inviteErr } = await (admin as any).from('therapist_invites').insert({
+    code,
+    created_by: adminUser.id,
+  })
+  if (inviteErr) throw new Error(inviteErr.message)
+
+  // Mark application as invited
+  const { error: updateErr } = await (admin as any)
+    .from('therapist_applications')
+    .update({
+      status: 'invited',
+      admin_notes: adminNotes || null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
+  if (updateErr) throw new Error(updateErr.message)
+
+  // Send invite email (fire-and-forget)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zenspace.in'
+  const inviteUrl = `${siteUrl}/therapist/onboard?code=${code}`
+  sendApplicationInviteEmail({
+    to: application.email,
+    name: application.full_name,
+    inviteUrl,
+    adminNotes: adminNotes || '',
+  }).catch(() => {})
+
+  revalidatePath('/admin')
+}
+
+export async function rejectApplication(applicationId: string, adminNotes: string) {
+  await assertAdmin()
+  const admin = createAdminClient()
+
+  const { error } = await (admin as any)
+    .from('therapist_applications')
+    .update({
+      status: 'rejected',
+      admin_notes: adminNotes || null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId)
 
   if (error) throw new Error(error.message)
   revalidatePath('/admin')
