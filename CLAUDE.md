@@ -287,6 +287,109 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 
 ---
 
+## Pre-Launch Checklist
+
+Remove items as they are completed.
+
+---
+
+### 🔴 CRITICAL — Cannot go live without these
+
+**Payments**
+- [ ] Razorpay subscription plans created in Razorpay dashboard (Essentials, Premium, Couples, Monthly)
+- [ ] Client plan selection UI → Razorpay checkout flow wired up
+- [ ] Razorpay webhook handler (`/api/webhooks/razorpay`) — listens for `subscription.activated`, `subscription.charged`, `payment.failed`, updates `subscriptions` table
+- [ ] Webhook signature verification (HMAC) — security requirement
+- [ ] Subscription status gate — clients without an active subscription cannot access chat or video
+
+**Auth flow gaps**
+- [ ] `/auth/callback` route — handles Supabase email confirmation links and magic links
+- [ ] `/auth/reset-password` page — landing page for password reset emails
+- [ ] Test full signup → email confirmation → dashboard redirect flow end-to-end
+
+**Legal**
+- [ ] `/terms` page — Terms of Service (required for Razorpay merchant approval)
+- [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
+- [ ] Cookie consent banner (if using analytics)
+
+**Admin: therapist application management**
+- [ ] Admin view for pending therapist applications (`therapist_applications` table)
+- [ ] Approve / reject action with admin notes
+- [ ] Generate invite code and send it to approved applicant via email
+
+**Infrastructure (one-time setup)**
+- [ ] Run `supabase/migrations/20260329_notifications.sql` in Supabase SQL editor
+- [ ] Run `alter publication supabase_realtime add table notifications;` in Supabase SQL editor
+- [ ] Set `CRON_SECRET` env var in Vercel before deploy
+- [ ] Move Supabase project to `ap-south-1` (Mumbai) region — Pro plan required
+- [ ] Set Vercel serverless function region to `ap-south-1`
+
+---
+
+### 🟡 HIGH PRIORITY — Should be live at launch
+
+**Core USPs not yet built**
+- [ ] Free intro call flow — client can request a 15-min intro call before subscribing; therapist accepts; Daily.co room created
+- [ ] Switch therapist flow — client can request a switch from their dashboard; admin is notified; re-matching happens
+
+**Client account & subscription management**
+- [ ] Client account/profile page — update name, email, preferences
+- [ ] Client subscription page — view current plan, billing date, cancel subscription
+- [ ] Graceful subscription expiry — what the client sees when plan lapses or payment fails
+
+**Session notes for clients**
+- [ ] Client-facing session notes view (read-only) on client dashboard — per CLAUDE.md gap #3
+
+**Loading & error states**
+- [ ] `loading.tsx` files for all dashboard routes (prevents blank white screens during SSR)
+- [ ] Custom `not-found.tsx` (404 page)
+- [ ] Custom `error.tsx` (500 / unexpected error page)
+- [ ] Remove `force-dynamic` from static pages: FAQ, contact, landing — use ISR instead
+
+**Therapist pending dashboard**
+- [ ] Anonymised therapist profile carousel on client pending-match dashboard (builds trust while waiting)
+
+---
+
+### 🟠 IMPORTANT — Before scaling
+
+**Trust & profile completeness**
+- [ ] Verified badge shown on therapist card (client-facing) when `is_verified = true`
+- [ ] Full therapist profile visible to matched client (specialisations, years experience, approach, bio)
+- [ ] Profile photo upload on therapist account page (currently placeholder)
+- [ ] Profile photo upload on client account page
+
+**Couples therapy**
+- [ ] Couples questionnaire path leads to a differentiated matching/dashboard experience
+- [ ] Admin matching UI distinguishes couples sessions from individual
+
+**SEO & content**
+- [ ] Therapist blog system — therapists can write and publish SEO articles from their dashboard
+- [ ] `/blog` public listing page
+- [ ] Sitemap (`/sitemap.xml`) and robots.txt
+- [ ] OG tags and metadata on all public pages
+
+**Security & abuse prevention**
+- [ ] Rate limiting on signup, questionnaire submit, message send, and session schedule actions
+- [ ] Data deletion flow — user can request account + data deletion (DPDP Act requirement)
+
+**Monitoring**
+- [ ] Sentry error tracking installed and configured
+- [ ] Uptime monitor set up (BetterStack or UptimeRobot)
+
+---
+
+### 🔵 KNOWN DECISIONS & CONTEXT
+
+- Therapist payout is off-platform for now — handled directly by admin
+- Subscription is non-refundable — state this clearly on pricing and checkout pages
+- Client can be re-matched by contacting admin — no self-serve re-match
+- No multiple therapists per client — one active match at a time
+- Admin (Niharika) manually matches all clients — no algorithm
+- Session notes: therapists write, clients can read, admin cannot
+
+---
+
 ## Coding Rules for Claude
 
 - Always work on the `dev` branch. Never push to `main`.
