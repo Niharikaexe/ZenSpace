@@ -121,6 +121,23 @@ function tplSessionReminder(name: string, dateStr: string, sessionType: string) 
   `)
 }
 
+// ── Switch request template (sent to admin) ──────────────────────────────────
+
+function tplSwitchRequest(adminName: string, clientName: string, reason: string) {
+  const reasonBlock = reason
+    ? `<div style="margin:16px 0;padding:12px 16px;background:#fff8f5;border-left:3px solid #E8926A;border-radius:4px;font-size:14px;color:#4a5568;font-style:italic;">${reason}</div>`
+    : ''
+  return base(`
+    ${tag('Switch Request', '#E8926A')}
+    <br/><br/>
+    ${h1(`${clientName} wants a new therapist.`)}
+    ${p(`A client on ZenSpace has requested a different therapist match.`)}
+    ${reasonBlock}
+    ${p(`Log in to the admin panel, end their current match, and re-queue them for matching.`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
 // ── Application invite template ──────────────────────────────────────────────
 
 function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: string) {
@@ -208,6 +225,7 @@ export type EmailNotificationType =
   | 'profile_verified'
   | 'session_scheduled'
   | 'session_reminder'
+  | 'switch_request'
 
 interface EmailParams {
   to: string
@@ -246,6 +264,10 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
     case 'session_reminder':
       subject = `Session reminder — ${meta.dateStr ?? ''}`
       html = tplSessionReminder(name, meta.dateStr ?? '', meta.sessionType ?? 'video')
+      break
+    case 'switch_request':
+      subject = `Switch request — ${meta.clientName ?? 'A client'} wants a new therapist`
+      html = tplSwitchRequest(name, meta.clientName ?? 'A client', meta.reason ?? '')
       break
   }
 

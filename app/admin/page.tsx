@@ -7,6 +7,7 @@ import type {
   ActiveMatch,
   InviteCode,
   TherapistApplication,
+  SwitchRequest,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,7 @@ export default async function AdminPage() {
     { data: therapistProfiles },
     { data: rawInvites },
     { data: rawApplications },
+    { data: rawSwitchRequests },
   ] = await Promise.all([
     admin.from('profiles')
       .select('id, full_name, avatar_url, created_at')
@@ -55,6 +57,10 @@ export default async function AdminPage() {
       .select('*')
       .eq('status', 'pending')
       .order('submitted_at', { ascending: false }),
+    admin.from('therapist_switch_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false }),
   ])
 
   const matchedClientIds = new Set<string>((allActiveMatches ?? []).map((m: any) => m.client_id))
@@ -158,6 +164,45 @@ export default async function AdminPage() {
     submitted_at: a.submitted_at,
   }))
 
+  // ── Build switch requests with client + therapist names ──────────────────────
+  const switchRequestClientIds: string[] = (rawSwitchRequests ?? []).map((r: any) => r.client_id)
+  const switchRequestMatchIds: string[] = (rawSwitchRequests ?? [])
+    .map((r: any) => r.match_id)
+    .filter(Boolean)
+
+  const [{ data: switchClientProfiles }, { data: switchMatches }] = await Promise.all([
+    switchRequestClientIds.length > 0
+      ? admin.from('profiles').select('id, full_name').in('id', switchRequestClientIds)
+      : Promise.resolve({ data: [] }),
+    switchRequestMatchIds.length > 0
+      ? admin.from('matches').select('id, therapist_id').in('id', switchRequestMatchIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const switchTherapistIds: string[] = (switchMatches ?? []).map((m: any) => m.therapist_id).filter(Boolean)
+  const { data: switchTherapistProfiles } = switchTherapistIds.length > 0
+    ? await admin.from('profiles').select('id, full_name').in('id', switchTherapistIds)
+    : { data: [] }
+
+  const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
+    const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)
+    const matchRow = (switchMatches ?? []).find((m: any) => m.id === r.match_id)
+    const therapistProfile = matchRow
+      ? (switchTherapistProfiles ?? []).find((p: any) => p.id === matchRow.therapist_id)
+      : null
+    return {
+      id: r.id,
+      client_id: r.client_id,
+      match_id: r.match_id ?? null,
+      reason: r.reason ?? null,
+      details: r.details ?? null,
+      status: r.status,
+      created_at: r.created_at,
+      clientName: clientProfile?.full_name ?? 'Unknown client',
+      therapistName: therapistProfile?.full_name ?? 'Unknown therapist',
+    }
+  })
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -167,6 +212,7 @@ export default async function AdminPage() {
       totalClientCount={(allClients ?? []).length}
       inviteCodes={inviteCodes}
       applications={applications}
+      switchRequests={switchRequests}
     />
   )
 }

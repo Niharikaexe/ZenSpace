@@ -19,6 +19,7 @@ interface Props {
   otherPartyName: string
   initialMessages: Message[]
   sendDisabled?: boolean
+  freeMessagesLeft?: number | null  // null = subscribed; 0 = exhausted; >0 = remaining
   onSendDisabled?: () => void
 }
 
@@ -42,12 +43,15 @@ export default function ChatInterface({
   otherPartyName,
   initialMessages,
   sendDisabled = false,
+  freeMessagesLeft = null,
   onSendDisabled,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isSending, startSend] = useTransition()
   const [sendError, setSendError] = useState<string | null>(null)
+  // Track free messages remaining locally so counter updates after each send
+  const [localFreeLeft, setLocalFreeLeft] = useState<number | null>(freeMessagesLeft ?? null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -111,8 +115,17 @@ export default function ChatInterface({
     startSend(async () => {
       const result = await sendMessage(matchId, content)
       if (result?.error) {
-        setSendError(result.error)
+        if (result.error === 'subscribe_required') {
+          // Server rejected — intro limit or window expired; trigger paywall
+          onSendDisabled?.()
+          setLocalFreeLeft(0)
+        } else {
+          setSendError(result.error)
+        }
         setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+      } else if (localFreeLeft !== null) {
+        // Decrement local counter on successful send
+        setLocalFreeLeft(prev => (prev !== null ? Math.max(0, prev - 1) : null))
       }
     })
   }
@@ -224,7 +237,21 @@ export default function ChatInterface({
         </div>
         {sendDisabled ? (
           <p className="text-xs text-[#3D8A80] text-center mt-1.5 font-medium">
-            Subscribe to send messages · <button onClick={() => onSendDisabled?.()} className="underline">View plans</button>
+            Subscribe to send messages ·{' '}
+            <button onClick={() => onSendDisabled?.()} className="underline">View plans</button>
+          </p>
+        ) : localFreeLeft !== null && localFreeLeft > 0 ? (
+          <p className="text-xs text-center mt-1.5">
+            <span className={`font-semibold ${localFreeLeft <= 3 ? 'text-amber-600' : 'text-[#3D8A80]'}`}>
+              {localFreeLeft} free {localFreeLeft === 1 ? 'message' : 'messages'} left
+            </span>
+            <span className="text-slate-400"> · </span>
+            <button
+              onClick={() => onSendDisabled?.()}
+              className="text-[#3D8A80] underline text-xs"
+            >
+              Subscribe for unlimited
+            </button>
           </p>
         ) : (
           <p className="text-xs text-slate-400 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>

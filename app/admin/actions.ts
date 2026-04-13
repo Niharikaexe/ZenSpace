@@ -181,6 +181,33 @@ export async function rejectApplication(applicationId: string, adminNotes: strin
   revalidatePath('/admin')
 }
 
+export async function actionSwitchRequest(requestId: string, matchId: string) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  // End the current match → client returns to pending state and can be re-matched
+  const { error: matchErr } = await (admin as any)
+    .from('matches')
+    .update({ status: 'ended', ended_at: new Date().toISOString() })
+    .eq('id', matchId)
+
+  if (matchErr) throw new Error(matchErr.message)
+
+  // Mark the switch request as actioned
+  const { error: reqErr } = await (admin as any)
+    .from('therapist_switch_requests')
+    .update({
+      status: 'actioned',
+      actioned_at: new Date().toISOString(),
+      actioned_by: adminUser.id,
+    })
+    .eq('id', requestId)
+
+  if (reqErr) throw new Error(reqErr.message)
+
+  revalidatePath('/admin')
+}
+
 export async function endMatch(matchId: string) {
   await assertAdmin()
   const admin = createAdminClient()

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { signOut } from '@/app/actions/auth'
-import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication } from '@/app/admin/actions'
+import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import MatchModal from './MatchModal'
 
@@ -77,6 +77,18 @@ export type TherapistApplication = {
   submitted_at: string
 }
 
+export type SwitchRequest = {
+  id: string
+  client_id: string
+  match_id: string | null
+  reason: string | null
+  details: string | null
+  status: string
+  created_at: string
+  clientName: string
+  therapistName: string
+}
+
 export type ActiveMatch = {
   id: string
   client_id: string
@@ -98,6 +110,7 @@ interface Props {
   totalClientCount: number
   inviteCodes: InviteCode[]
   applications: TherapistApplication[]
+  switchRequests: SwitchRequest[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -154,9 +167,9 @@ function formatDate(iso: string) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests }: Props) {
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
@@ -177,6 +190,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'applications', label: 'Applications', count: applications.length },
+    { key: 'switches', label: 'Switch Requests', count: switchRequests.length },
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
@@ -632,6 +646,59 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     >
                       End match
                     </button>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* ── Switch Requests Tab ── */}
+          {tab === 'switches' && (
+            switchRequests.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-5xl mb-3">✓</div>
+                <p className="font-semibold text-slate-700">No pending switch requests</p>
+                <p className="text-sm text-slate-400 mt-1">Switch requests from clients will appear here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {switchRequests.map(req => (
+                  <div key={req.id} className="px-6 py-5 flex items-start gap-4">
+                    <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-semibold text-sm flex-shrink-0 mt-0.5">
+                      {req.clientName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-slate-900 text-sm">{req.clientName}</span>
+                        <span className="text-slate-300 text-xs">currently with</span>
+                        <span className="text-sm text-slate-600">{req.therapistName}</span>
+                      </div>
+                      {req.reason && (
+                        <p className="text-sm text-slate-600 mt-1">
+                          <span className="font-medium text-slate-500">Reason: </span>{req.reason}
+                        </p>
+                      )}
+                      {req.details && (
+                        <p className="text-sm text-slate-500 mt-0.5 italic leading-relaxed">&ldquo;{req.details}&rdquo;</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1.5">Submitted {formatDate(req.created_at)}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      {req.match_id ? (
+                        <button
+                          disabled={isPending}
+                          onClick={() => startTransition(() => actionSwitchRequest(req.id, req.match_id!))}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium transition-colors disabled:opacity-60"
+                        >
+                          End match &amp; re-queue
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Match already ended</span>
+                      )}
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                        Client returns to<br/>pending match queue
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

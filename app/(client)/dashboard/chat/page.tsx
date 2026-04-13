@@ -20,14 +20,14 @@ export default async function ClientChatPage() {
   const admin = createAdminClient()
   const { data: match } = await (admin as any)
     .from('matches')
-    .select('id, therapist_id')
+    .select('id, therapist_id, created_at')
     .eq('client_id', user.id)
     .eq('status', 'active')
-    .maybeSingle() as { data: { id: string; therapist_id: string } | null; error: unknown }
+    .maybeSingle() as { data: { id: string; therapist_id: string; created_at: string } | null; error: unknown }
 
   if (!match) redirect('/dashboard')
 
-  const [{ data: subscription }, { data: questionnaire }] = await Promise.all([
+  const [{ data: subscription }, { data: questionnaire }, { count: clientMessageCount }] = await Promise.all([
     (admin as any)
       .from('subscriptions')
       .select('status, current_period_end')
@@ -40,9 +40,25 @@ export default async function ClientChatPage() {
       .select('responses')
       .eq('client_id', user.id)
       .maybeSingle() as Promise<{ data: { responses: Record<string, unknown> } | null; error: unknown }>,
+    (admin as any)
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', match.id)
+      .eq('sender_id', user.id) as Promise<{ count: number | null; error: unknown }>,
   ])
 
   const isSubscribed = !!subscription
+
+  // Intro chat: 10 free messages within 7 days of match (window hidden from client)
+  const INTRO_LIMIT = 10
+  const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+  const matchWithinWindow = new Date(match.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
+  // null = subscribed (no counter shown); 0 = exhausted; >0 = messages remaining
+  const freeMessagesLeft: number | null = isSubscribed
+    ? null
+    : matchWithinWindow
+      ? Math.max(0, INTRO_LIMIT - (clientMessageCount ?? 0))
+      : 0
   const therapyType = (questionnaire?.responses?.type as string) ?? null
   const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
     (admin as any)
@@ -87,6 +103,7 @@ export default async function ClientChatPage() {
       therapist={therapist}
       initialMessages={messages}
       isSubscribed={isSubscribed}
+      freeMessagesLeft={freeMessagesLeft}
       therapyType={therapyType}
     />
   )

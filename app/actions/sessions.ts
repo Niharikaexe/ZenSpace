@@ -15,10 +15,45 @@ async function getAuthUser() {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
+const INTRO_MESSAGE_LIMIT = 10
+const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days, hidden from client
+
 export async function sendMessage(matchId: string, content: string): Promise<{ error?: string }> {
   const { user, supabase } = await getAuthUser()
   const trimmed = content.trim()
   if (!trimmed) return { error: 'Message cannot be empty' }
+
+  // Enforce subscription + intro limit for clients (not therapists)
+  const admin = createAdminClient()
+  const { data: senderProfile } = await (admin as any)
+    .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
+
+  if (senderProfile?.role === 'client') {
+    const { data: activeSub } = await (admin as any)
+      .from('subscriptions')
+      .select('id')
+      .eq('client_id', user.id)
+      .eq('status', 'active')
+      .gt('current_period_end', new Date().toISOString())
+      .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+    if (!activeSub) {
+      // Hidden: check 7-day intro window
+      const { data: matchRow } = await (admin as any)
+        .from('matches').select('created_at').eq('id', matchId).single() as { data: { created_at: string } | null; error: unknown }
+
+      const withinWindow = matchRow && new Date(matchRow.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
+      if (!withinWindow) return { error: 'subscribe_required' }
+
+      const { count } = await (admin as any)
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('match_id', matchId)
+        .eq('sender_id', user.id) as { count: number | null; error: unknown }
+
+      if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
+    }
+  }
 
   const { error } = await (supabase as any).from('messages').insert({
     match_id: matchId,
