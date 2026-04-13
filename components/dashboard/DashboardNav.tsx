@@ -124,7 +124,7 @@ export function DashboardNav({ userName, isMatched }: Props) {
                       { label: 'My Account', href: '/dashboard/account' },
                       { label: 'My Therapist', href: '/dashboard/my-therapist' },
                       { label: 'Change Therapist', href: '/dashboard/change-therapist' },
-                      { label: 'Subscribe', href: '/dashboard/subscribe' },
+                      { label: 'Subscription', href: '/dashboard/subscription' },
                     ].map(item => (
                       <Link
                         key={item.label}

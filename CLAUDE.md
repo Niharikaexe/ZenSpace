@@ -121,9 +121,10 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 ## Client Flow
 
 1. **Landing page** → CTA to get started
-2. **Questionnaire** (unauthenticated) → captures mental health concerns, goals, preferences
+2. **Questionnaire** (unauthenticated) → captures mental health concerns, goals, preferences, and which category the client belongs to couples, indiviudal or teenager.
 3. **Create account** → email/password via Supabase Auth
 4. **Dashboard — Pending Match state**
+   **Questionnaire unanswered** -> prompt the user to take the questionnaire to match with best therapist
    - Message: "We are finding your perfect therapist..."
    - Carousel of sample/anonymised therapist profiles (to build trust)
    - Prompt to choose a subscription plan (per-session / weekly / monthly) and pay via Razorpay
@@ -144,6 +145,7 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
    - Chat with client (Supabase Realtime)
    - Schedule & join video sessions (Daily.co)
    - Write session notes (private to therapist)
+   3. Join as Therapist page: Send in basic deatils to be shared invite code for onboarding of therapist.
 
 ---
 
@@ -295,18 +297,6 @@ Remove items as they are completed.
 
 ### 🔴 CRITICAL — Cannot go live without these
 
-**Payments**
-- [ ] Razorpay subscription plans created in Razorpay dashboard (Essentials, Premium, Couples, Monthly)
-- [ ] Client plan selection UI → Razorpay checkout flow wired up
-- [ ] Razorpay webhook handler (`/api/webhooks/razorpay`) — listens for `subscription.activated`, `subscription.charged`, `payment.failed`, updates `subscriptions` table
-- [ ] Webhook signature verification (HMAC) — security requirement
-- [ ] Subscription status gate — clients without an active subscription cannot access chat or video
-
-**Auth flow gaps**
-- [ ] `/auth/callback` route — handles Supabase email confirmation links and magic links
-- [ ] `/auth/reset-password` page — landing page for password reset emails
-- [ ] Test full signup → email confirmation → dashboard redirect flow end-to-end
-
 **Legal**
 - [ ] `/terms` page — Terms of Service (required for Razorpay merchant approval)
 - [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
@@ -324,16 +314,8 @@ Remove items as they are completed.
 ### 🟡 HIGH PRIORITY — Should be live at launch
 
 **Core USPs not yet built**
-- [ ] Free intro call flow — client can request a 15-min intro call before subscribing; therapist accepts; Daily.co room created
+- [ ] Free intro chat flow — Newly onboarded client can message upto 10 messages to their matched therapist, show this limit to client. Within a week's window(hide this from client)
 - [ ] Switch therapist flow — client can request a switch from their dashboard; admin is notified; re-matching happens
-
-**Client account & subscription management**
-- [ ] Client account/profile page — update name, email, preferences
-- [ ] Client subscription page — view current plan, billing date, cancel subscription
-- [ ] Graceful subscription expiry — what the client sees when plan lapses or payment fails
-
-**Session notes for clients**
-- [ ] Client-facing session notes view (read-only) on client dashboard — per CLAUDE.md gap #3
 
 **Loading & error states**
 - [ ] `loading.tsx` files for all dashboard routes (prevents blank white screens during SSR)
@@ -341,8 +323,6 @@ Remove items as they are completed.
 - [ ] Custom `error.tsx` (500 / unexpected error page)
 - [ ] Remove `force-dynamic` from static pages: FAQ, contact, landing — use ISR instead
 
-**Therapist pending dashboard**
-- [ ] Anonymised therapist profile carousel on client pending-match dashboard (builds trust while waiting)
 
 ---
 

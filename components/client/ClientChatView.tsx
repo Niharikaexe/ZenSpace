@@ -62,6 +62,25 @@ export default function ClientChatView({
             </div>
           </div>
 
+          {!isSubscribed && (
+            <div className="flex-shrink-0 px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-xs text-amber-800 font-medium truncate">
+                  Your plan has expired. Renew to send messages and book sessions.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSubModal(true)}
+                className="flex-shrink-0 text-xs font-bold text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1 rounded-full transition-colors"
+              >
+                Renew →
+              </button>
+            </div>
+          )}
+
           <div className="flex-1 overflow-hidden">
             <ChatInterface
               matchId={matchId}

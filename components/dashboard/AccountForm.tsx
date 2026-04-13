@@ -8,13 +8,31 @@ import { DashboardNav } from './DashboardNav'
 
 const initialState: ProfileActionState = {}
 
+interface SubscriptionSnapshot {
+  id: string
+  plan: string
+  status: string
+  current_period_end: string | null
+  cancelled_at: string | null
+  amount: number
+}
+
 interface Props {
   userName: string
   userEmail: string
   isMatched: boolean
+  subscription?: SubscriptionSnapshot | null
 }
 
-export function AccountForm({ userName, userEmail, isMatched }: Props) {
+function planLabel(plan: string) {
+  return plan.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+export function AccountForm({ userName, userEmail, isMatched, subscription }: Props) {
   const [profileState, profileAction, profilePending] = useActionState(updateProfile, initialState)
   const [resetState, setResetState] = useState<ProfileActionState>({})
   const [resetPending, setResetPending] = useState(false)
@@ -25,6 +43,12 @@ export function AccountForm({ userName, userEmail, isMatched }: Props) {
     setResetState(result)
     setResetPending(false)
   }
+
+  const isActive = subscription?.status === 'active'
+  const isEnding =
+    subscription?.status === 'cancelled' &&
+    !!subscription.current_period_end &&
+    new Date(subscription.current_period_end) > new Date()
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -137,23 +161,67 @@ export function AccountForm({ userName, userEmail, isMatched }: Props) {
 
         {/* Subscription */}
         <section className="bg-white border border-slate-100 rounded-3xl p-6 mb-4 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+          <h2 className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-4">
+            Subscription
+          </h2>
+
+          {subscription ? (
             <div>
-              <h2 className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-1">
-                Subscription
-              </h2>
-              <p className="text-sm text-[#233551]/50 leading-relaxed">
-                Manage your current plan or upgrade to a higher tier.
-              </p>
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div>
+                  <p className="text-sm font-bold text-[#233551]">{planLabel(subscription.plan)}</p>
+                  <p className="text-xs text-[#233551]/45 mt-0.5">
+                    {(subscription.amount / 100).toLocaleString('en-IN', {
+                      style: 'currency',
+                      currency: 'INR',
+                      maximumFractionDigits: 0,
+                    })}
+                    {subscription.plan.includes('monthly') ? ' / month' : ' / week'}
+                  </p>
+                </div>
+                <span
+                  className={`flex-shrink-0 text-xs font-bold px-3 py-1 rounded-full ${
+                    isActive
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : isEnding
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {isActive ? 'Active' : isEnding ? 'Ending' : 'Inactive'}
+                </span>
+              </div>
+
+              {subscription.current_period_end && (
+                <p className="text-xs text-[#233551]/45 mb-4">
+                  {isActive ? 'Renews' : 'Access until'}{' '}
+                  <span className="font-medium text-[#233551]/70">
+                    {formatDate(subscription.current_period_end)}
+                  </span>
+                </p>
+              )}
+
+              <Link
+                href="/dashboard/subscription"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3D8A80] hover:underline"
+              >
+                Manage subscription →
+              </Link>
             </div>
-            <Link
-              href="/dashboard/subscribe"
-              className="flex-shrink-0 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold px-4 py-2 rounded-full hover:bg-[#7EC0B7]/25 transition-colors"
-              style={{ fontFamily: 'var(--font-lato)' }}
-            >
-              View plans →
-            </Link>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between gap-4">
+              <p className="text-sm text-[#233551]/50 leading-relaxed">
+                No active plan. Choose one to unlock messaging and sessions.
+              </p>
+              <Link
+                href="/dashboard/subscribe"
+                className="flex-shrink-0 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold px-4 py-2 rounded-full hover:bg-[#7EC0B7]/25 transition-colors whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-lato)' }}
+              >
+                View plans →
+              </Link>
+            </div>
+          )}
         </section>
 
         {/* Payment */}

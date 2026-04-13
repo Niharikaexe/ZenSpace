@@ -57,7 +57,9 @@ export async function GET(request: Request) {
   }
 
   const role = profile?.role ?? (user.user_metadata?.role as string) ?? 'client'
+  // Always honour explicit `next` params that require specific landing pages (e.g. password reset)
   const destination =
+    next === '/auth/reset-password' ? next :
     role === 'admin' ? '/admin' :
     role === 'therapist' ? '/therapist/dashboard' :
     next
