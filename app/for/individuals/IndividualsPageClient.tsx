@@ -71,7 +71,7 @@ const steps = [
   {
     num: "2",
     title: "Meet your therapist",
-    body: "Free 15-min intro call. If the fit isn't right, you choose someone else.",
+    body: "Free intro chat. If the fit isn't right, you choose someone else.",
   },
   {
     num: "3",
@@ -414,7 +414,7 @@ export default function IndividualsPageClient() {
               href="/questionnaire/individual"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
             >
-              Book your free intro call →
+              Start your free intro chat →
             </Link>
           </motion.div>
         </div>

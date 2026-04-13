@@ -12,7 +12,7 @@ const initialState = { error: undefined, success: false }
 
 const usps = [
   {
-    title: "Free 15-min intro call",
+    title: "Free intro chat",
     body: "Talk to your potential therapist before you pay a thing.",
   },
   {

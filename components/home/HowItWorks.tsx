@@ -20,7 +20,7 @@ const steps = [
   {
     number: "02",
     label: "Have a conversation",
-    body: "Meet the therapist we’ve paired you with for a 15-minute introductory chat. It’s a chance to see if the environment feels right before you commit to the practice.",
+    body: "Meet the therapist we’ve paired you with for a free introductory chat. It’s a chance to see if the environment feels right before you commit to the practice.",
     sub: "Align with your matched therapist.",
     badge: "FREE INTRO CHAT",
     icon: (
@@ -48,28 +48,15 @@ const steps = [
 
 /* ── Chevron connector (desktop only) ── */
 const Connector = ({ delay }: { delay: number }) => (
-  <div className="hidden lg:flex items-center justify-center flex-shrink-0 w-10 mt-12 relative">
-    {/* Dashed line */}
-    <motion.div
-      className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay }}
-    >
-      {[0,1,2].map(i => (
-        <div key={i} className="w-1 h-1 rounded-full bg-[#233551]/20" />
-      ))}
-    </motion.div>
-    {/* Arrow */}
+  <div className="hidden lg:flex items-center justify-center flex-shrink-0 w-8">
     <motion.div
       initial={{ opacity: 0, x: -6 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: delay + 0.1 }}
+      transition={{ duration: 0.4, delay }}
     >
       <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
-        <path d="M7 4l6 6-6 6" stroke="#233551" strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 10h10M11 6l4 4-4 4" stroke="#233551" strokeOpacity="0.25" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </motion.div>
   </div>
@@ -243,7 +230,7 @@ const HowItWorks = () => {
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <Stat value="< 48hrs" label="Sign-up to first session" delay={0.55} />
-            <Stat value="15 min" label="Free intro call included" delay={0.65} />
+            <Stat value="50+" label="International therapists" delay={0.65} />
             <Stat value="Switch" label="Therapists anytime" delay={0.75} />
             <Stat value="₹0" label="Needed to get matched" delay={0.85} />
           </div>

@@ -237,8 +237,7 @@ export default function ChatInterface({
         </div>
         {sendDisabled ? (
           <p className="text-xs text-[#3D8A80] text-center mt-1.5 font-medium">
-            Subscribe to send messages ·{' '}
-            <button onClick={() => onSendDisabled?.()} className="underline">View plans</button>
+            <button onClick={() => onSendDisabled?.()} className="underline hover:text-[#233551] transition-colors">Subscribe to continue messaging →</button>
           </p>
         ) : localFreeLeft !== null && localFreeLeft > 0 ? (
           <p className="text-xs text-center mt-1.5">

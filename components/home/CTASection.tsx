@@ -135,11 +135,11 @@ const CTASection = () => {
                   className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight"
                   style={{ fontFamily: 'var(--font-lato)' }}
                 >
-                  You&apos;ve read enough.<br />Now start.
+                  You’ve done the reading.<br /> Now, start the practice.
                 </h2>
 
                 <p className="text-white/55 text-base leading-relaxed max-w-md">
-                  5 minutes. A few questions. No payment upfront. Then you meet your therapist — free. If it doesn&apos;t feel right, you pick someone else.
+                Take five minutes to tell us about your world. We’ll help you find the right person to talk to. If it doesn&apos;t feel right, you pick someone else.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">

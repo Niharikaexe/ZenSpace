@@ -84,7 +84,7 @@ export async function sendTherapistPasswordReset(): Promise<{ error?: string; su
   if (!user?.email) return { error: 'Not authenticated' }
 
   const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/auth/callback?next=/therapist/dashboard/account`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'}/auth/callback?next=/auth/reset-password`,
   })
 
   if (error) return { error: error.message }

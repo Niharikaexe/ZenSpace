@@ -24,21 +24,25 @@ const quotes = [
     concern: "Relationship issues",
     delay: 0.3,
   },
+  {
+    text: "My parents don’t know I go to therapy. Not because I’m hiding it — just because it’s mine. That distinction matters more than I thought it would.",
+    name: "A.V.",
+    location: "Hyderabad",
+    concern: "Family pressure",
+    delay: 0.4,
+  },
+  {
+    text: "Three therapists before this one. The first two were fine. This one actually gets the specific version of my problems — the Indian-family, corporate-job, quarter-life kind.",
+    name: "N.T.",
+    location: "Pune",
+    concern: "Identity & career",
+    delay: 0.5,
+  },
 ]
 
 const Testimonials = () => {
   return (
-    <section className="bg-[#FFF5F2] pt-28 md:pt-36 pb-20 md:pb-28 relative overflow-hidden">
-
-      {/* Top wave from navy (TherapistCards) */}
-      <div className="absolute top-0 left-0 w-full leading-none pointer-events-none">
-        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20">
-          <path
-            d="M0,36 C280,72 560,0 840,36 C1020,60 1220,10 1440,36 L1440,0 L0,0 Z"
-            fill="#233551"
-          />
-        </svg>
-      </div>
+    <section className="bg-[#FFF5F2] pt-16 md:pt-20 pb-20 md:pb-28 relative overflow-hidden">
 
       {/* Subtle peach blob top-right */}
       <div
@@ -68,7 +72,7 @@ const Testimonials = () => {
         </motion.div>
 
         {/* ── Quote cards ── */}
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quotes.map((q) => (
             <motion.div
               key={q.name}

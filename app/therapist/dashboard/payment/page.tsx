@@ -155,40 +155,14 @@ export default async function TherapistPaymentPage() {
             <p className="text-xs text-white/45 mt-1">Based on sessions this month · estimate</p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
-            <button
-              className="px-6 py-3 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors"
-              onClick={undefined}
-              type="button"
+            <a
+              href="mailto:hello@zenspace.in?subject=Payout request&body=Hi, I'd like to request my payout for this month."
+              className="px-6 py-3 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors inline-block"
             >
-              Request Cash Out
-            </button>
-            <p className="text-xs text-white/35 text-center sm:text-right max-w-[200px]">
-              Payouts are handled directly by ZenSpace admin. Contact us to initiate.
-            </p>
-          </div>
-        </div>
-
-        {/* Rate card */}
-        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-50">
-            <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Your rate card</p>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {[
-              { plan: 'Essentials (client pays ₹2,999/week)', share: '₹1,800 per session' },
-              { plan: 'Premium (client pays ₹4,499/week)', share: '₹2,700 per session' },
-              { plan: 'Couples (client pays ₹5,999/week)', share: '₹3,600 per session' },
-              { plan: 'Monthly bundle (client pays ₹9,999/mo)', share: '₹6,000 per month' },
-            ].map(({ plan, share }) => (
-              <div key={plan} className="flex items-center justify-between px-5 py-3.5">
-                <p className="text-sm text-[#233551]/70">{plan}</p>
-                <p className="text-sm font-semibold text-[#233551]">{share}</p>
-              </div>
-            ))}
-          </div>
-          <div className="px-5 py-3 bg-slate-50">
-            <p className="text-xs text-[#233551]/40">
-              Rates reflect ~60% therapist share. Final amounts confirmed at payout. ZenSpace retains 40% for platform, matching, and support.
+              Request payout →
+            </a>
+            <p className="text-xs text-white/35 text-center sm:text-right max-w-[220px]">
+              Email hello@zenspace.in — we'll process within 5 business days.
             </p>
           </div>
         </div>
@@ -222,19 +196,6 @@ export default async function TherapistPaymentPage() {
           </div>
         )}
 
-        {/* Bank details placeholder */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-[#233551]">Bank / UPI details</p>
-            <p className="text-xs text-[#233551]/40 mt-0.5">For receiving payouts — share with ZenSpace admin directly</p>
-          </div>
-          <a
-            href="mailto:hello@zenspace.in?subject=Payment details"
-            className="flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-xl border-2 border-slate-200 text-[#233551] hover:border-[#7EC0B7] transition-colors"
-          >
-            Contact admin
-          </a>
-        </div>
 
       </main>
     </div>

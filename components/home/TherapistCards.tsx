@@ -104,17 +104,7 @@ const TherapistCards = () => {
       <div className="absolute bottom-40 right-16 w-2 h-2 rounded-full bg-[#7EC0B7] pulse-dot float-delay-1 opacity-40" />
       <div className="absolute bottom-60 left-10 w-1 h-1 rounded-full bg-white pulse-dot float-delay-3 opacity-25" />
 
-      {/* Top wave from peach section */}
-      <div className="absolute top-0 left-0 w-full leading-none pointer-events-none">
-        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20">
-          <path
-            d="M0,36 C280,72 560,0 840,36 C1020,60 1220,10 1440,36 L1440,0 L0,0 Z"
-            fill="#FFF5F2"
-          />
-        </svg>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 pt-24 md:pt-32 pb-28 md:pb-36 relative z-10">
+      <div className="max-w-6xl mx-auto px-6 pt-16 md:pt-20 pb-28 md:pb-36 relative z-10">
 
         {/* Top area: illustration + text */}
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 mb-16">

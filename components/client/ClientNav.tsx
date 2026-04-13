@@ -105,7 +105,6 @@ export default function ClientNav({ userName }: Props) {
                 {[
                   { label: 'FAQ', href: '/dashboard/faq' },
                   { label: 'Contact Us', href: '/dashboard/contact' },
-                  { label: 'Reviews', href: '/dashboard/reviews' },
                 ].map(item => (
                   <Link
                     key={item.label}

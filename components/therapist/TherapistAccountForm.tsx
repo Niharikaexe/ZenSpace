@@ -13,12 +13,12 @@ const SPECIALIZATIONS = [
   'Anxiety', 'Depression', 'Stress', 'Relationships', 'Grief', 'Trauma',
   'Self-esteem', 'Life transitions', 'PTSD', 'Burnout', 'OCD', 'Addiction',
   'Family therapy', 'Adolescents', 'LGBTQ+', 'Career', 'Anger management',
-  'Eating disorders', 'Sleep issues', 'Chronic illness',
+  'Eating disorders', 'Sleep issues', 'Chronic illness', 'Others',
 ]
 
 const LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
+  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia', 'Others',
 ]
 
 const inputCls =
@@ -159,17 +159,6 @@ export function TherapistAccountForm({ initialData }: Props) {
           />
         </Field>
 
-        <Field label="Therapeutic approach" hint="e.g. CBT, DBT, Person-centred">
-          <input
-            name="approach"
-            type="text"
-            value={approach}
-            onChange={e => setApproach(e.target.value)}
-            placeholder="CBT, Mindfulness-based, Solution-focused..."
-            className={inputCls}
-          />
-        </Field>
-
         <div className="grid grid-cols-2 gap-4">
           <Field label="Years of experience" required>
             <input
@@ -194,16 +183,6 @@ export function TherapistAccountForm({ initialData }: Props) {
             />
           </Field>
         </div>
-
-        <Field label="Availability" hint="Shown to matched clients when they book sessions">
-          <textarea
-            value={availabilityText}
-            onChange={e => setAvailabilityText(e.target.value)}
-            rows={3}
-            placeholder="e.g. Mon–Fri 10am–6pm IST, Sat 10am–2pm IST"
-            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
-          />
-        </Field>
 
         <Field label="Accepting new clients">
           <div className="flex items-center gap-3 mt-1">

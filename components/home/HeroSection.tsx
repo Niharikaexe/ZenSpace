@@ -122,13 +122,13 @@ const therapyTypes = [
     tagline: "A room of your own. For when the world feels too loud.",
     href: "/for/adolescents",
     Icon: TeenIcon,
-    accent: "#F97B5A",
-    bg: "from-[#F97B5A]/10 to-[#F97B5A]/5",
-    border: "border-[#F97B5A]/25",
-    hoverBorder: "hover:border-[#F97B5A]/60",
-    hoverBg: "hover:from-[#F97B5A]/18 hover:to-[#F97B5A]/10",
-    iconBg: "bg-[#F97B5A]/15",
-    dot: "bg-[#F97B5A]",
+    accent: "#3D8A80",
+    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
+    border: "border-[#7EC0B7]/25",
+    hoverBorder: "hover:border-[#7EC0B7]/60",
+    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
+    iconBg: "bg-[#7EC0B7]/15",
+    dot: "bg-[#3D8A80]",
   },
 ]
 
@@ -202,7 +202,7 @@ const HeroSection = () => {
                 >
                   <Link
                     href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden`}
+                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
                   >
                     {/* Subtle corner glow on hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />

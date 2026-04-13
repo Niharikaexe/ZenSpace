@@ -212,15 +212,6 @@ export default async function TherapistDashboard() {
             </h1>
             <p className="text-sm text-[#233551]/45 mt-0.5">{dateStr}</p>
           </div>
-          {tProfile?.specializations?.length > 0 && (
-            <div className="hidden sm:flex flex-wrap gap-1.5 justify-end max-w-xs">
-              {(tProfile.specializations as string[]).slice(0, 3).map((s: string) => (
-                <span key={s} className="text-xs px-2.5 py-1 rounded-full bg-[#7EC0B7]/15 text-[#3D8A80] font-medium">
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {isMatched ? (
@@ -300,17 +291,25 @@ export default async function TherapistDashboard() {
             <div>
               <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Your Clients</p>
               <div className={`grid gap-4 ${clientCards.length === 1 ? 'grid-cols-1 max-w-lg' : 'grid-cols-1 md:grid-cols-2'}`}>
-                {clientCards.map(c => (
-                  <div key={c.matchId} className="bg-white border border-slate-100 rounded-2xl overflow-hidden">
+                {clientCards.map(c => {
+                  const isNewClient = new Date(c.matchedSince) > new Date(Date.now() - 7 * 24 * 3600000)
+                  return (
+                  <div key={c.matchId} className="bg-white border border-slate-100 rounded-2xl overflow-hidden hover:border-[#7EC0B7]/40 transition-colors">
 
-                    {/* Card header */}
-                    <div className="px-5 py-4 flex items-center justify-between gap-3">
+                    {/* Card header — clickable */}
+                    <Link href={`/therapist/dashboard/client/${c.matchId}`} className="block px-5 py-4 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <Initials name={c.clientName} />
                         <div className="min-w-0">
-                          <p className="font-black text-[#233551] truncate" style={{ fontFamily: 'var(--font-lato)' }}>
-                            {c.clientName}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-[#233551] truncate" style={{ fontFamily: 'var(--font-lato)' }}>
+                              {c.clientName}
+                            </p>
+                            {isNewClient && (
+                              <span className="text-[10px] font-black text-[#7EC0B7] bg-[#7EC0B7]/15 px-2 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">New</span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#233551]/40 truncate">{c.email}</p>
                         </div>
                       </div>
@@ -324,6 +323,7 @@ export default async function TherapistDashboard() {
                         </span>
                       )}
                     </div>
+                    </Link>
 
                     {/* Concerns */}
                     {c.concerns.length > 0 && (
@@ -366,7 +366,7 @@ export default async function TherapistDashboard() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </>

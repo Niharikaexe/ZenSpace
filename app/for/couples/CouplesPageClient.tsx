@@ -413,7 +413,7 @@ export default function CouplesPageClient() {
               href="/questionnaire/couples"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
             >
-              Book your free intro call →
+              Start your free intro chat →
             </Link>
           </motion.div>
         </div>

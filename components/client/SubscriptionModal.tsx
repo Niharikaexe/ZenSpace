@@ -121,7 +121,7 @@ export default function SubscriptionModal({ onClose, trigger = 'chat', therapyTy
             See all plans and subscribe →
           </button>
           <p className="text-center text-xs text-[#233551]/35 mt-3">
-            15-minute intro call is free. No payment required to start.
+            free intro chat is free. No payment required to start.
           </p>
         </div>
       </div>

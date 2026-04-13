@@ -270,14 +270,14 @@ export default function ClientSessionsView({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-xs text-amber-800 font-medium truncate">
-                  Your plan has expired. Renew to book sessions.
+                  A subscription is required to book sessions.
                 </p>
               </div>
               <button
                 onClick={() => setShowSubModal(true)}
                 className="flex-shrink-0 text-xs font-bold text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1 rounded-full transition-colors"
               >
-                Renew →
+                Subscribe →
               </button>
             </div>
           )}
