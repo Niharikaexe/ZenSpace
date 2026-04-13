@@ -47,14 +47,14 @@ const WomanIllustration = () => (
 )
 
 const therapists = [
-  { name: "Dr. Sarah Mitchell", specialty: "Anxiety & Depression",   bio: "Specialises in cognitive behavioural approaches for chronic anxiety and low mood.", rating: 4.9, reviews: 328, available: true,  initials: "SM" },
-  { name: "Dr. James Chen",     specialty: "Couples & Family",       bio: "Works with partners navigating communication breakdown and long-term conflict cycles.", rating: 4.8, reviews: 256, available: true,  initials: "JC" },
-  { name: "Dr. Amara Williams", specialty: "Trauma & PTSD",          bio: "Trauma-focused therapy for survivors of complex, relational and developmental trauma.", rating: 5.0, reviews: 412, available: false, initials: "AW" },
-  { name: "Dr. David Okafor",   specialty: "Teen & Adolescent",      bio: "Helps teenagers navigate academic pressure, identity questions and family stress.", rating: 4.9, reviews: 189, available: true,  initials: "DO" },
-  { name: "Dr. Emily Park",     specialty: "Stress Management",      bio: "Evidence-informed work for burnout, high-performance anxiety and boundary-setting.", rating: 4.7, reviews: 203, available: true,  initials: "EP" },
-  { name: "Dr. Maria Santos",   specialty: "Self-Esteem & Identity", bio: "Psychodynamic work focused on self-worth, inner critic patterns and life transitions.", rating: 4.8, reviews: 175, available: true,  initials: "MS" },
-  { name: "Dr. Robert Kim",     specialty: "Grief & Loss",           bio: "Compassionate support through bereavement, estrangement and unexpected life changes.", rating: 4.9, reviews: 291, available: false, initials: "RK" },
-  { name: "Dr. Lisa Thompson",  specialty: "Work-Life Balance",      bio: "Helps clients redesign their relationship with work without compromising wellbeing.", rating: 4.6, reviews: 144, available: true,  initials: "LT" },
+  { name: " Sarah Mitchell", specialty: "Anxiety & Depression",   bio: "Specialises in cognitive behavioural approaches for chronic anxiety and low mood.", rating: 4.9, reviews: 328, available: true,  initials: "SM" },
+  { name: " James Chen",     specialty: "Couples & Family",       bio: "Works with partners navigating communication breakdown and long-term conflict cycles.", rating: 4.8, reviews: 256, available: true,  initials: "JC" },
+  { name: " Amara Williams", specialty: "Trauma & PTSD",          bio: "Trauma-focused therapy for survivors of complex, relational and developmental trauma.", rating: 5.0, reviews: 412, available: false, initials: "AW" },
+  { name: " David Okafor",   specialty: "Teen & Adolescent",      bio: "Helps teenagers navigate academic pressure, identity questions and family stress.", rating: 4.9, reviews: 189, available: true,  initials: "DO" },
+  { name: " Emily Park",     specialty: "Stress Management",      bio: "Evidence-informed work for burnout, high-performance anxiety and boundary-setting.", rating: 4.7, reviews: 203, available: true,  initials: "EP" },
+  { name: " Maria Santos",   specialty: "Self-Esteem & Identity", bio: "Psychodynamic work focused on self-worth, inner critic patterns and life transitions.", rating: 4.8, reviews: 175, available: true,  initials: "MS" },
+  { name: " Robert Kim",     specialty: "Grief & Loss",           bio: "Compassionate support through bereavement, estrangement and unexpected life changes.", rating: 4.9, reviews: 291, available: false, initials: "RK" },
+  { name: " Lisa Thompson",  specialty: "Work-Life Balance",      bio: "Helps clients redesign their relationship with work without compromising wellbeing.", rating: 4.6, reviews: 144, available: true,  initials: "LT" },
 ]
 
 const TherapistCards = () => {
@@ -142,11 +142,12 @@ const TherapistCards = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Hand-picked therapists,<br />just for you
+              People we’ve met <br /> 
+              and trust.
             </h2>
 
             <p className="text-white/55 text-base leading-relaxed max-w-md">
-              Every therapist that we work with has been carefully screened and assessed by our clinical team. With a rigorous quality standard and clear, easy-to-understand summaries of experience, finding the right therapist for you is faster and easier than ever.
+            Finding someone to talk to shouldn’t feel like a research project. We’ve already had the initial conversations with every therapist on Zen Space to make sure they’re the right fit for this environment. We keep their profiles simple and honest, so you can spend less time scrolling and more time finding the person who understands your world.
             </p>
 
             <div className="flex flex-wrap gap-8 pt-2">

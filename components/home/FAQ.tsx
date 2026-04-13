@@ -7,23 +7,19 @@ import { Plus, Minus } from "lucide-react"
 const faqs = [
   {
     q: "Does online therapy actually work?",
-    a: "For most people, yes. The research is pretty clear — and honestly, not having to commute to a clinic means you actually show up. A good therapist is a good therapist, regardless of whether they're in the same room.",
+    a: "Having a conversation from your own couch often makes it easier to be open. It’s the same support, just in a more comfortable environment.",
   },
   {
-    q: "What does it cost?",
-    a: "Our Essentials plan is ₹2,999/week — that's one 50-minute video session plus unlimited text messaging with your therapist. Premium is ₹4,499/week and includes access to our foreign-trained therapists. Couples therapy starts at ₹5,999/week. If you want to commit to a month, that's ₹9,999 for four sessions.",
+    q: "How do I know my therapist is the right for me?",
+    a: " Yes. Every match starts with a short conversation to make sure the rhythm feels right for you."
   },
-  {
-    q: "Can I try before I pay?",
-    a: "Yes. Before any money changes hands, you get a free 15-minute call with your potential therapist. If it doesn't feel right, you pick someone else. No invoice, no awkwardness.",
-  },
-  {
+    {
     q: "What if my therapist and I don't click?",
-    a: "You switch. That's it. No explanation needed, no guilt trip. You're not firing anyone — you're finding your person. Therapist fit matters more than most people realise.",
+    a: "It happens. You can find a new person on the platform whenever you need to. No awkwardness, just a new start",
   },
   {
-    q: "Will anyone know I'm here?",
-    a: "No. Not your employer, not your family, not anyone in your building. Your sessions and messages are encrypted and private. This is yours.",
+    q: "Will my information stay private?",
+    a: "Always. Your space here is entirely separate from the rest of your life."
   },
   {
     q: "Do you prescribe medication?",

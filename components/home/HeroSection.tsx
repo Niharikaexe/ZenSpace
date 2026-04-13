@@ -93,7 +93,7 @@ const TeenIcon = () => (
 const therapyTypes = [
   {
     label: "Individual",
-    tagline: "Just you and your therapist",
+    tagline: "A habit for your head. Just you and a person who listens.",
     href: "/for/individuals",
     Icon: IndividualIcon,
     accent: "#7EC0B7",
@@ -106,7 +106,7 @@ const therapyTypes = [
   },
   {
     label: "Couples",
-    tagline: "Both of you, one room",
+    tagline: "Finding the rhythm again. A space for both of you.",
     href: "/for/couples",
     Icon: CouplesIcon,
     accent: "#E8926A",
@@ -119,7 +119,7 @@ const therapyTypes = [
   },
   {
     label: "Teen",
-    tagline: "For the under-18s who get it",
+    tagline: "A room of your own. For when the world feels too loud.",
     href: "/for/adolescents",
     Icon: TeenIcon,
     accent: "#F97B5A",
@@ -176,8 +176,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Therapy that treats<br />
-              you like an adult
+              Peace isn’t a milestone<br />
+              it’s a practice
             </motion.h1>
 
             {/* Subtitle */}
@@ -187,7 +187,7 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-              You&apos;ve probably Googled what you&apos;re feeling. That&apos;s a start. We&apos;ll take it from here — with a real therapist, real sessions, and no waiting rooms.
+               Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
             </motion.p>
 
             {/* Therapy type category cards */}

@@ -4,21 +4,21 @@ import { motion } from "framer-motion"
 
 const quotes = [
   {
-    text: "I'd been to two therapists before and cancelled after the first session both times. My ZenSpace therapist didn't try to diagnose me in the first ten minutes. She just listened. That was enough.",
+    text: "I’d tried this before and felt like a case file. At Zen Space, my therapist didn’t start with a label. She just listened. For the first time, I felt like I could actually breathe.",
     name: "R.K.",
     location: "Mumbai",
     concern: "Anxiety & burnout",
     delay: 0.1,
   },
   {
-    text: "The messaging between sessions is what I didn't know I needed. I had a bad meeting on a Wednesday. Instead of spiralling till Sunday, I sent a voice note and got a response that actually helped.",
+    text: "The messaging between our weekly conversations is what changed things for me. When I’m having a rough Wednesday, I don’t have to wait until Sunday to feel heard.",
     name: "P.A.",
     location: "Bengaluru",
     concern: "Work stress",
     delay: 0.2,
   },
   {
-    text: "My family still doesn't know I'm in therapy. Not because I'm ashamed — I just don't want their opinions on it. ZenSpace made that easy. No clinic, no invoices on shared accounts. Just me and my therapist.",
+    text: "It’s just a private room on my laptop. No one in my life needs to know I’m here, and that gave me the courage to finally start the practice.",
     name: "S.M.",
     location: "Delhi",
     concern: "Relationship issues",
