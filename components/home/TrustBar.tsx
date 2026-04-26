@@ -4,10 +4,10 @@ import { motion } from "framer-motion"
 import { Shield, Award, Users, Lock } from "lucide-react"
 
 const badges = [
-  { icon: Shield, label: "HIPAA Compliant" },
-  { icon: Lock, label: "256-bit Encryption" },
-  { icon: Award, label: "Licensed Therapists" },
-  { icon: Users, label: "5,000+ Lives Changed" },
+  { icon: Users, label: "International Therapists" },
+  { icon: Shield, label: "DPDP Compliant" },
+  { icon: Lock, label: "Complete Privacy" },
+  { icon: Award, label: "Licensed & Verified" },
 ]
 
 const TrustBar = () => {

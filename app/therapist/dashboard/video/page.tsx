@@ -1,20 +1,31 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { signOut } from '@/app/actions/auth'
 import JoinButton from '@/components/shared/JoinButton'
-import ScheduleSessionForm from '@/components/shared/ScheduleSessionForm'
+import { TherapistNav } from '@/components/therapist/TherapistNav'
+import MultiScheduleForm from '@/components/therapist/MultiScheduleForm'
+import NoteEditor from '@/components/shared/NoteEditor'
 import { updateSessionStatus } from '@/app/actions/sessions'
+import { getNotifications } from '@/app/actions/notifications'
 
 export const dynamic = 'force-dynamic'
 
-type Session = {
+type SessionRow = {
   id: string
   session_type: string
   status: string
   scheduled_at: string
   daily_room_url: string | null
+  therapist_notes: string | null
 }
+
+type MatchWithSessions = {
+  matchId: string
+  clientName: string
+  sessions: SessionRow[]
+}
+
+type UpcomingEntry = SessionRow & { clientName: string; matchId: string }
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString('en-IN', {
@@ -23,7 +34,7 @@ function formatDateTime(iso: string) {
   })
 }
 
-export default async function TherapistVideoPage() {
+export default async function TherapistSessionsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -38,93 +49,107 @@ export default async function TherapistVideoPage() {
 
   const admin = createAdminClient()
 
-  const { data: match } = await (admin as any)
+  const { data: matches } = await (admin as any)
     .from('matches')
     .select('id, client_id')
     .eq('therapist_id', user.id)
     .eq('status', 'active')
-    .maybeSingle()
 
-  if (!match) redirect('/therapist/dashboard')
+  if (!matches || matches.length === 0) redirect('/therapist/dashboard')
 
-  const { data: clientUser } = await (admin as any)
-    .from('profiles')
-    .select('full_name')
-    .eq('id', match.client_id)
-    .single()
+  const matchData: MatchWithSessions[] = await Promise.all(
+    (matches as { id: string; client_id: string }[]).map(async m => {
+      const [clientResult, sessResult] = await Promise.all([
+        (admin as any).from('profiles').select('full_name').eq('id', m.client_id).single(),
+        (admin as any)
+          .from('sessions')
+          .select('id, session_type, status, scheduled_at, daily_room_url, therapist_notes')
+          .eq('match_id', m.id)
+          .order('scheduled_at', { ascending: false }),
+      ])
 
-  const { data: sessions } = await (admin as any)
-    .from('sessions')
-    .select('id, session_type, status, scheduled_at, daily_room_url')
-    .eq('match_id', match.id)
-    .order('scheduled_at', { ascending: false })
+      return {
+        matchId: m.id,
+        clientName: clientResult.data?.full_name ?? 'Client',
+        sessions: sessResult.data ?? [],
+      }
+    })
+  )
+
+  const clientOptions = matchData.map(m => ({ matchId: m.matchId, clientName: m.clientName }))
 
   const now = new Date()
-  const upcoming = (sessions ?? []).filter(
-    (s: Session) => s.status !== 'completed' && s.status !== 'cancelled' &&
-      new Date(s.scheduled_at) > new Date(now.getTime() - 3600000)
-  )
-  const past = (sessions ?? []).filter(
-    (s: Session) => s.status === 'completed' || s.status === 'cancelled' ||
-      new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000)
-  )
+  const cutoff = new Date(now.getTime() - 3600000) // 1 hr grace window
 
-  const clientName = clientUser?.full_name ?? 'Your Client'
+  const upcoming: UpcomingEntry[] = matchData
+    .flatMap(m =>
+      m.sessions
+        .filter(s => s.status !== 'completed' && s.status !== 'cancelled' && new Date(s.scheduled_at) > cutoff)
+        .map(s => ({ ...s, clientName: m.clientName, matchId: m.matchId }))
+    )
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())
+
+  const pastByClient: MatchWithSessions[] = matchData
+    .map(m => ({
+      ...m,
+      sessions: m.sessions.filter(
+        s => s.status === 'completed' || s.status === 'cancelled' || new Date(s.scheduled_at) <= cutoff
+      ),
+    }))
+    .filter(m => m.sessions.length > 0)
+
+  const initialNotifications = await getNotifications()
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-10 flex items-center gap-3">
-        <Link
-          href="/therapist/dashboard"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-slate-900">Sessions</p>
-          <p className="text-xs text-slate-400">with {clientName}</p>
+    <div className="min-h-screen bg-[#FAFAFA]">
+      <TherapistNav
+        therapistName={profile!.full_name}
+        userId={user.id}
+        initialNotifications={initialNotifications}
+        isMatched={true}
+      />
+
+      <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+
+        {/* Header + schedule button */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+              Sessions
+            </h1>
+            <p className="text-sm text-[#233551]/45 mt-0.5">
+              Schedule, manage, and add notes to your sessions.
+            </p>
+          </div>
+          <MultiScheduleForm clients={clientOptions} />
         </div>
-        <form action={signOut}>
-          <button type="submit" className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors">Sign out</button>
-        </form>
-      </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-
-        {/* Schedule new session */}
-        <ScheduleSessionForm matchId={match.id} />
-
-        {/* Upcoming */}
+        {/* Upcoming sessions */}
         <section>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-            Upcoming
-          </h2>
+          <h2 className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Upcoming</h2>
           {upcoming.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center">
-              <p className="text-sm text-slate-500">No upcoming sessions. Schedule one above.</p>
+            <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+              <p className="text-sm text-[#233551]/45">No upcoming sessions. Schedule one above.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {upcoming.map((s: Session) => (
-                <div key={s.id} className="bg-white rounded-2xl border border-slate-200 p-5">
+              {upcoming.map(s => (
+                <div key={s.id} className="bg-white rounded-2xl border border-slate-100 p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-semibold text-slate-900">
-                          {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} session
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-sm font-semibold text-[#233551]">
+                          {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} with {s.clientName}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          s.status === 'scheduled' ? 'bg-blue-50 text-blue-700' :
-                          s.status === 'ongoing' ? 'bg-teal-50 text-teal-700' :
+                          s.status === 'scheduled' ? 'bg-[#233551]/8 text-[#233551]' :
+                          s.status === 'ongoing' ? 'bg-[#7EC0B7]/15 text-[#3D8A80]' :
                           'bg-slate-100 text-slate-500'
                         }`}>
                           {s.status}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-600">{formatDateTime(s.scheduled_at)}</p>
+                      <p className="text-sm text-[#233551]/55">{formatDateTime(s.scheduled_at)}</p>
                     </div>
                     <div className="flex-shrink-0">
                       {s.session_type === 'video' ? (
@@ -134,22 +159,25 @@ export default async function TherapistVideoPage() {
                           sessionType={s.session_type}
                         />
                       ) : (
-                        <Link href="/therapist/dashboard/chat" className="text-sm text-teal-600 font-medium hover:text-teal-700">
+                        <Link
+                          href="/therapist/dashboard/chat"
+                          className="text-sm text-[#3D8A80] font-medium hover:text-[#233551] transition-colors"
+                        >
                           Open chat →
                         </Link>
                       )}
                     </div>
                   </div>
-                  {/* Session actions */}
+
                   {s.status === 'scheduled' && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
                       <form action={async () => {
                         'use server'
                         await updateSessionStatus(s.id, 'completed')
                       }}>
                         <button
                           type="submit"
-                          className="text-xs px-3 py-1.5 rounded-lg border border-emerald-200 text-emerald-700 hover:bg-emerald-50 transition-colors font-medium"
+                          className="text-xs px-3 py-1.5 rounded-lg border border-[#7EC0B7]/50 text-[#3D8A80] hover:bg-[#7EC0B7]/10 transition-colors font-medium"
                         >
                           Mark completed
                         </button>
@@ -160,7 +188,7 @@ export default async function TherapistVideoPage() {
                       }}>
                         <button
                           type="submit"
-                          className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors font-medium"
+                          className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors font-medium"
                         >
                           Cancel
                         </button>
@@ -173,28 +201,51 @@ export default async function TherapistVideoPage() {
           )}
         </section>
 
-        {/* Past sessions */}
-        {past.length > 0 && (
+        {/* Past sessions per client, with notes */}
+        {pastByClient.length > 0 ? (
+          pastByClient.map(m => (
+            <section key={m.matchId}>
+              <h2 className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">
+                Past Sessions — {m.clientName}
+              </h2>
+              <div className="space-y-3">
+                {m.sessions.map(s => (
+                  <div key={s.id} className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-[#233551]">
+                          {s.session_type === 'video' ? '📹 Video Session' : '💬 Chat Session'}
+                        </p>
+                        <p className="text-xs text-[#233551]/40 mt-0.5">{formatDateTime(s.scheduled_at)}</p>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${
+                        s.status === 'completed' ? 'bg-[#7EC0B7]/15 text-[#3D8A80]' :
+                        s.status === 'cancelled' ? 'bg-red-50 text-red-600' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                        {s.status}
+                      </span>
+                    </div>
+                    <div className="px-5 py-4">
+                      <NoteEditor sessionId={s.id} initialNotes={s.therapist_notes} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))
+        ) : (
           <section>
-            <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Past</h2>
-            <div className="space-y-2">
-              {past.map((s: Session) => (
-                <div key={s.id} className="bg-white rounded-xl border border-slate-200 px-5 py-4 flex items-center justify-between gap-4 opacity-75">
-                  <p className="text-sm text-slate-700">
-                    {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDateTime(s.scheduled_at)}
-                  </p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                    s.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
-                    s.status === 'cancelled' ? 'bg-red-50 text-red-600' :
-                    'bg-slate-100 text-slate-500'
-                  }`}>
-                    {s.status}
-                  </span>
-                </div>
-              ))}
+            <h2 className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Past Sessions</h2>
+            <div className="bg-white rounded-2xl border border-slate-100 px-5 py-8 text-center">
+              <p className="text-sm text-[#233551]/40">No past sessions yet.</p>
+              <p className="text-xs text-[#233551]/30 mt-1">
+                Notes will appear here after your first completed session.
+              </p>
             </div>
           </section>
         )}
+
       </main>
     </div>
   )

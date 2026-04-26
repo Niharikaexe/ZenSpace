@@ -12,7 +12,7 @@ on the Indian market. It offers:
 - The ability to switch therapists anytime, no explanation needed
 - A therapist portal where therapists can write and publish SEO blogs
 - Admin oversight of all therapist-client assignments
-- A free 15-minute introductory call before any payment
+- A free introductory chat before any payment
 
 **IMPORTANT CONSTRAINT:** ZenSpace does not prescribe medication. It is
 a talk therapy and counselling platform only. Never imply or suggest
@@ -78,8 +78,8 @@ to wait until Sunday to tell someone.
 No one in your building, your office, or your family will know you're here.
 Not because we're hiding something — because it's yours.
 
-**USP 5 — FREE INTRO CALL**
-Before you pay anything, talk to your potential therapist for 15 minutes.
+**USP 5 — FREE INTRO CHAT**
+Before you pay anything, send a few messages to your matched therapist.
 If it doesn't feel right, you pick someone else. No pressure. No invoice.
 
 ---
@@ -121,9 +121,10 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 ## Client Flow
 
 1. **Landing page** → CTA to get started
-2. **Questionnaire** (unauthenticated) → captures mental health concerns, goals, preferences
+2. **Questionnaire** (unauthenticated) → captures mental health concerns, goals, preferences, and which category the client belongs to couples, indiviudal or teenager.
 3. **Create account** → email/password via Supabase Auth
 4. **Dashboard — Pending Match state**
+   **Questionnaire unanswered** -> prompt the user to take the questionnaire to match with best therapist
    - Message: "We are finding your perfect therapist..."
    - Carousel of sample/anonymised therapist profiles (to build trust)
    - Prompt to choose a subscription plan (per-session / weekly / monthly) and pay via Razorpay
@@ -144,6 +145,7 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
    - Chat with client (Supabase Realtime)
    - Schedule & join video sessions (Daily.co)
    - Write session notes (private to therapist)
+   3. Join as Therapist page: Send in basic deatils to be shared invite code for onboarding of therapist.
 
 ---
 
@@ -284,6 +286,159 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 6. **Therapist payout** — The therapist payout is handled off-app for now
 7. **Multiple therapists** — Client can be re-matched to a different therapist if not aligned, by contacting admin/support. No multiple therapists for one client.
 8. **Client cancellation** — The subscription is non-refundable.
+
+---
+
+## Pre-Launch Checklist
+
+Remove items as they are completed.
+
+---
+
+### 🔴 CRITICAL — Cannot go live without these
+
+**Payments**
+- [ ] Razorpay subscription plans created in Razorpay dashboard (Essentials, Premium, Couples, Monthly)
+- [ ] Client plan selection UI → Razorpay checkout flow wired up
+- [ ] Razorpay webhook handler (`/api/webhooks/razorpay`) — listens for `subscription.activated`, `subscription.charged`, `payment.failed`, updates `subscriptions` table
+- [ ] Webhook signature verification (HMAC) — security requirement
+- [ ] Subscription status gate — clients without an active subscription cannot access chat or video
+
+**Auth flow gaps**
+- [x] `/auth/callback` route — handles Supabase email confirmation links and magic links ✅
+- [x] `/auth/reset-password` page — landing page for password reset emails ✅
+- [ ] Test full signup → email confirmation → dashboard redirect flow end-to-end
+
+**Legal**
+- [ ] `/terms` page — Terms of Service (required for Razorpay merchant approval)
+- [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
+- [ ] Cookie consent banner (if using analytics)
+
+**Infrastructure (one-time setup)**
+- [ ] Run `supabase/migrations/20260329_notifications.sql` in Supabase SQL editor
+- [ ] Run `alter publication supabase_realtime add table notifications;` in Supabase SQL editor
+- [ ] Set `CRON_SECRET` env var in Vercel before deploy
+- [ ] Set `NEXT_PUBLIC_SITE_URL` env var in Vercel (used for password reset redirect links)
+- [ ] Move Supabase project to `ap-south-1` (Mumbai) region — Pro plan required
+- [ ] Set Vercel serverless function region to `ap-south-1`
+
+---
+
+### 🟡 HIGH PRIORITY — Should be live at launch
+
+**Core USPs — DONE ✅**
+- [x] Free intro chat — 10 free messages within 7-day window, counter shown to client, server-enforced
+- [x] Switch therapist flow — request form, admin Switch Requests tab, `therapist_switch_requests` table
+
+**Client account & subscription management — DONE ✅**
+- [x] Client account/profile page — update name, email, preferences at `/dashboard/account`
+- [x] Client subscription page — view current plan, billing date at `/dashboard/subscription`
+- [x] Graceful subscription expiry banner on chat + sessions pages
+
+**Session notes for clients — DONE ✅**
+- [x] Client-facing session notes view (read-only) on client dashboard at `/dashboard/notes`
+
+**Loading & error states — DONE ✅**
+- [x] `loading.tsx` for root, client dashboard, therapist dashboard
+- [x] Custom `not-found.tsx` (404 page)
+- [x] Custom `error.tsx` (500 / unexpected error page)
+- [ ] Remove `force-dynamic` from static pages: FAQ, contact, landing — use ISR instead
+
+**Therapist pending dashboard — DONE ✅**
+- [x] Anonymised therapist carousel on pending client dashboard
+
+---
+
+### 🟠 IMPORTANT — Before scaling
+
+**Landing page — DONE ✅**
+- [x] TrustBar: "International Therapists", "DPDP Compliant", "Complete Privacy", "Licensed & Verified"
+- [x] TherapyNeeds: removed three dots below headline
+- [x] HowItWorks: cleaned up connector arrows, updated "50+ International Therapists" stat
+- [x] Testimonials: 5 cards, updated grid layout
+- [x] Section separation fixed (removed duplicate top waves from TherapistCards + Testimonials)
+- [x] HeroSection: Individual + Teen category boxes both green; all boxes same height
+- [x] Global: "15 min intro call" → "Free intro chat" across all files
+
+**New pages — DONE ✅**
+- [x] `/about` — About Us page with full copy, routed from navbar
+- [x] `/contact` — Contact page with office/phone/email/social + message form
+
+**Therapist dashboard improvements — DONE ✅**
+- [x] Removed specialisations list from dashboard welcome section
+- [x] Home icon → "Home" text in TherapistNav
+- [x] Notes nav item added to TherapistNav, linking to proper notes page
+- [x] Client cards clickable → `/therapist/dashboard/client/[matchId]` detail page
+- [x] "New" badge on client cards matched within last 7 days
+- [x] Payment page: removed Rate Card; "Request Cash Out" → email link; removed Bank/UPI section
+- [x] Account form: removed Availability + Therapeutic Approach fields; added "Others" for specialisations/languages
+- [x] Reset email redirect fixed (was pointing to account page; now correctly redirects to `/auth/reset-password`)
+- [x] Therapist Notes page (`/therapist/dashboard/notes`) — full page with per-session editors
+
+**Client dashboard improvements — DONE ✅**
+- [x] Removed "View plans" tagline from chat input bar; replaced with cleaner subscribe CTA
+- [x] Sessions banner: no longer says "plan expired" — now says "subscription required"
+- [x] Help dropdown: removed "Reviews" link
+
+**Therapist application page**
+- [ ] Redesign to match brand colors fully (current form is functional but needs visual refresh)
+- [ ] Add CV/document upload field
+- [ ] Add "Others" + text input for specialisations/languages (done in account form, not yet in apply form)
+- [ ] Redirect to new tab for onboarding after submission
+
+**Therapist onboarding form**
+- [ ] Brand-aligned redesign
+- [ ] Add document upload (CV, certificates)
+- [ ] Remove sign-in prompt
+
+**Trust & profile completeness**
+- [ ] Verified badge shown on therapist card (client-facing) when `is_verified = true`
+- [ ] Profile photo upload on therapist account page (currently placeholder)
+- [ ] Profile photo upload on client account page
+
+**Availability calendar**
+- [ ] Therapist DB-backed availability (currently shows hardcoded WEEKLY_SCHEDULE in client sessions view)
+- [ ] Admin and clients should see therapist's actual set availability
+
+**Couples therapy**
+- [ ] Couples questionnaire path leads to a differentiated matching/dashboard experience
+- [ ] Admin matching UI distinguishes couples sessions from individual
+
+**SEO & content**
+- [ ] Therapist blog system — therapists can write and publish SEO articles from their dashboard
+- [ ] `/blog` public listing page
+- [ ] Sitemap (`/sitemap.xml`) and robots.txt
+- [ ] OG tags and metadata on all public pages
+
+**Security & abuse prevention**
+- [ ] Rate limiting on signup, questionnaire submit, message send, and session schedule actions
+- [ ] Data deletion flow — user can request account + data deletion (DPDP Act requirement)
+
+**Monitoring**
+- [ ] Sentry error tracking installed and configured
+- [ ] Uptime monitor set up (BetterStack or UptimeRobot)
+
+---
+
+### 🐛 KNOWN BUGS / ISSUES
+
+1. **Session availability hardcoded** — `ClientSessionsView` uses a static `WEEKLY_SCHEDULE` object instead of reading from the therapist's actual availability. Fix: add availability to `therapist_profiles` table and expose via API.
+2. **Therapist nav shows Notes even when unmatched** — NavLinks are filtered by `isMatched` but the `filter()` only checks `isMatched` at the array level; if `isMatched` changes after mount, nav won't update without re-render. Minor but may need a key-based re-render.
+3. **Chat page counts only client messages** for the intro limit, but the `sendMessage` action counts against `match_id + sender_id`. If a client has multiple matches over time (after re-match), the count resets correctly. This is correct behavior.
+4. **Password reset link env var** — `sendTherapistPasswordReset` uses `NEXT_PUBLIC_SITE_URL` but `app/actions/auth.ts` uses `NEXT_PUBLIC_APP_URL`. These are different env var names. One needs to be standardized. Check which one is set in Vercel.
+5. **Razorpay webhook not implemented** — Subscription status is never automatically updated. Clients who cancel or whose payment fails remain `active` in DB until manually changed. Critical for launch.
+6. **`force-dynamic` on all dashboard pages** — These should have `force-dynamic` but static marketing pages (FAQ, blog) should use ISR (`revalidate`). Remove `force-dynamic` from `/about`, `/contact`, `/faq`, `/blog` pages.
+
+---
+
+### 🔵 KNOWN DECISIONS & CONTEXT
+
+- Therapist payout is off-platform for now — handled directly by admin
+- Subscription is non-refundable — state this clearly on pricing and checkout pages
+- Client can be re-matched by contacting admin — no self-serve re-match
+- No multiple therapists per client — one active match at a time
+- Admin (Niharika) manually matches all clients — no algorithm
+- Session notes: therapists write, clients can read, admin cannot
 
 ---
 

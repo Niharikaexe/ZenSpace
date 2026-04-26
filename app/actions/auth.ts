@@ -9,8 +9,6 @@ import type { Database, Json } from '@/types/database'
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
 
-type ClientProfileInsert =
-  Database['public']['Tables']['client_profiles']['Insert']
 
 const signUpSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -24,14 +22,6 @@ const signInSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 })
 
-const questionnaireSchema = z.object({
-  primary_concern: z.string().min(1),
-  therapy_goals: z.string().min(1),
-  gender: z.string().min(1),
-  previous_therapy: z.boolean(),
-  preferred_therapist_gender: z.string().min(1),
-  preferred_session_type: z.enum(['chat', 'video']),
-})
 
 export type AuthState = {
   error?: string
@@ -80,58 +70,28 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   const sessionCreatedImmediately = !!signUpData?.session
 
   // Save questionnaire data if present (client sign-ups only)
+  // Stored in questionnaire_responses table only — not duplicated in client_profiles
   const questionnaireRaw = formData.get('questionnaireData')
   if (role === 'client' && questionnaireRaw && signUpData?.user) {
     try {
-      const qParsed = questionnaireSchema.safeParse(JSON.parse(String(questionnaireRaw)))
+      const parsed = JSON.parse(String(questionnaireRaw))
+      const admin = createAdminClient()
 
-      if (!qParsed.success) {
-        logger.warn('auth/signUp', 'Questionnaire validation failed — skipping save', {
+      const questionnairePayload: QuestionnaireInsert = {
+        client_id: signUpData.user.id,
+        responses: parsed as Json,
+      }
+
+      const { error: qErr } = await (admin as any)
+        .from('questionnaire_responses')
+        .insert(questionnairePayload)
+
+      if (qErr) {
+        logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, {
           userId: signUpData.user.id,
-          reason: qParsed.error.issues[0].message,
         })
       } else {
-        const qData = qParsed.data
-        const admin = createAdminClient()
-
-        const questionnairePayload: QuestionnaireInsert = {
-          client_id: signUpData.user.id,
-          responses: qData as unknown as Json,
-        }
-
-        const clientProfilePayload: ClientProfileInsert = {
-          user_id: signUpData.user.id,
-          gender: qData.gender,
-          primary_concern: qData.primary_concern,
-          therapy_goals: qData.therapy_goals,
-          previous_therapy: qData.previous_therapy,
-          preferred_therapist_gender: qData.preferred_therapist_gender,
-          preferred_session_type: qData.preferred_session_type,
-        }
-
-        const { error: qErr } = await (admin as any)
-          .from('questionnaire_responses')
-          .insert(questionnairePayload)
-
-        if (qErr) {
-          logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, {
-            userId: signUpData.user.id,
-          })
-        }
-
-        const { error: cpErr } = await (admin as any)
-          .from('client_profiles')
-          .insert(clientProfilePayload)
-
-        if (cpErr) {
-          logger.error('auth/signUp', 'Failed to save client_profiles', cpErr, {
-            userId: signUpData.user.id,
-          })
-        }
-
-        if (!qErr && !cpErr) {
-          logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
-        }
+        logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
       }
     } catch (err) {
       logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, {
@@ -214,6 +174,86 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   }
 
   redirect('/dashboard')
+}
+
+const resetRequestSchema = z.object({
+  email: z.string().email('Invalid email address'),
+})
+
+const updatePasswordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = resetRequestSchema.safeParse({ email: formData.get('email') })
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const { email } = parsed.data
+  const admin = createAdminClient()
+
+  // Verify the email is actually registered before sending a reset link.
+  // listUsers with service role — acceptable for MVP scale.
+  const { data: listData, error: listError } = await (admin as any).auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
+
+  if (listError) {
+    logger.error('auth/resetPassword', 'listUsers failed', listError)
+    return { error: 'Something went wrong. Please try again.' }
+  }
+
+  const registered = (listData?.users as Array<{ email?: string }> ?? [])
+    .some(u => u.email?.toLowerCase() === email.toLowerCase())
+
+  if (!registered) {
+    return { error: "We don't have an account with that email." }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/reset-password`,
+  })
+
+  if (error) {
+    logger.error('auth/resetPassword', 'Reset email failed', error, { email })
+    return { error: error.message }
+  }
+
+  logger.info('auth/resetPassword', 'Reset email sent', { email })
+  return { success: true }
+}
+
+export async function updatePassword(_: AuthState, formData: FormData): Promise<AuthState> {
+  const parsed = updatePasswordSchema.safeParse({ password: formData.get('password') })
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const { password } = parsed.data
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) {
+    logger.error('auth/updatePassword', 'Password update failed', error)
+    return { error: error.message }
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user!.id)
+    .maybeSingle() as { data: { role: string } | null; error: unknown }
+
+  logger.info('auth/updatePassword', 'Password updated', { userId: user?.id })
+  const role = profile?.role ?? (user?.user_metadata?.role as string) ?? 'client'
+  redirect(role === 'admin' ? '/admin' : role === 'therapist' ? '/therapist/dashboard' : '/dashboard')
 }
 
 export async function signOut() {

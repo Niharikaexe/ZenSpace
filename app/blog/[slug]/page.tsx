@@ -164,7 +164,7 @@ export default async function BlogPostPage({ params }: Props) {
             href="/questionnaire"
             className="inline-block bg-[#7EC0B7] text-[#233551] font-bold text-sm px-8 py-3 rounded-full hover:bg-[#6DB5AB] transition-colors"
           >
-            Book your free intro call
+            Start your free intro chat
           </Link>
         </div>
       </article>

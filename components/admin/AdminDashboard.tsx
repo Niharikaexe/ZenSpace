@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { signOut } from '@/app/actions/auth'
-import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode } from '@/app/admin/actions'
+import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import MatchModal from './MatchModal'
 
@@ -59,6 +59,36 @@ export type InviteCode = {
   used_by: string | null
 }
 
+export type TherapistApplication = {
+  id: string
+  full_name: string
+  email: string
+  phone: string | null
+  city: string | null
+  license_number: string
+  license_body: string | null
+  years_experience: number
+  education: string | null
+  specializations: string[]
+  languages: string[]
+  bio: string
+  why_zenspace: string | null
+  status: string
+  submitted_at: string
+}
+
+export type SwitchRequest = {
+  id: string
+  client_id: string
+  match_id: string | null
+  reason: string | null
+  details: string | null
+  status: string
+  created_at: string
+  clientName: string
+  therapistName: string
+}
+
 export type ActiveMatch = {
   id: string
   client_id: string
@@ -79,6 +109,8 @@ interface Props {
   activeMatches: ActiveMatch[]
   totalClientCount: number
   inviteCodes: InviteCode[]
+  applications: TherapistApplication[]
+  switchRequests: SwitchRequest[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -135,11 +167,13 @@ function formatDate(iso: string) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Tab = 'clients' | 'therapists' | 'matches'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests }: Props) {
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
+  const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
+  const [appNotes, setAppNotes] = useState<Record<string, string>>({})
   const [matchingClient, setMatchingClient] = useState<UnmatchedClient | null>(null)
   const [isPending, startTransition] = useTransition()
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -155,6 +189,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const verifiedAvailable = therapists.filter(t => t.is_verified && t.accepts_new_clients)
 
   const tabs: { key: Tab; label: string; count: number }[] = [
+    { key: 'applications', label: 'Applications', count: applications.length },
+    { key: 'switches', label: 'Switch Requests', count: switchRequests.length },
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
@@ -184,7 +220,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
       <main className="max-w-7xl mx-auto px-6 py-8">
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          <StatCard label="Applications" value={applications.length} sub="pending review" accent="border-l-violet-500" />
           <StatCard label="Total Clients" value={totalClientCount} accent="border-l-blue-500" />
           <StatCard label="Awaiting Match" value={unmatchedClients.length} accent="border-l-amber-500" />
           <StatCard
@@ -220,6 +257,123 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
               </button>
             ))}
           </div>
+
+          {/* ── Applications Tab ── */}
+          {tab === 'applications' && (
+            applications.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-5xl mb-3">✓</div>
+                <p className="font-semibold text-slate-700">No pending applications</p>
+                <p className="text-sm text-slate-400 mt-1">New therapist applications will appear here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {applications.map(app => (
+                  <div key={app.id}>
+                    <div className="px-6 py-4 flex items-center gap-4">
+                      <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                        {app.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-slate-900 text-sm">{app.full_name}</span>
+                          <span className="text-xs text-slate-400">{app.email}</span>
+                          {app.city && (
+                            <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{app.city}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-slate-500">
+                            {app.years_experience}y exp · {app.license_number}
+                          </span>
+                          {app.specializations.slice(0, 3).map(s => (
+                            <span key={s} className="text-xs px-1.5 py-0.5 bg-violet-50 text-violet-700 rounded-full capitalize">{s}</span>
+                          ))}
+                          {app.specializations.length > 3 && (
+                            <span className="text-xs text-slate-400">+{app.specializations.length - 3} more</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">Submitted {formatDate(app.submitted_at)}</p>
+                      </div>
+                      <button
+                        onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}
+                        className="text-xs text-slate-500 hover:text-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors flex-shrink-0"
+                      >
+                        {expandedAppId === app.id ? 'Hide' : 'Review'}
+                      </button>
+                    </div>
+
+                    {/* Expanded review panel */}
+                    {expandedAppId === app.id && (
+                      <div className="px-6 pb-6 pt-2 bg-slate-50 border-t border-slate-100">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-3">
+                          <InfoField label="Email" value={app.email} />
+                          <InfoField label="Phone" value={app.phone} />
+                          <InfoField label="City" value={app.city} />
+                          <InfoField label="License number" value={app.license_number} />
+                          <InfoField label="License body" value={app.license_body} />
+                          <InfoField label="Years experience" value={String(app.years_experience)} />
+                          <InfoField label="Education" value={app.education} />
+                          <div>
+                            <p className="text-xs text-slate-400">Languages</p>
+                            <p className="text-sm text-slate-700 font-medium mt-0.5">{app.languages.join(', ')}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Specializations</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {app.specializations.map(s => (
+                                <span key={s} className="text-xs px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full capitalize">{s}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="col-span-2 md:col-span-3">
+                            <p className="text-xs text-slate-400">Bio</p>
+                            <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.bio}</p>
+                          </div>
+                          {app.why_zenspace && (
+                            <div className="col-span-2 md:col-span-3">
+                              <p className="text-xs text-slate-400">Why ZenSpace</p>
+                              <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.why_zenspace}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Notes + action buttons */}
+                        <div className="mt-5 pt-4 border-t border-slate-200">
+                          <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                            Admin notes <span className="font-normal text-slate-400">(optional — included in approval email)</span>
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={appNotes[app.id] ?? ''}
+                            onChange={e => setAppNotes(prev => ({ ...prev, [app.id]: e.target.value }))}
+                            placeholder="e.g. Great fit for anxiety and CBT clients. Welcome!"
+                            className="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none bg-white"
+                          />
+                          <div className="flex items-center gap-3 mt-3">
+                            <button
+                              disabled={isPending}
+                              onClick={() => startTransition(() => approveApplication(app.id, appNotes[app.id] ?? ''))}
+                              className="flex items-center gap-1.5 text-xs px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors disabled:opacity-60"
+                            >
+                              Approve &amp; send invite
+                            </button>
+                            <button
+                              disabled={isPending}
+                              onClick={() => startTransition(() => rejectApplication(app.id, appNotes[app.id] ?? ''))}
+                              className="flex items-center gap-1.5 text-xs px-4 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors disabled:opacity-60"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          )}
 
           {/* ── Pending Clients Tab ── */}
           {tab === 'clients' && (
@@ -492,6 +646,59 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     >
                       End match
                     </button>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* ── Switch Requests Tab ── */}
+          {tab === 'switches' && (
+            switchRequests.length === 0 ? (
+              <div className="py-20 text-center">
+                <div className="text-5xl mb-3">✓</div>
+                <p className="font-semibold text-slate-700">No pending switch requests</p>
+                <p className="text-sm text-slate-400 mt-1">Switch requests from clients will appear here.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {switchRequests.map(req => (
+                  <div key={req.id} className="px-6 py-5 flex items-start gap-4">
+                    <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-semibold text-sm flex-shrink-0 mt-0.5">
+                      {req.clientName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-medium text-slate-900 text-sm">{req.clientName}</span>
+                        <span className="text-slate-300 text-xs">currently with</span>
+                        <span className="text-sm text-slate-600">{req.therapistName}</span>
+                      </div>
+                      {req.reason && (
+                        <p className="text-sm text-slate-600 mt-1">
+                          <span className="font-medium text-slate-500">Reason: </span>{req.reason}
+                        </p>
+                      )}
+                      {req.details && (
+                        <p className="text-sm text-slate-500 mt-0.5 italic leading-relaxed">&ldquo;{req.details}&rdquo;</p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-1.5">Submitted {formatDate(req.created_at)}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                      {req.match_id ? (
+                        <button
+                          disabled={isPending}
+                          onClick={() => startTransition(() => actionSwitchRequest(req.id, req.match_id!))}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium transition-colors disabled:opacity-60"
+                        >
+                          End match &amp; re-queue
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">Match already ended</span>
+                      )}
+                      <p className="text-[11px] text-slate-400 mt-1.5 leading-tight">
+                        Client returns to<br/>pending match queue
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

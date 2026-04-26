@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
 
 async function getAuthUser() {
   const supabase = await createClient()
@@ -14,10 +15,45 @@ async function getAuthUser() {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
+const INTRO_MESSAGE_LIMIT = 10
+const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days, hidden from client
+
 export async function sendMessage(matchId: string, content: string): Promise<{ error?: string }> {
   const { user, supabase } = await getAuthUser()
   const trimmed = content.trim()
   if (!trimmed) return { error: 'Message cannot be empty' }
+
+  // Enforce subscription + intro limit for clients (not therapists)
+  const admin = createAdminClient()
+  const { data: senderProfile } = await (admin as any)
+    .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
+
+  if (senderProfile?.role === 'client') {
+    const { data: activeSub } = await (admin as any)
+      .from('subscriptions')
+      .select('id')
+      .eq('client_id', user.id)
+      .eq('status', 'active')
+      .gt('current_period_end', new Date().toISOString())
+      .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+    if (!activeSub) {
+      // Hidden: check 7-day intro window
+      const { data: matchRow } = await (admin as any)
+        .from('matches').select('created_at').eq('id', matchId).single() as { data: { created_at: string } | null; error: unknown }
+
+      const withinWindow = matchRow && new Date(matchRow.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
+      if (!withinWindow) return { error: 'subscribe_required' }
+
+      const { count } = await (admin as any)
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('match_id', matchId)
+        .eq('sender_id', user.id) as { count: number | null; error: unknown }
+
+      if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
+    }
+  }
 
   const { error } = await (supabase as any).from('messages').insert({
     match_id: matchId,
@@ -27,6 +63,36 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
   })
 
   if (error) return { error: error.message }
+
+  // Notify the OTHER party (debounced — once per 5 min per match)
+  try {
+    const admin = createAdminClient()
+    const { data: match } = await (admin as any)
+      .from('matches')
+      .select('client_id, therapist_id')
+      .eq('id', matchId)
+      .single()
+
+    if (match) {
+      const recipientId = user.id === match.client_id ? match.therapist_id : match.client_id
+      const shouldNotify = await shouldNotifyMessage(recipientId, matchId)
+
+      if (shouldNotify) {
+        const { data: senderProfile } = await (admin as any)
+          .from('profiles').select('full_name').eq('id', user.id).single()
+        const senderName = senderProfile?.full_name ?? 'Someone'
+
+        createNotification({
+          userId: recipientId,
+          type: 'client_message',
+          title: 'New message',
+          body: `${senderName} sent you a message.`,
+          metadata: { matchId, senderId: user.id, clientName: senderName },
+        }).catch(() => {})
+      }
+    }
+  } catch { /* notification failure must not break message send */ }
+
   return {}
 }
 
@@ -102,8 +168,32 @@ export async function scheduleSession(
 
   if (error) return { error: error.message }
 
+  // Notify the client about the scheduled session
+  try {
+    const admin = createAdminClient()
+    const { data: match } = await (admin as any)
+      .from('matches')
+      .select('client_id')
+      .eq('id', matchId)
+      .single()
+
+    if (match?.client_id) {
+      const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit', hour12: true,
+      })
+      createNotification({
+        userId: match.client_id,
+        type: 'session_scheduled',
+        title: 'Session scheduled',
+        body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
+        metadata: { matchId, scheduledAt, sessionType, dateStr },
+      }).catch(() => {})
+    }
+  } catch { /* non-fatal */ }
+
   revalidatePath('/therapist/dashboard/video')
-  revalidatePath('/dashboard/video')
+  revalidatePath('/dashboard/sessions')
   return {}
 }
 
@@ -143,6 +233,6 @@ export async function updateSessionStatus(
   if (error) return { error: error.message }
 
   revalidatePath('/therapist/dashboard/video')
-  revalidatePath('/dashboard/video')
+  revalidatePath('/dashboard/sessions')
   return {}
 }

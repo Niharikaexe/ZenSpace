@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     template: "%s | ZenSpace",
   },
   description:
-    "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free 15-minute intro call. No waiting rooms. No prescriptions. Starting ₹2,999/week.",
+    "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions. Starting ₹2,999/week.",
   keywords: [
     "online therapy India",
     "online therapist India",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     siteName: "ZenSpace",
     title: "ZenSpace — Online Therapy for India",
     description:
-      "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free 15-minute intro call. Starting ₹2,999/week.",
+      "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. Starting ₹2,999/week.",
     images: [
       {
         url: "/og-image.png",
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ZenSpace — Online Therapy for India",
     description:
-      "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free 15-minute intro call.",
+      "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat.",
     images: ["/og-image.png"],
   },
   robots: {

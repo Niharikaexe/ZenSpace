@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(curl -s https://www.betterhelp.com/ -H 'User-Agent: Mozilla/5.0')",
+      "Read(//tmp/**)",
+      "Bash(find /c/Users/91789/therapy-proj -not -path */node_modules* -not -path */.next* -type d)",
+      "Bash(npx tsc:*)",
+      "Bash(sed -i 's|href=\"\"/signup\"\"|href=\"\"/questionnaire/individual\"\"|g' /c/Users/91789/therapy-proj/app/for/individuals/IndividualsPageClient.tsx)",
+      "Bash(sed -i 's|href=\"\"/signup\"\"|href=\"\"/questionnaire/couples\"\"|g' /c/Users/91789/therapy-proj/app/for/couples/CouplesPageClient.tsx)",
+      "Bash(sed -i 's|href=\"\"/signup\"\"|href=\"\"/questionnaire/teen\"\"|g' /c/Users/91789/therapy-proj/app/for/adolescents/AdolescentsPageClient.tsx)",
+      "Bash(find /c/Users/91789/therapy-proj -path */node_modules -prune -o -type f \\\\\\(-name layout.tsx -o -name page.tsx \\\\\\) -print)",
+      "Bash(xargs cat:*)"
     ]
   }
 }

@@ -19,23 +19,20 @@ const CTASection = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.7 }}
             >
-              <span className="inline-block bg-[#7EC0B7]/20 text-[#7EC0B7] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
-                Free Assessment
-              </span>
               <h2
                 className="text-3xl md:text-4xl font-black text-white leading-tight"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                Check your mental<br />well-being score
+                You&apos;ve done the reading.<br />Now, start the practice.
               </h2>
               <p className="text-white/55 text-base leading-relaxed max-w-md">
-                Feeling a little unsure about your mental health lately? Here&apos;s a quick self-rating scale recommended by the World Health Organization. Keep in mind this tool doesn&apos;t replace a professional opinion.
+                Take five minutes to tell us about your world. We&apos;ll help you find the right person to talk to.
               </p>
               <Link
                 href="/questionnaire"
-                className="inline-flex items-center gap-2 text-sm font-bold text-white border-2 border-white/25 px-7 py-3.5 rounded-full hover:border-white/60 hover:bg-white/8 transition-all duration-200"
+                className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#F0F8F7] transition-all duration-200 shadow-lg shadow-black/20"
               >
-                Start assessment →
+                Start the assessment →
               </Link>
             </motion.div>
 

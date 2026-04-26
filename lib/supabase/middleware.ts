@@ -59,13 +59,18 @@ export async function updateSession(request: NextRequest) {
     pathname === '/' ||
     pathname === '/login' ||
     pathname === '/signup' ||
+    pathname === '/therapist/login' ||
+    pathname === '/admin/login' ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/questionnaire') ||
     pathname.startsWith('/blog') ||
     pathname.startsWith('/market-reports') ||
     pathname.startsWith('/help') ||
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
-    pathname.startsWith('/api/payment/webhook') // webhook must be unauthenticated
+    pathname === '/therapist/apply' ||          // public application form (no account yet)
+    pathname.startsWith('/for') ||              // audience landing pages (public marketing)
+    pathname.startsWith('/api/payment/webhook') || // legacy webhook path
+    pathname.startsWith('/api/webhooks/')          // all webhook endpoints (called by external services)
 
   if (!user && !isPublic) {
     logger.info('middleware', 'Unauthenticated access — redirecting to login', { path: pathname })
@@ -74,7 +79,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (user && (pathname === '/login' || pathname === '/signup')) {
+  const isAuthPage =
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname === '/therapist/login' ||
+    pathname === '/admin/login'
+
+  if (user && isAuthPage) {
     const role = await getRole(supabase, user.id)
     const url = request.nextUrl.clone()
     url.pathname = role === 'admin' ? '/admin' : role === 'therapist' ? '/therapist/dashboard' : '/dashboard'
@@ -96,7 +107,13 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  if (user && pathname.startsWith('/therapist')) {
+  // /therapist/apply and /therapist/onboard are public — skip role check for them
+  if (
+    user &&
+    pathname.startsWith('/therapist') &&
+    pathname !== '/therapist/apply' &&
+    pathname !== '/therapist/onboard'
+  ) {
     const role = await getRole(supabase, user.id)
     if (role !== 'therapist' && role !== 'admin') {
       logger.warn('middleware', 'Non-therapist accessing /therapist — blocked', { userId: user.id, role })
