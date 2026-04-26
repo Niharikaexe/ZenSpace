@@ -62,74 +62,10 @@ const StarSVG = ({ color = "#FF8C5A", className = "" }: { color?: string; classN
   </svg>
 )
 
-/* ── Category card icon SVGs ── */
-const IndividualIcon = () => (
-  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-    <circle cx="20" cy="14" r="7" fill="#7EC0B7" />
-    <path d="M6,36 C6,27 12,22 20,22 C28,22 34,27 34,36" stroke="#7EC0B7" strokeWidth="3" strokeLinecap="round" fill="none"/>
-  </svg>
-)
-
-const CouplesIcon = () => (
-  <svg viewBox="0 0 48 40" fill="none" className="w-full h-full">
-    <circle cx="16" cy="13" r="6" fill="#E8926A" />
-    <path d="M4,36 C4,28 9,23 16,23 C19,23 22,24 24,26" stroke="#E8926A" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-    <circle cx="32" cy="13" r="6" fill="#7EC0B7" />
-    <path d="M44,36 C44,28 39,23 32,23 C29,23 26,24 24,26" stroke="#7EC0B7" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-    <path d="M21,30 Q24,28 27,30" stroke="#233551" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.3"/>
-  </svg>
-)
-
-const TeenIcon = () => (
-  <svg viewBox="0 0 40 44" fill="none" className="w-full h-full">
-    <circle cx="20" cy="13" r="7" fill="#F97B5A" />
-    <path d="M8,38 C8,29 13,24 20,24 C27,24 32,29 32,38" stroke="#F97B5A" strokeWidth="3" strokeLinecap="round" fill="none"/>
-    <path d="M30,8 L32,4 L34,8" stroke="#7EC0B7" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-    <circle cx="36" cy="6" r="2" fill="#7EC0B7" opacity="0.7"/>
-    <circle cx="28" cy="3" r="1.5" fill="#E8926A" opacity="0.8"/>
-  </svg>
-)
-
 const therapyTypes = [
-  {
-    label: "Individual",
-    tagline: "A habit for your head. Just you and a person who listens.",
-    href: "/for/individuals",
-    Icon: IndividualIcon,
-    accent: "#7EC0B7",
-    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
-    border: "border-[#7EC0B7]/25",
-    hoverBorder: "hover:border-[#7EC0B7]/60",
-    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
-    iconBg: "bg-[#7EC0B7]/15",
-    dot: "bg-[#7EC0B7]",
-  },
-  {
-    label: "Couples",
-    tagline: "Finding the rhythm again. A space for both of you.",
-    href: "/for/couples",
-    Icon: CouplesIcon,
-    accent: "#E8926A",
-    bg: "from-[#E8926A]/10 to-[#E8926A]/5",
-    border: "border-[#E8926A]/25",
-    hoverBorder: "hover:border-[#E8926A]/60",
-    hoverBg: "hover:from-[#E8926A]/18 hover:to-[#E8926A]/10",
-    iconBg: "bg-[#E8926A]/15",
-    dot: "bg-[#E8926A]",
-  },
-  {
-    label: "Teen",
-    tagline: "A room of your own. For when the world feels too loud.",
-    href: "/for/adolescents",
-    Icon: TeenIcon,
-    accent: "#3D8A80",
-    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
-    border: "border-[#7EC0B7]/25",
-    hoverBorder: "hover:border-[#7EC0B7]/60",
-    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
-    iconBg: "bg-[#7EC0B7]/15",
-    dot: "bg-[#3D8A80]",
-  },
+  { label: "Individual", href: "/individual" },
+  { label: "Couples", href: "/couples" },
+  { label: "Teen", href: "/teen" },
 ]
 
 const HeroSection = () => {
@@ -176,8 +112,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Peace isn’t a milestone<br />
-              it’s a practice
+              Peace isn&apos;t a destination;<br />
+              it&apos;s a practice.
             </motion.h1>
 
             {/* Subtitle */}
@@ -187,53 +123,48 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-               Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
+              Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
             </motion.p>
 
-            {/* Therapy type category cards */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-3">
-              {therapyTypes.map((t, i) => (
-                <motion.div
+            {/* CTA buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex flex-wrap gap-4"
+            >
+              <Link
+                href="/questionnaire"
+                className="inline-flex items-center gap-2 bg-[#233551] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#2d4568] transition-all duration-200 shadow-lg shadow-[#233551]/20 hover:shadow-xl hover:shadow-[#233551]/25 hover:-translate-y-0.5"
+              >
+                Start assessment
+              </Link>
+              <Link
+                href="/questionnaire"
+                className="inline-flex items-center gap-2 text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full border-2 border-[#233551]/20 hover:border-[#233551]/50 transition-all duration-200 hover:-translate-y-0.5"
+              >
+                Find my therapist
+              </Link>
+            </motion.div>
+
+            {/* Therapy type pills */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="flex flex-wrap gap-2 pt-1"
+            >
+              <span className="text-xs text-[#233551]/40 font-medium self-center">Looking for:</span>
+              {therapyTypes.map((t) => (
+                <Link
                   key={t.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                  className="flex-1"
+                  href={t.href}
+                  className="text-xs font-semibold text-[#3D8A80] bg-[#7EC0B7]/12 hover:bg-[#7EC0B7]/25 px-3.5 py-1.5 rounded-full transition-colors"
                 >
-                  <Link
-                    href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
-                  >
-                    {/* Subtle corner glow on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
-
-                    {/* Icon */}
-                    <div className={`w-10 h-10 ${t.iconBg} rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
-                      <t.Icon />
-                    </div>
-
-                    {/* Label + tagline */}
-                    <div>
-                      <p className="text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
-                        {t.label}
-                      </p>
-                      <p className="text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
-                    </div>
-
-                    {/* Arrow */}
-                    <div className="flex items-center gap-1 mt-auto">
-                      <span className="text-xs font-semibold" style={{ color: t.accent }}>Learn more</span>
-                      <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" style={{ color: t.accent }}>
-                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-
-                    {/* Active dot */}
-                    <span className={`absolute top-3 right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
-                  </Link>
-                </motion.div>
+                  {t.label}
+                </Link>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* ── RIGHT: Illustration area ── */}
