@@ -6,24 +6,20 @@ import { Plus, Minus } from "lucide-react"
 
 const faqs = [
   {
-    q: "Does online therapy actually work?",
-    a: "Having a conversation from your own couch often makes it easier to be open. It’s the same support, just in a more comfortable environment.",
+    q: "Does this actually work online?",
+    a: "Having a conversation from your own couch often makes it easier to be open. It's the same support, just in a more comfortable environment.",
   },
   {
-    q: "How do I know my therapist is the right for me?",
-    a: " Yes. Every match starts with a short conversation to make sure the rhythm feels right for you."
+    q: "Can I speak to them before I start?",
+    a: "Yes. Every match starts with a short conversation to make sure the rhythm feels right for you. No payment before that call happens.",
   },
-    {
-    q: "What if my therapist and I don't click?",
-    a: "It happens. You can find a new person on the platform whenever you need to. No awkwardness, just a new start",
+  {
+    q: "What if we don't fit?",
+    a: "It happens. You can find a new person on the platform whenever you need to. No awkwardness, just a new start.",
   },
   {
     q: "Will my information stay private?",
-    a: "Always. Your space here is entirely separate from the rest of your life."
-  },
-  {
-    q: "Do you prescribe medication?",
-    a: "We don't. ZenSpace is a talk therapy and counselling platform — no prescriptions, no diagnoses. If you think you need medication, we'll say so honestly and help you find the right person for that.",
+    a: "Always. Your space here is entirely separate from the rest of your life. We don't share anything with employers, family, or anyone else.",
   },
 ]
 
@@ -48,10 +44,10 @@ const FAQ = () => {
             className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            Frequently asked questions
+            A few things you&apos;re probably wondering.
           </h2>
           <p className="text-[#233551]/50 text-base">
-            Everything you need to know before getting started.
+            Straight answers, no filler.
           </p>
         </motion.div>
 
