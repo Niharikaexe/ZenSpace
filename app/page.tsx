@@ -1,12 +1,11 @@
 import Navbar from "@/components/home/Navbar"
 import HeroSection from "@/components/home/HeroSection"
 import TrustBar from "@/components/home/TrustBar"
-import ProblemRecognition from "@/components/home/ProblemRecognition"
-import TherapyNeeds from "@/components/home/TherapyNeeds"
+import WhyNow from "@/components/home/WhyNow"
 import HowItWorks from "@/components/home/HowItWorks"
 import TherapistCards from "@/components/home/TherapistCards"
 import Testimonials from "@/components/home/Testimonials"
-import PrivacySection from "@/components/home/PrivacySection"
+import PrivacySafety from "@/components/home/PrivacySafety"
 import CTASection from "@/components/home/CTASection"
 import FAQ from "@/components/home/FAQ"
 import Footer from "@/components/home/Footer"
@@ -17,12 +16,11 @@ export default function HomePage() {
       <Navbar />
       <HeroSection />
       <TrustBar />
-      <ProblemRecognition />
-      <TherapyNeeds />
+      <WhyNow />
       <HowItWorks />
       <TherapistCards />
       <Testimonials />
-      <PrivacySection />
+      <PrivacySafety />
       <CTASection />
       <FAQ />
       <Footer />
