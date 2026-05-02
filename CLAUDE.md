@@ -295,6 +295,48 @@ Remove items as they are completed.
 
 ---
 
+### 🔐 SECRETS & ENV — DO BEFORE ANY OTHER WORK
+
+**🚨 Compromised secrets in `.env.example` (committed to git)**
+- [ ] Rotate `SUPABASE_SERVICE_ROLE_KEY` in Supabase dashboard (currently `sb_secret_...` exposed in `.env.example` line 4)
+- [ ] Rotate `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` (line 2)
+- [ ] Rotate `NEXT_PUBLIC_SUPABASE_ANON_KEY` (line 3)
+- [ ] Replace all values in `.env.example` with placeholders (`your_supabase_url`, `your_service_role_key`, etc.)
+- [ ] Scrub git history with `git filter-repo` (or accept the rotation and move on)
+- [ ] Confirm no old keys remain valid in any environment
+
+**Env var standardization**
+- [ ] Pick ONE: `NEXT_PUBLIC_APP_URL` or `NEXT_PUBLIC_SITE_URL`. Currently 4 files use APP_URL (`app/actions/auth.ts:52,218`, `app/actions/profile.ts:64`) and 3 use SITE_URL (`lib/email.ts:6`, `app/admin/actions.ts:155`, `app/actions/therapist-profile.ts:87`). Whichever is unset in Vercel produces `undefined/auth/callback` links.
+- [ ] Update all 7 files to use the chosen var
+- [ ] Set the chosen var in Vercel for production + preview environments
+- [ ] Remove the other from `.env.example`
+
+**Missing env vars to add to `.env.example` as placeholders**
+- [ ] `RAZORPAY_WEBHOOK_SECRET=your_webhook_secret`
+- [ ] `RESEND_API_KEY=your_resend_api_key`
+- [ ] `CRON_SECRET=your_cron_secret`
+- [ ] `RAZORPAY_PLAN_BASIC_WEEKLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_BASIC_MONTHLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_PREMIUM_WEEKLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_PREMIUM_MONTHLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_COUPLES_BASIC_WEEKLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_COUPLES_BASIC_MONTHLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_COUPLES_PREMIUM_WEEKLY=plan_xxx`
+- [ ] `RAZORPAY_PLAN_COUPLES_PREMIUM_MONTHLY=plan_xxx`
+
+**Dead env vars to remove from `.env.example` (not read by any code)**
+- [ ] `NEXT_PUBLIC_DAILY_DOMAIN` (line 13)
+- [ ] `NEXT_PUBLIC_RAZORPAY_KEY_ID` (line 9) — duplicate of `RAZORPAY_KEY_ID`
+- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` (line 3) — code uses `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`
+
+**Vercel production env (set before deploy)**
+- [ ] All keys above in production AND preview scopes
+- [ ] `CRON_SECRET` — required, code currently no-ops auth check if unset (security hole)
+- [ ] Verify Supabase project region is `ap-south-1` (Mumbai)
+- [ ] Verify Vercel serverless function region is `bom1` (Mumbai)
+
+---
+
 ### 🔴 CRITICAL — Cannot go live without these
 
 **Payments**
@@ -420,14 +462,236 @@ Remove items as they are completed.
 
 ---
 
-### 🐛 KNOWN BUGS / ISSUES
+### 🐛 KNOWN BUGS / ISSUES — Production Audit 2026-05-02
 
-1. **Session availability hardcoded** — `ClientSessionsView` uses a static `WEEKLY_SCHEDULE` object instead of reading from the therapist's actual availability. Fix: add availability to `therapist_profiles` table and expose via API.
-2. **Therapist nav shows Notes even when unmatched** — NavLinks are filtered by `isMatched` but the `filter()` only checks `isMatched` at the array level; if `isMatched` changes after mount, nav won't update without re-render. Minor but may need a key-based re-render.
-3. **Chat page counts only client messages** for the intro limit, but the `sendMessage` action counts against `match_id + sender_id`. If a client has multiple matches over time (after re-match), the count resets correctly. This is correct behavior.
-4. **Password reset link env var** — `sendTherapistPasswordReset` uses `NEXT_PUBLIC_SITE_URL` but `app/actions/auth.ts` uses `NEXT_PUBLIC_APP_URL`. These are different env var names. One needs to be standardized. Check which one is set in Vercel.
-5. **Razorpay webhook not implemented** — Subscription status is never automatically updated. Clients who cancel or whose payment fails remain `active` in DB until manually changed. Critical for launch.
-6. **`force-dynamic` on all dashboard pages** — These should have `force-dynamic` but static marketing pages (FAQ, blog) should use ISR (`revalidate`). Remove `force-dynamic` from `/about`, `/contact`, `/faq`, `/blog` pages.
+Each bug has: severity, file:line, description, and suggested fix.
+
+---
+
+#### 🔴 CRITICAL — Security & data loss
+
+**B-01. Service role key + anon JWT committed to `.env.example`**
+- File: `.env.example` lines 1–4
+- Description: Production Supabase URL, anon JWT, publishable key, and `SUPABASE_SERVICE_ROLE_KEY=sb_secret_...` are all in plaintext in a tracked file. Anyone with repo read access can fully bypass RLS and access the live database. This is the single most consequential finding in the audit.
+- Fix: Rotate all three keys in Supabase dashboard, scrub git history (or accept rotation as the mitigation), replace `.env.example` with placeholder values. Tracked in the SECRETS & ENV section above.
+
+**B-02. IDOR — `saveSessionNotes` has no ownership check**
+- File: `app/actions/sessions.ts` lines 202–219
+- Description: Function uses the admin Supabase client (RLS bypass) and only checks that the caller is authenticated, not that they own the session. Any logged-in user (including a client) can pass any `sessionId` and overwrite the therapist's session notes. Directly contradicts the "therapists write, clients read" rule.
+- Fix: Before update, fetch `session.match_id`, then `match.therapist_id`, and verify `match.therapist_id === user.id`. Reject otherwise.
+
+**B-03. IDOR — `updateSessionStatus` has no ownership check**
+- File: `app/actions/sessions.ts` lines 221–238
+- Description: Same pattern as B-02 — admin client, no ownership check. Any auth'd user can flip any session to `cancelled` / `completed` / `ongoing`.
+- Fix: Same ownership check (therapist OR client of the session's match) before update.
+
+**B-04. IDOR — `scheduleSession` has no ownership check**
+- File: `app/actions/sessions.ts` lines 117–198
+- Description: Accepts any `matchId` without verifying caller is the therapist or client of that match. Triggers Daily.co room creation (cost burn) and writes a `sessions` row attributed to a match the user doesn't belong to.
+- Fix: Fetch the match first; reject unless `match.therapist_id === user.id` (sessions are scheduled by therapists per CLAUDE.md flow).
+
+**B-05. Cron auth is conditional**
+- File: `app/api/cron/session-reminders/route.ts` lines 11–16
+- Description: `if (cronSecret) { ... check ... }` — if `CRON_SECRET` env var is unset in Vercel, the route is publicly callable and will spam emails for every upcoming session each call.
+- Fix: Make the check unconditional. Return 500 if `CRON_SECRET` is unset in production.
+
+**B-06. Forgot-password leaks user existence + 1k user cap**
+- File: `app/actions/auth.ts` lines 199–214
+- Description: Returns the explicit message `"We don't have an account with that email."`, enabling email enumeration. Also calls `listUsers({ perPage: 1000 })` which silently caps; once the platform crosses 1k users, password reset stops working for the (1001 + n)th user.
+- Fix: Always return the same success message regardless of whether the email exists. Replace `listUsers` with a direct lookup or paginated scan.
+
+**B-07. Two Razorpay webhook handlers wired**
+- Files: `app/api/webhooks/razorpay/route.ts` (canonical) and `app/api/payment/webhook/route.ts` (legacy). Both whitelisted in `lib/supabase/middleware.ts:72–73`.
+- Description: If both URLs are configured in Razorpay, every event triggers double-writes. If only the legacy URL is set, the canonical handler never sees events. Either way, subscription state is wrong.
+- Fix: Delete `app/api/payment/webhook/route.ts` and remove `/api/payment/webhook` from middleware allowlist. Confirm only `/api/webhooks/razorpay` is configured in Razorpay dashboard.
+
+**B-08. HMAC comparison uses `===` (not timing-safe)**
+- Files: `app/api/payment/verify/route.ts:55` and `app/api/webhooks/razorpay/route.ts:41`
+- Description: Direct string equality on HMAC signatures is theoretically vulnerable to timing attacks. Practical exposure is small for short HMACs over TLS, but it's a one-line fix that should be done before production.
+- Fix: Use `crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))` after length-equality guard.
+
+**B-09. Webhook idempotency missing on `subscription.charged`**
+- File: `app/api/webhooks/razorpay/route.ts` line 104 onward
+- Description: No event-ID dedup. Razorpay retries on 5xx (and sometimes on 2xx slow responses); a single charge event can land twice and double-extend `current_period_end`.
+- Fix: Add a `processed_webhook_events` table keyed on Razorpay event ID with a unique constraint, OR dedupe on `(razorpay_payment_id, event_type)` before applying state changes.
+
+**B-10. `/api/payment/verify` trusts client-supplied `plan`**
+- File: `app/api/payment/verify/route.ts` lines 12, 67–68
+- Description: The Zod schema accepts `plan` from the client and uses it to compute `current_period_end`. A client can pay weekly, send `plan=monthly`, and get a longer billing period.
+- Fix: Look up the actual subscription cadence from the Razorpay subscription/order or from the existing DB row instead of trusting client input.
+
+**B-11. Race in subscription creation**
+- File: `app/api/payment/create-subscription/route.ts` lines 56–68
+- Description: Check-then-act: queries for existing active subs, then cancels pending ones, then creates new. Two parallel calls can both pass the check and both create, resulting in two active subscriptions for the same client.
+- Fix: Wrap in a Postgres transaction with `SELECT ... FOR UPDATE`, or add a unique partial index `WHERE status IN ('active','pending')` on `subscriptions.client_id` to make the second insert fail.
+
+---
+
+#### 🔴 CRITICAL — Functional / data correctness
+
+**B-12. Questionnaire data never reaches the database**
+- Files: `app/questionnaire/page.tsx` (legacy), `app/questionnaire/individual/page.tsx`, `app/questionnaire/couples/page.tsx`, `app/questionnaire/teen/page.tsx`
+- Description: ALL FOUR questionnaire flows save responses to `sessionStorage` only. None call `saveQuestionnaire()` or write to the `questionnaire_responses` table. Combined with B-13 below, the admin's Pending Clients screen has nothing to show because nothing is being persisted in the first place.
+- Fix: Add a server action `saveQuestionnaire` that writes to `questionnaire_responses` keyed by an anonymous session ID, then on signup associate the row with the new `auth.user.id`.
+
+**B-13. Admin pending clients show empty fields**
+- Files: signup at `app/actions/auth.ts:73` (comment "Stored in questionnaire_responses table only") + admin UI reads from `client_profiles`.
+- Description: Signup deliberately skips writing to `client_profiles`. Admin match modal renders Gender, Therapy goals, Therapist preference, etc. — all blank for every client. Admin cannot make informed matches.
+- Fix: Either backfill `client_profiles` from `questionnaire_responses` at signup, OR change the admin UI to read from `questionnaire_responses` directly.
+
+**B-14. Cancel-subscription contradicts its stated behavior**
+- File: `app/actions/subscription.ts` lines 40, 70–77; gate at `app/actions/sessions.ts:34–38`
+- Description: The Razorpay API call uses `cancel_at_cycle_end: 1` (correct) but the DB write flips status to `'cancelled'` immediately. The chat/session gate requires `status='active'`. Result: a user pays for a month, clicks cancel, loses chat access instantly — contradicting the inline comment that claims "client keeps access until period_end".
+- Fix: Pick one model and align all three pieces (Razorpay flag, DB status, gate). Recommended: keep status `active` until `current_period_end` passes, with a separate `cancellation_pending` flag for UI; a daily cron flips to `cancelled` when the period ends.
+
+**B-15. `subscription_plan` enum mismatch**
+- Files: `supabase/schema.sql:14` (only `weekly`/`monthly`), `supabase/migrations/20260402_subscription_plans.sql` (adds 8 named keys), `app/api/payment/create-order/route.ts:96` (writes old keys), `app/api/payment/create-subscription/route.ts:115` (writes new keys), `lib/plans.ts:5–157`
+- Description: Two payment paths writing two incompatible plan vocabularies into the same enum column. Fresh environments (bootstrapped from `schema.sql`) will reject the new values entirely.
+- Fix: Pick one vocabulary (recommend the 8-key set since it encodes plan tier + cadence). Drop unused enum values, update both code paths, fold migration back into `schema.sql`.
+
+**B-16. Therapist payment page hardcodes plan keys that don't exist**
+- File: `app/therapist/dashboard/payment/page.tsx` lines 8–13
+- Description: Uses keys `essentials/premium/couples/monthly`. None match the canonical 8-key set in `lib/plans.ts`. Plan-name lookups silently return `null`, displaying empty values.
+- Fix: Replace with the actual plan keys from `lib/plans.ts`. Pull plan metadata from the same source the rest of the app uses.
+
+**B-17. `razorpay_plan_id` column abused as order-ID dump**
+- File: `app/api/payment/create-order/route.ts:100` writes `order.id` into `razorpay_plan_id`; `app/api/payment/webhook/route.ts:64,86,110` queries on it.
+- Description: The legacy webhook works "by accident" because it queries the same wrong column the order route writes. Any new code that reads `razorpay_plan_id` expecting an actual plan ID will break.
+- Fix: Add a `razorpay_order_id` column (or use the existing `razorpay_payment_id`). Fix the writer and the webhook query.
+
+**B-18. `profiles.email` is selected but doesn't exist on the table**
+- Files: `app/therapist/dashboard/page.tsx:93`, `app/therapist/dashboard/client/[matchId]/page.tsx:49,151`. Schema (`supabase/schema.sql:24–33`) has no `email` column.
+- Description: Therapist client cards select `email` and render `{c.email}` as empty / falsy. The subscribe page does it correctly — it uses `admin.auth.admin.getUserById` and passes email as a prop.
+- Fix: Either add `email` to `profiles` (denormalized, kept in sync via a trigger from `auth.users`), or remove all selects and use `auth.admin.getUserById` server-side everywhere.
+
+**B-19. Admin `createMatch` allows double-matching**
+- File: `app/admin/actions.ts` lines 24–53
+- Description: Doesn't check whether the client already has an active match. Schema has no unique constraint either. Violates the "one active match per client" rule from CLAUDE.md.
+- Fix: Add a check before insert (`SELECT 1 FROM matches WHERE client_id=$1 AND status='active'` → reject), AND add a unique partial index `CREATE UNIQUE INDEX ON matches (client_id) WHERE status = 'active'`.
+
+**B-20. Cron dedup filter is broken**
+- File: `app/api/cron/session-reminders/route.ts` line 47
+- Description: `.filter('metadata->sessionId', 'eq', `"${s.id}"`)` wraps the value in literal double-quotes, which won't match raw JSON values stored in the metadata column. The dedup never matches → reminders are likely sent every cron run.
+- Fix: Remove the literal quotes. Use `.eq('metadata->>sessionId', s.id)` (the `->>` operator returns text, matching the unquoted UUID).
+
+**B-21. Cron email title says "Session in 1 Hour" but window is 25 hours**
+- Files: `vercel.json` cron schedule + `lib/email.ts` lines 21 (`25 * 3_600_000` ms window) and 114–122 (template title "Session in 1 Hour")
+- Description: Cron runs daily at 05:00 UTC and emails every session in the next 25 hours. Recipients get an email saying "Session in 1 Hour" up to 25 hours in advance.
+- Fix: Either run cron hourly with a 1-hour window, or change template copy to "Your session is tomorrow at {time}" and run daily.
+
+**B-22. Contact form never sends anything**
+- File: `app/contact/page.tsx` lines 14–21
+- Description: `handleSubmit` does `await new Promise(r => setTimeout(r, 800))` and shows "Sent. We'll get back to you within one business day." The message is silently dropped.
+- Fix: Either POST to a server action that writes to a `contact_messages` table, or send via Resend, or both.
+
+---
+
+#### 🟠 HIGH — Missing pages, broken links, infra
+
+**B-23. `/terms` page doesn't exist** — Referenced from `components/home/Footer.tsx:106` and `app/(auth)/signup/page.tsx:222`. Required for Razorpay merchant approval and DPDP compliance.
+
+**B-24. `/pricing` page doesn't exist; `components/home/PricingPlans.tsx` is unused** — Component exists but is imported nowhere. Either build the page or delete the component.
+
+**B-25. Footer links broken** — `components/home/Footer.tsx`:
+  - About + Contact use `href="#"` (should be `/about`, `/contact`)
+  - All social icons `href="#"`
+  - Services links use `/questionnaire?type=individual|couples|teen` query that the legacy questionnaire page ignores; real routes are `/questionnaire/{individual,couples,teen}`
+
+**B-26. JSON-LD says `medicalSpecialty: "Psychiatry"`**
+- File: `app/layout.tsx` line 96
+- Description: ZenSpace explicitly does not prescribe medication or offer psychiatry. This SEO claim is incorrect and could mislead users / crawlers.
+- Fix: Change to `"Psychotherapy"` or `"CounselingPsychology"`.
+
+**B-27. Missing static assets** — `og-image.png`, `robots.txt`, `sitemap.xml` all absent from `/public`. Social previews 404; SEO crawl is unguided. `app/layout.tsx:56,68` references `og-image.png`.
+
+**B-28. `next.config.ts` is empty** — No `images.remotePatterns` for Supabase storage. Avatar uploads will fail to render via `<Image>`.
+
+**B-29. Tone-of-voice violations** — `app/(auth)/login/page.tsx:114` uses "therapy journey"; `app/(auth)/signup/page.tsx:153` uses "on your terms". Both on the explicit avoid list in CLAUDE.md.
+
+**B-30. Demo phone number in contact page** — `app/contact/page.tsx:79` shows `+91 98765 43210`. Replace or remove the phone block.
+
+**B-31. Missing `error.tsx` and `not-found.tsx` for dashboards**
+  - No `app/(client)/dashboard/error.tsx`
+  - No `app/therapist/dashboard/error.tsx`
+  - No `not-found.tsx` for `app/therapist/dashboard/client/[matchId]` — a `notFound()` call lands on the global 404 instead of the dashboard-shaped 404.
+
+**B-32. `force-dynamic` on static pages wastes SSR**
+  - `app/(client)/dashboard/faq/page.tsx`
+  - `app/(client)/dashboard/reviews/page.tsx`
+  - Possibly `/about`, `/contact`, `/blog`, `/faq` (verify)
+  - Fix: remove `export const dynamic = 'force-dynamic'`; use ISR (`export const revalidate = N`).
+
+---
+
+#### 🟠 HIGH — Design synchronicity
+
+**B-33. Legacy questionnaire uses non-brand colors**
+- File: `app/questionnaire/page.tsx`
+- Description: Uses generic `teal-50`, `teal-600`, `cyan-100`, `text-teal-700` — Tailwind defaults that don't match the brand palette (`#233551` navy, `#7EC0B7` teal, `#E8926A` coral, `#FFF5F2` cream). Also the page doesn't read query strings, doesn't save to DB, and is now superseded by `/questionnaire/{individual,couples,teen}`.
+- Fix: Delete the page, or redirect to `/questionnaire/individual` as the default landing.
+
+**B-34. Form input borders inconsistent**
+- Description: Auth pages use `border` (1px). Contact page, therapist apply, and questionnaires use `border-2` (heavier). Reads as visual incoherence between sibling forms.
+- Fix: Standardize to `border border-slate-200 h-11 rounded-xl` for inputs everywhere.
+
+**B-35. Button radii inconsistent**
+- Description: Landing + auth CTAs use `rounded-full` (pill). Questionnaire option buttons + therapist apply submit use `rounded-xl`. Pills feel premium; rounded-xl feels utilitarian.
+- Fix: Standardize primary CTAs to `rounded-full`; keep `rounded-2xl`/`rounded-3xl` for card containers only.
+
+**B-36. Page padding inconsistent**
+- Description: Landing uses `px-6`. Questionnaires use `px-4`. Dashboard mixes `px-4` and `px-5`.
+- Fix: Standardize `px-6` for desktop, `px-4` only on narrow mobile widths.
+
+**B-37. Hex colors hardcoded everywhere**
+- Description: `bg-[#233551]`, `text-[#7EC0B7]`, etc. used 100+ times across components. No central token. Future palette changes require a search-and-replace.
+- Fix: Add `brand.navy`, `brand.teal`, `brand.coral`, `brand.cream` to `tailwind.config.ts` `theme.extend.colors`. Refactor incrementally.
+
+**B-38. Questionnaire pages have no Navbar/Footer wrapper**
+- Description: `/questionnaire/{individual,couples,teen}` render in isolation, breaking the shell users see on every other page.
+- Fix: Wrap each in `<Navbar /> ... <Footer />`.
+
+**B-39. Section accent color inconsistent**
+- Description: Some labels use `text-[#3D8A80]`, others `text-[#7EC0B7]` for the same UI role.
+- Fix: Pick one for "section accent"; reserve the other for hover/active.
+
+**B-40. Form heading sizes too small relative to landing**
+- Description: Landing H1 is `text-4xl md:text-5xl lg:text-[3.6rem]`. Form headings are `text-xl`/`text-2xl`. Forms feel de-emphasized.
+- Fix: Bump form primary headings to `text-3xl md:text-4xl`.
+
+---
+
+#### 🟡 MEDIUM — Code quality / pre-scale
+
+**B-41. Pervasive `(supabase as any)` casts** — Disables type safety on most DB writes. The `Database` type is rarely actually used. Fix: replace casts with `createClient<Database>()` and let TS catch mismatches like B-18.
+
+**B-42. SQL migrations not folded into `schema.sql`** — Fresh environments bootstrapped from `schema.sql` will be missing `notifications`, `therapist_applications`, `therapist_availability`, `therapist_switch_requests`, and the extended `subscription_plan` enum. Fix: regenerate `schema.sql` from a fresh apply of all migrations, or merge by hand.
+
+**B-43. Realtime publication for `notifications` not auto-applied** — `alter publication supabase_realtime add table notifications;` must be run manually in production Supabase. Tracked in CRITICAL infra section.
+
+**B-44. `WEEKLY_SCHEDULE` hardcoded** — `components/client/ClientSessionsView.tsx:39–47` ignores the therapist's actual `availability_text` from the DB and shows the same fake schedule for every therapist.
+
+**B-45. Daily.co video frontend missing** — `@daily-co/daily-js` is in `package.json` but never imported. `JoinButton` opens the room URL in a new tab. Decide: build in-app video UI, or accept hosted-tab launch and update copy. If staying hosted, validate `roomUrl` matches `*.daily.co` before opening (anti-phishing).
+
+**B-46. Notification fire-and-forget swallows errors** — `app/actions/sessions.ts:185–192` does `.catch(() => {})`. If both email and push fail, the user thinks they've been notified. Fix: log to Sentry/console with full context.
+
+**B-47. `markMessagesRead` not awaited inside realtime callback** — `components/shared/ChatInterface.tsx:77`. Fast unmounts drop the DB write.
+
+**B-48. Weekly session limit hardcoded `>= 1`** — `components/client/ClientSessionsView.tsx:232`. Couples or premium plans should support >1 session/week without a code change.
+
+**B-49. Switch-request doesn't verify match is active** — `app/actions/switch-therapist.ts:37–42` only checks the match exists. A client could request a switch on a match that ended months ago.
+
+**B-50. No rate limiting** — Signup, password reset, payment verify, message send, session schedule, contact form — all unbounded. Fix: add `@upstash/ratelimit` or middleware-level limits keyed on IP + user ID.
+
+**B-51. No DPDP-compliant data deletion flow** — Required by Indian law (DPDP Act 2023) for any personal data collected. Users must be able to request account + data deletion.
+
+**B-52. Admin login has no `noindex` metadata** — `/admin/login` is crawlable. Add `metadata: { robots: { index: false } }`.
+
+---
+
+#### ✅ Resolved / not actually bugs (cleared from prior list)
+
+- ~~Therapist nav showing Notes when unmatched~~ — Audit confirmed the filter logic works correctly per render.
+- ~~Chat intro count behavior~~ — Confirmed correct: counter resets on re-match because it scopes to `match_id + sender_id`.
 
 ---
 
