@@ -26,71 +26,101 @@ const AbstractIllustration = () => (
   </svg>
 )
 
-const painPoints = [
-  "Every conversation about the same three things ends the same way.",
-  "You've started prefacing things with 'I don't want to fight, but...' — and fighting anyway.",
-  "You've thought about what leaving would look like. Then felt terrible about it.",
-  "You feel more like roommates than partners. You can't remember when that happened.",
-  "Family and friends have tried to help. It made things worse.",
+const groundedRealities = [
+  "You love each other, but the conversations keep hitting the same dead ends.",
+  "You’ve started saying “I don’t want to fight,” only for it to lead to another argument.",
+  "The silence in the house has become loud. You feel more like roommates than partners.",
+  "You’ve thought about what leaving might look like, then felt a wave of guilt for even thinking it.",
+  "Family and friends have tried to give advice, but it only added more noise to the room.",
 ]
 
 const concerns = [
   {
-    title: "Communication Breakdown",
-    body: "Not the big fights. The thousand small moments where you tried to say something and it came out wrong.",
+    title: "When the family voice is too loud",
+    body: "For navigating the unique pressure of in-laws and family expectations that live inside your marriage.",
   },
   {
-    title: "Emotional Distance",
-    body: "Sharing a bed, sharing bills. Not much else. You're not sure when it got this quiet.",
+    title: "When the connection feels on mute",
+    body: "For the couples who share a bed and a bank account, but have lost the habit of sharing themselves.",
   },
   {
-    title: "Intimacy",
-    body: "Physical or emotional — or both. Hard to bring up. We've seen it before.",
+    title: "When the small things become big things",
+    body: "For the “same three arguments” that keep happening because the real issue is hiding underneath.",
   },
   {
-    title: "In-law Pressure",
-    body: "When your family's expectations live inside your marriage. ZenSpace therapists understand Indian dynamics.",
+    title: "When life gets in the way of “us”",
+    body: "For the drift that happens after children, career shifts, or just the grind of daily life.",
   },
   {
-    title: "Financial Conflict",
-    body: "Money is never just money. It's about control, security, and what you value.",
-  },
-  {
-    title: "Post-children Drift",
-    body: "You love your kids. You also miss each other. That's not a bad thing to admit.",
+    title: "When trust needs a new foundation",
+    body: "For finding a way forward after a breach of confidence, at a pace that works for both of you.",
   },
 ]
 
 const steps = [
   {
-    num: "1",
-    title: "Each partner fills in separately",
-    body: "Private answers. No pressure to be 'the reasonable one'. Your therapist reads both sides.",
+    num: "01",
+    title: "Share your sides, privately",
+    body: "Each of you fills out a five-minute assessment. This is your chance to be honest about how you feel without the pressure of being “the reasonable one.” Your therapist reads both before you ever meet.",
   },
   {
-    num: "2",
-    title: "Your first session together",
-    body: "Your therapist has context before you start. No catching up. You begin.",
+    num: "02",
+    title: "Meet the mediator",
+    body: "Start with a free intro chat together. It’s a chance to see if the environment feels balanced and if the therapist is the right person to guide your practice.",
   },
   {
-    num: "3",
-    title: "Work at your own pace",
-    body: "Weekly joint sessions. Text support between. Decide together what you're working toward.",
+    num: "03",
+    title: "Build the habit",
+    body: "Join your weekly joint video conversations. Between sessions, you both have access to your dashboard to stay connected to the process. It’s about finding a rhythm that lasts.",
+  },
+]
+
+const habitPoints = [
+  {
+    title: "A Neutral Room",
+    body: "A dedicated hour every week where neither person has to be the “bad guy.”",
+  },
+  {
+    title: "Support Between Conversations",
+    body: "Use the dashboard to message your therapist whenever things feel heavy during the week.",
+  },
+  {
+    title: "Flexibility for Both",
+    body: "If the person you’re speaking with doesn’t feel like the right match for both of you, you can find a new therapist at any time.",
+  },
+]
+
+const privacyPoints = [
+  {
+    title: "Confidentiality at the Core",
+    body: "Your conversations stay inside the platform. We don’t share records with anyone — no family members, no employers, no exceptions.",
+  },
+  {
+    title: "No Paper Trails",
+    body: "Since everything is online, there’s no clinic for someone to see you walking into. Your practice exists only where you let it.",
+  },
+  {
+    title: "Ownership of the Process",
+    body: "You are both in control. You can pause, change, or stop your subscription whenever it feels right for your relationship.",
   },
 ]
 
 const faqs = [
   {
-    q: "Does couples therapy actually work?",
-    a: "The data says yes — when both partners are willing to show up. You don't need to agree on everything. You just need to both be here.",
-  },
-  {
     q: "Will the therapist take sides?",
-    a: "No. Your therapist's job is to understand both of you — not to decide who's right. They've heard both sides before yours.",
+    a: "No. Your therapist is there to support the relationship, not to decide who is “right.” They act as a bridge between two perspectives.",
   },
   {
-    q: "What if only one of us wants to try this?",
-    a: "That's common. It's worth having the first call together anyway. If one of you is curious enough to be here, that's a start.",
+    q: "What if only one of us wants to do this?",
+    a: "It’s common for one partner to be more ready than the other. Start the assessment, and we can discuss how to bring both of you into the room comfortably.",
+  },
+  {
+    q: "Is this different from talking to family?",
+    a: "Yes. Family members are involved in your life; a therapist isn’t. They provide a neutral, grounded environment where you can say the things you can’t say at the dinner table.",
+  },
+  {
+    q: "What happens in the first call?",
+    a: "It’s a free intro chat. You’ll get a feel for the therapist’s approach and see if this is a room where you both feel heard.",
   },
 ]
 
@@ -132,7 +162,7 @@ export default function CouplesPageClient() {
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="flex-1 space-y-7">
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <EyebrowBadge>Online couples therapy</EyebrowBadge>
+                <EyebrowBadge>For couples</EyebrowBadge>
               </motion.div>
 
               <motion.h1
@@ -142,8 +172,8 @@ export default function CouplesPageClient() {
                 className="text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.1] tracking-tight"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                You're not failing your relationship.<br />
-                You're both just exhausted.
+                Peace isn’t a milestone,<br />
+                it’s a practice
               </motion.h1>
 
               <motion.p
@@ -152,7 +182,7 @@ export default function CouplesPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                When communication breaks down, it doesn't mean it's over. It means you need someone in the room who isn't on either side. That's what we're here for.
+                Relationships aren’t something you “fix” once and forget. They are a daily rhythm. If yours feels out of sync, we give you both a private room to hear each other again, guided by someone who understands the weight of a shared life.
               </motion.p>
 
               <motion.div
@@ -165,7 +195,7 @@ export default function CouplesPageClient() {
                   href="/questionnaire/couples"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
                 >
-                  Start couples assessment →
+                  Begin the couples assessment →
                 </Link>
               </motion.div>
 
@@ -175,7 +205,7 @@ export default function CouplesPageClient() {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className="text-xs text-[#7EC0B7]/80 font-medium"
               >
-                Each partner fills in privately. Your therapist reads both.
+                Each partner shares their perspective privately. We take it from there.
               </motion.p>
             </div>
 
@@ -191,11 +221,11 @@ export default function CouplesPageClient() {
         </div>
       </section>
 
-      {/* ── PAIN POINTS ── */}
+      {/* ── GROUNDED REALITY ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-8">
-            <EyebrowBadge>Sound familiar?</EyebrowBadge>
+            <EyebrowBadge>The grounded reality</EyebrowBadge>
           </div>
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
             <div className="lg:w-2/5">
@@ -207,14 +237,17 @@ export default function CouplesPageClient() {
                 className="text-4xl md:text-5xl font-black text-[#233551] leading-[1.15]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                You love each other.<br />
-                You just can't<br />
-                seem to talk anymore.
+                You aren’t failing.<br />
+                You’re just<br />
+                exhausted.
               </motion.h2>
+              <p className="text-[#233551]/55 text-base leading-relaxed mt-5 max-w-sm">
+                Most couples wait until they are at a breaking point before they look for support. You don’t have to wait for the house to be on fire to start a better practice.
+              </p>
             </div>
 
             <div className="lg:w-3/5 space-y-5">
-              {painPoints.map((point, i) => (
+              {groundedRealities.map((point, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: 20 }}
@@ -230,13 +263,13 @@ export default function CouplesPageClient() {
 
               <div className="border-t border-slate-100 pt-6 mt-6">
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
-                  Coming to therapy isn't giving up. It's giving this a real chance.
+                  Choosing therapy isn’t an admission of defeat. It’s a choice to give your relationship the space it deserves to breathe.
                 </p>
                 <Link
                   href="/questionnaire/couples"
                   className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-[#3D8A80] transition-colors"
                 >
-                  Take the couples assessment →
+                  Begin the couples assessment →
                 </Link>
               </div>
             </div>
@@ -244,7 +277,7 @@ export default function CouplesPageClient() {
         </div>
       </section>
 
-      {/* ── WHAT WE ADDRESS ── */}
+      {/* ── FINDING YOUR RHYTHM TOGETHER ── */}
       <section className="bg-[#FFF5F2] py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <motion.h2
@@ -252,11 +285,14 @@ export default function CouplesPageClient() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12"
+            className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            What couples come to us with
+            A space for the things<br />that are hard to say.
           </motion.h2>
+          <p className="text-[#233551]/55 text-base leading-relaxed mb-12 max-w-2xl">
+            Finding your rhythm together starts with naming the friction without flinching.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {concerns.map((c, i) => (
@@ -279,19 +315,26 @@ export default function CouplesPageClient() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
+      {/* ── THE PATH TO A BETTER PRACTICE ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.h2
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12 text-center"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            Three steps. No waiting room.
-          </motion.h2>
+            <h2
+              className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              Three steps to a new conversation.
+            </h2>
+            <p className="text-[#233551]/55 text-base leading-relaxed">
+              We’ve built a straightforward way to bring a neutral perspective into your world.
+            </p>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -314,41 +357,91 @@ export default function CouplesPageClient() {
         </div>
       </section>
 
-      {/* ── PRICING TEASER ── */}
-      <section className="bg-[#7EC0B7] py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <motion.h2
+      {/* ── THE SUSTAINABLE HABIT (₹5,999/week) ── */}
+      <section className="bg-[#7EC0B7] py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-white mb-3"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            ₹5,999/week for couples
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-white/80 text-base mb-8"
-          >
-            60-minute joint session + text support for both partners.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">₹5,999 / week</p>
+            <h2
+              className="text-3xl md:text-4xl font-black text-white mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              A shared commitment to balance.
+            </h2>
+            <p className="text-white/85 text-base leading-relaxed">
+              Your subscription is a dedicated space for your relationship — a weekly habit that keeps the conversation moving forward.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {habitPoints.map((h, i) => (
+              <motion.div
+                key={h.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6"
+              >
+                <h3 className="font-black text-white text-base mb-2" style={{ fontFamily: 'var(--font-lato)' }}>{h.title}</h3>
+                <p className="text-white/85 text-sm leading-relaxed">{h.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
             <Link
-              href="/#pricing"
+              href="/questionnaire/couples"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
             >
-              See all plans
+              Begin your practice →
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRIVACY & THE SHARED ROOM ── */}
+      <section className="bg-[#F0FAF9] py-20 md:py-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-2xl mx-auto mb-12"
+          >
+            <h2
+              className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              A space that is yours,<br />and yours alone.
+            </h2>
+            <p className="text-[#233551]/55 text-base leading-relaxed">
+              In a world full of opinions from family and society, Zen Space stays strictly private.
+            </p>
           </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {privacyPoints.map((p, i) => (
+              <motion.div
+                key={p.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="bg-white/70 backdrop-blur-sm border border-[#7EC0B7]/20 rounded-2xl p-6"
+              >
+                <h3 className="font-black text-[#233551] text-base mb-2" style={{ fontFamily: 'var(--font-lato)' }}>{p.title}</h3>
+                <p className="text-[#233551]/60 text-sm leading-relaxed">{p.body}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -392,7 +485,7 @@ export default function CouplesPageClient() {
             className="text-3xl md:text-4xl font-black text-white mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            The first session isn't a commitment. It's a conversation.
+            Stop repeating the same day.<br />Start a new practice.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -401,7 +494,7 @@ export default function CouplesPageClient() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-white/60 text-base mb-8"
           >
-            15 minutes, no charge, no pressure. See what therapy actually looks like for you two.
+            Take the five-minute assessment together and find a person who understands the rhythm of your life.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -413,7 +506,7 @@ export default function CouplesPageClient() {
               href="/questionnaire/couples"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
             >
-              Start your free intro chat →
+              Begin your practice →
             </Link>
           </motion.div>
         </div>
