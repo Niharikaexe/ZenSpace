@@ -201,7 +201,7 @@ const HeroSection = () => {
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-              className="w-full h-full flex items-center justify-center"
+              className="w-full h-full rounded-full bg-[#233551] overflow-hidden relative shadow-2xl float-slow"
             >
               <OwlMascot className="w-full h-full" />
             </motion.div>
