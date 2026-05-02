@@ -27,71 +27,84 @@ const AbstractIllustration = () => (
   </svg>
 )
 
-const painPoints = [
-  "You wake up tired even after 8 hours. The anxiety starts before you open your eyes.",
-  "You keep it together at work. Fall apart at home. Feel guilty about both.",
-  "You've Googled 'am I depressed' more than once but talked yourself out of it.",
-  "You told yourself you'd do something about this when things got worse. They have.",
-  "You don't want advice from your family. You want someone who isn't in your life.",
+const groundedRealities = [
+  "You wake up with a weight on your chest before the day even begins.",
+  "You’ve spent late nights looking for answers online, trying to name what you’re feeling.",
+  "You manage everything at work, but feel like you’re fading away at home.",
 ]
 
 const concerns = [
   {
-    title: "Anxiety & Panic",
-    body: "Racing thoughts. Tight chest. The sense that something is about to go wrong.",
+    title: "When the world feels too fast",
+    body: "For the racing thoughts and the sense that something is about to go wrong.",
   },
   {
-    title: "Burnout",
-    body: "You're functional on the outside. Empty on the inside. You can't remember the last time you felt okay.",
+    title: "When you feel empty",
+    body: "For the days you’re just going through the motions, feeling flat and tired of pretending.",
   },
   {
-    title: "Depression",
-    body: "Not sad exactly. More like... nothing. Flat. And tired of pretending otherwise.",
+    title: "When the words don’t come out right",
+    body: "For the frustration that feels like it’s bubbling under the surface.",
   },
   {
-    title: "Anger",
-    body: "It comes out wrong and you know it. But you don't know what's underneath it.",
+    title: "When the city feels too quiet",
+    body: "For the times you’re surrounded by people but still feel entirely on your own.",
   },
   {
-    title: "Loneliness",
-    body: "You have people in your life. You still feel completely alone.",
-  },
-  {
-    title: "Breakups & Grief",
-    body: "Loss doesn't wait for you to be ready. We help you process it without rushing you.",
+    title: "When you’re experiencing a loss",
+    body: "For when you need a place to grieve at your own pace, without being rushed.",
   },
 ]
 
 const steps = [
   {
-    num: "1",
-    title: "Answer a few questions",
-    body: "5 minutes. Tells us what you're dealing with and what you need from a therapist.",
+    num: "01",
+    title: "Share your world",
+    body: "Take five minutes to tell us what’s on your mind. This helps us find the right person to support your specific needs.",
   },
   {
-    num: "2",
-    title: "Meet your therapist",
-    body: "Free intro chat. If the fit isn't right, you choose someone else.",
+    num: "02",
+    title: "Have a conversation",
+    body: "Start with a free intro chat. It’s a chance to see if the environment feels comfortable for you before you begin your subscription.",
   },
   {
-    num: "3",
-    title: "Start when you're ready",
-    body: "Weekly sessions, text between sessions. Everything inside ZenSpace.",
+    num: "03",
+    title: "Build the habit",
+    body: "Join your weekly video conversations and stay connected through messaging. This is your space, and you’re in control of how you use it.",
+  },
+]
+
+const habitPoints = [
+  {
+    title: "Consistent Support",
+    body: "A weekly dedicated time to focus on your mental practice.",
+  },
+  {
+    title: "Always Connected",
+    body: "Use the messaging feature inside your dashboard whenever you need to check in between sessions.",
+  },
+  {
+    title: "Total Flexibility",
+    body: "If you feel you need a different perspective, you can switch therapists at any time.",
   },
 ]
 
 const faqs = [
   {
-    q: "Is this real therapy or just an app?",
-    a: "ZenSpace connects you with licensed therapists — not chatbots, not AI. Real people, trained professionals, weekly sessions over video.",
+    q: "Is this different from a regular appointment?",
+    a: "It’s a conversation. Instead of a clinical office, you’re in your own space, speaking with someone who is there to listen and guide you through your daily practice.",
   },
   {
-    q: "What if I don't know exactly what I'm struggling with?",
-    a: "That's fine. Most people don't. The assessment helps. And your therapist will spend the first session understanding you, not diagnosing you.",
+    q: "What if I don’t know exactly what’s wrong?",
+    a: "That’s exactly why we’re here. Most people start with a feeling they can’t quite name. Your therapist helps you find the words.",
   },
   {
-    q: "Is this confidential?",
-    a: "Everything you say stays between you and your therapist. We don't share your data. Your colleagues, family, and landlord will never know.",
+    q: "Will anyone find out I’m here?",
+    a: "Your privacy is built into the foundation of Zen Space. This is your private environment, and we keep it that way.",
+  },
+  {
+    q: "What happens in the first call?",
+    a: "It’s a free intro chat. You get to see how it feels to talk to your therapist and decide if this is the right space for your practice.",
   },
 ]
 
@@ -133,7 +146,7 @@ export default function IndividualsPageClient() {
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="flex-1 space-y-7">
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <EyebrowBadge>Online therapy for individuals</EyebrowBadge>
+                <EyebrowBadge>For individuals</EyebrowBadge>
               </motion.div>
 
               <motion.h1
@@ -143,8 +156,8 @@ export default function IndividualsPageClient() {
                 className="text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.1] tracking-tight"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                Your anxiety has a name.<br />
-                So does the way out.
+                Peace isn’t a milestone,<br />
+                it’s a practice
               </motion.h1>
 
               <motion.p
@@ -153,7 +166,7 @@ export default function IndividualsPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                Burnout isn't weakness. Anxiety isn't overthinking. Loneliness in a crowded city is real. Talk to a therapist who gets it — online, private, no waiting.
+                You’ve been looking for a room where you can finally hear yourself think. Zen Space can be that room. It’s a habit for your head — a private, steady conversation with someone who understands your world.
               </motion.p>
 
               <motion.div
@@ -166,7 +179,7 @@ export default function IndividualsPageClient() {
                   href="/questionnaire/individual"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
                 >
-                  Start Assessment →
+                  Start the assessment →
                 </Link>
               </motion.div>
 
@@ -176,7 +189,7 @@ export default function IndividualsPageClient() {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className="text-xs text-[#7EC0B7]/80 font-medium"
               >
-                5,000+ people across India. No clinic. No prescription. No judgment.
+                Join thousands across India who have made their mental balance a priority.
               </motion.p>
             </div>
 
@@ -192,11 +205,11 @@ export default function IndividualsPageClient() {
         </div>
       </section>
 
-      {/* ── PAIN POINTS ── */}
+      {/* ── GROUNDED REALITY ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-8">
-            <EyebrowBadge>Sound familiar?</EyebrowBadge>
+            <EyebrowBadge>The grounded reality</EyebrowBadge>
           </div>
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
             <div className="lg:w-2/5">
@@ -208,14 +221,16 @@ export default function IndividualsPageClient() {
                 className="text-4xl md:text-5xl font-black text-[#233551] leading-[1.15]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                You're not broken.<br />
-                You're just carrying<br />
-                too much alone.
+                It’s been heavy<br />
+                for a while.
               </motion.h2>
+              <p className="text-[#233551]/55 text-base leading-relaxed mt-5 max-w-sm">
+                Most of us wait until we’re exhausted before we look for a way forward. You aren’t alone in that.
+              </p>
             </div>
 
             <div className="lg:w-3/5 space-y-5">
-              {painPoints.map((point, i) => (
+              {groundedRealities.map((point, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: 20 }}
@@ -231,7 +246,7 @@ export default function IndividualsPageClient() {
 
               <div className="border-t border-slate-100 pt-6 mt-6">
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
-                  This isn't about being weak. Most people wait over two years before they talk to anyone. You're already ahead.
+                  Therapy isn’t a last resort for when things break. It’s the practice of making sure they don’t. It’s a space where you can set the weight down and just exist.
                 </p>
                 <Link
                   href="/questionnaire/individual"
@@ -245,7 +260,7 @@ export default function IndividualsPageClient() {
         </div>
       </section>
 
-      {/* ── WHAT WE ADDRESS ── */}
+      {/* ── FINDING YOUR BALANCE ── */}
       <section className="bg-[#FFF5F2] py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <motion.h2
@@ -253,11 +268,14 @@ export default function IndividualsPageClient() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12"
+            className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            Whatever it is — there's a name for it
+            Whatever is on your mind,<br />we have a space for it.
           </motion.h2>
+          <p className="text-[#233551]/55 text-base leading-relaxed mb-12 max-w-2xl">
+            Finding your balance isn’t about labels. It’s about having a place for the feeling, even before it has a name.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {concerns.map((c, i) => (
@@ -280,19 +298,26 @@ export default function IndividualsPageClient() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
+      {/* ── YOUR PATH TO A HABIT ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.h2
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12 text-center"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            Three steps. No waiting room.
-          </motion.h2>
+            <h2
+              className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              Three steps to your new rhythm.
+            </h2>
+            <p className="text-[#233551]/55 text-base leading-relaxed">
+              We’ve made it simple to find a space that feels right for you.
+            </p>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -315,41 +340,52 @@ export default function IndividualsPageClient() {
         </div>
       </section>
 
-      {/* ── PRICING TEASER ── */}
-      <section className="bg-[#7EC0B7] py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <motion.h2
+      {/* ── THE SUSTAINABLE HABIT (₹2,999/week) ── */}
+      <section className="bg-[#7EC0B7] py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-white mb-3"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            Starts at ₹2,999/week
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-white/80 text-base mb-8"
-          >
-            Weekly video session + unlimited text with your therapist. No hidden fees.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">₹2,999 / week</p>
+            <h2
+              className="text-3xl md:text-4xl font-black text-white mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              A commitment to yourself.
+            </h2>
+            <p className="text-white/85 text-base leading-relaxed">
+              Your subscription is more than just a weekly video call. It’s a lifestyle choice that gives you the tools to find your balance every day.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {habitPoints.map((h, i) => (
+              <motion.div
+                key={h.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6"
+              >
+                <h3 className="font-black text-white text-base mb-2" style={{ fontFamily: 'var(--font-lato)' }}>{h.title}</h3>
+                <p className="text-white/85 text-sm leading-relaxed">{h.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
             <Link
-              href="/#pricing"
+              href="/questionnaire/individual"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
             >
-              See all plans
+              Start the assessment →
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -393,7 +429,7 @@ export default function IndividualsPageClient() {
             className="text-3xl md:text-4xl font-black text-white mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            The first call is free. The conversation is private.
+            You’ve done the reading.<br />Now, start the practice.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -402,7 +438,7 @@ export default function IndividualsPageClient() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-white/60 text-base mb-8"
           >
-            No commitment. No invoice. Just 15 minutes with a therapist to see if it feels right.
+            Take five minutes to tell us about your world. We’ll help you find the right person to talk to.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -414,7 +450,7 @@ export default function IndividualsPageClient() {
               href="/questionnaire/individual"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
             >
-              Start your free intro chat →
+              Start the assessment →
             </Link>
           </motion.div>
         </div>

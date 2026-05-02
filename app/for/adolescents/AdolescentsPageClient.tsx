@@ -28,71 +28,90 @@ const AbstractIllustration = () => (
   </svg>
 )
 
-const painPoints = [
-  "You feel anxious before exams, but honestly, the anxiety is there even without them.",
-  "You put on a version of yourself online that feels nothing like the real one.",
-  "Your parents think you're fine. You've gotten very good at that.",
-  "You told a friend once and they didn't really get it. You haven't brought it up since.",
-  "You're not sure if what you feel is 'serious enough' for therapy. It is.",
+const groundedRealities = [
+  "You feel a weight in your chest before exams, but honestly, it’s there even on the weekends.",
+  "You’ve gotten very good at putting on a version of yourself for your parents and teachers that feels nothing like the real you.",
+  "You’ve tried talking to friends, but they didn’t quite get it, so you just stopped bringing it up.",
+  "You spend a lot of time scrolling, feeling like everyone else has figured out a “life” that you haven’t.",
+  "You’ve Googled how you’re feeling at 2 AM more than once, wondering if anyone else feels this flat.",
 ]
 
 const concerns = [
   {
-    title: "Exam & Academic Anxiety",
-    body: "The pressure to perform is real. The fear of failing your parents is real. It doesn't have to be this constant.",
+    title: "When the pressure to perform is too much",
+    body: "For when the fear of failing or letting people down makes it hard to even start.",
   },
   {
-    title: "Social Media & Comparison",
-    body: "What everyone else's life looks like online versus what yours feels like. That gap is exhausting.",
+    title: "The gap between the screen and real life",
+    body: "For the exhaustion that comes from comparing your “inside” to everyone else’s “outside.”",
   },
   {
-    title: "Identity & Self-worth",
-    body: "Figuring out who you are while being told who you should be. Therapy is a place to think without being judged.",
+    title: "When you’re trying to figure out who you are",
+    body: "For the times you feel like you’re just a collection of other people’s expectations.",
   },
   {
-    title: "Anger & Emotional Outbursts",
-    body: "It comes out fast and you regret it fast. Understanding the underneath helps.",
+    title: "When the anger comes out too fast",
+    body: "For the moments you feel frustrated and reactive, and you aren’t sure why.",
   },
   {
-    title: "Loneliness",
-    body: "A packed school, a full WhatsApp, and still completely alone. We hear this often.",
+    title: "When the world feels too quiet",
+    body: "For the feeling of being surrounded by people at school or home, but still feeling entirely on your own.",
   },
   {
-    title: "ADHD & Focus Issues",
-    body: "Not lazy. Not careless. Maybe wired differently. A therapist can help you understand and work with it.",
+    title: "When your brain works differently",
+    body: "For when focusing feels like an uphill battle and you’re tired of being called “lazy.”",
   },
 ]
 
 const steps = [
   {
-    num: "1",
-    title: "Fill in privately",
-    body: "5 minutes. Your parents don't see your answers. This is your space.",
+    num: "01",
+    title: "Share your perspective, discreetly",
+    body: "Take five minutes to tell us what’s on your mind. This is your personal space. It helps us find a therapist who understands your world.",
   },
   {
-    num: "2",
-    title: "Meet your therapist",
-    body: "Free 15-minute call. You'll know in the first five minutes if it feels okay.",
+    num: "02",
+    title: "Have a conversation",
+    body: "Start with a free intro chat. It’s a chance to see if the therapist feels like someone you can actually talk to before you start your practice.",
   },
   {
-    num: "3",
-    title: "Weekly sessions, your pace",
-    body: "Video sessions that fit your schedule. Text when something comes up between sessions.",
+    num: "03",
+    title: "Make it your habit",
+    body: "Join your weekly video conversations from wherever you feel safe. You can also message your therapist through your dashboard whenever you need to check in between sessions.",
+  },
+]
+
+const habitPoints = [
+  {
+    title: "A Private Room",
+    body: "A dedicated time every week where you can speak freely without anyone else listening in.",
+  },
+  {
+    title: "Support Whenever",
+    body: "Use the messaging feature in your dashboard to reach out to your therapist during the week when things feel heavy.",
+  },
+  {
+    title: "Total Autonomy",
+    body: "This is your practice. If you feel you need a different perspective, you can find a new therapist at any time without any awkwardness.",
   },
 ]
 
 const faqs = [
   {
-    q: "Do my parents see what I say in therapy?",
-    a: "No. Your sessions are private. Your therapist won't share what you discuss unless there's an immediate safety concern — and even then, they'll tell you first.",
+    q: "Do my parents see what I say?",
+    a: "No. What you say to your therapist stays between the two of you. Having a private room to speak is the only way therapy actually works.",
   },
   {
-    q: "I don't know what to say. Is that okay?",
-    a: "You don't need to have it figured out before you start. That's what the first session is for. Most people say the most important thing by accident.",
+    q: "I don’t know what to say. Is that okay?",
+    a: "Most people start that way. Your therapist is there to help you find the words, or just to sit with you until you’re ready to speak.",
   },
   {
-    q: "My parents want me to try this. I'm not sure I do.",
-    a: "That's fine. The first call is just a conversation. You don't have to commit to anything. If you hate it, you stop. Simple.",
+    q: "What if my parents are the ones who want me to do this?",
+    a: "It’s okay to be unsure. Use the free intro chat to see if you feel comfortable. This is about your balance, no one else’s.",
+  },
+  {
+    q: "What happens in the first call?",
+    a: "It’s just a free intro chat. You’ll get a feel for the therapist and the environment. No pressure, no “fixing” — just a conversation to see if it feels right.",
   },
 ]
 
@@ -134,7 +153,7 @@ export default function AdolescentsPageClient() {
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="flex-1 space-y-7">
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <EyebrowBadge>Online therapy for teens &amp; students</EyebrowBadge>
+                <EyebrowBadge>For teens</EyebrowBadge>
               </motion.div>
 
               <motion.h1
@@ -144,8 +163,8 @@ export default function AdolescentsPageClient() {
                 className="text-4xl md:text-5xl lg:text-[3.4rem] font-black text-white leading-[1.1] tracking-tight"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                Exam pressure isn't supposed<br />
-                to feel like this. But it does.
+                Peace isn’t a milestone,<br />
+                it’s a practice
               </motion.h1>
 
               <motion.p
@@ -154,7 +173,7 @@ export default function AdolescentsPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                When everything feels heavy — results, parents, friends, the future — talking to someone helps. A real therapist. Private. No one in your school will know.
+                Between exams, family expectations, and the constant noise of being online, it’s easy to feel like your own voice is getting drowned out. Zen Space is a room of your own — a private place to find your balance and start a habit of checking in on yourself.
               </motion.p>
 
               <motion.div
@@ -167,7 +186,7 @@ export default function AdolescentsPageClient() {
                   href="/questionnaire/teen"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
                 >
-                  Start teen assessment →
+                  Begin the teen assessment →
                 </Link>
               </motion.div>
 
@@ -177,7 +196,7 @@ export default function AdolescentsPageClient() {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className="text-xs text-[#7EC0B7]/80 font-medium"
               >
-                For ages 14–20. Private. Your parents don't read your sessions.
+                A private space where you don’t have to be “perfect.”
               </motion.p>
             </div>
 
@@ -193,11 +212,11 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
-      {/* ── PAIN POINTS ── */}
+      {/* ── GROUNDED REALITY ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-8">
-            <EyebrowBadge>Sound familiar?</EyebrowBadge>
+            <EyebrowBadge>The grounded reality</EyebrowBadge>
           </div>
           <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
             <div className="lg:w-2/5">
@@ -209,14 +228,17 @@ export default function AdolescentsPageClient() {
                 className="text-4xl md:text-5xl font-black text-[#233551] leading-[1.15]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                Something's off.<br />
-                And you're not<br />
-                sure how to say it.
+                It’s okay if<br />
+                you aren’t sure<br />
+                how to say it.
               </motion.h2>
+              <p className="text-[#233551]/55 text-base leading-relaxed mt-5 max-w-sm">
+                Most people your age wait a long time before they talk to someone. You don’t have to wait until things are “serious enough” to start a better practice.
+              </p>
             </div>
 
             <div className="lg:w-3/5 space-y-5">
-              {painPoints.map((point, i) => (
+              {groundedRealities.map((point, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: 20 }}
@@ -232,13 +254,13 @@ export default function AdolescentsPageClient() {
 
               <div className="border-t border-slate-100 pt-6 mt-6">
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
-                  Only 41% of young Indians believe it helps to seek support. The other 59% are carrying it alone.
+                  Therapy isn’t a sign that something is wrong with you. It’s just a way to make sure you have the space to breathe in a world that asks a lot of you.
                 </p>
                 <Link
                   href="/questionnaire/teen"
                   className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-[#3D8A80] transition-colors"
                 >
-                  Take the teen assessment →
+                  Begin the teen assessment →
                 </Link>
               </div>
             </div>
@@ -246,7 +268,7 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
-      {/* ── WHAT WE ADDRESS ── */}
+      {/* ── FINDING YOUR OWN VOICE ── */}
       <section className="bg-[#FFF5F2] py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
           <motion.h2
@@ -254,11 +276,14 @@ export default function AdolescentsPageClient() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12"
+            className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            What teenagers actually come to us with
+            A space for the things<br />you can’t say elsewhere.
           </motion.h2>
+          <p className="text-[#233551]/55 text-base leading-relaxed mb-12 max-w-2xl">
+            Finding your own voice starts with having one room where you don’t have to perform.
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {concerns.map((c, i) => (
@@ -281,19 +306,26 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ── */}
+      {/* ── YOUR PATH TO A PRIVATE SPACE ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-6xl mx-auto px-6">
-          <motion.h2
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-[#233551] mb-12 text-center"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            Three steps. No waiting room.
-          </motion.h2>
+            <h2
+              className="text-3xl md:text-4xl font-black text-[#233551] mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              Three steps to your own rhythm.
+            </h2>
+            <p className="text-[#233551]/55 text-base leading-relaxed">
+              We’ve made it simple and private to find a person who actually listens.
+            </p>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
@@ -316,41 +348,52 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
-      {/* ── PRICING TEASER ── */}
-      <section className="bg-[#7EC0B7] py-16">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <motion.h2
+      {/* ── THE SUSTAINABLE HABIT (₹2,999/week) ── */}
+      <section className="bg-[#7EC0B7] py-20">
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-3xl md:text-4xl font-black text-white mb-3"
-            style={{ fontFamily: 'var(--font-lato)' }}
+            className="text-center max-w-2xl mx-auto mb-12"
           >
-            Starts at ₹2,999/week
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-white/80 text-base mb-8"
-          >
-            Weekly session + unlimited text. Nothing to install. Just show up.
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
+            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">₹2,999 / week</p>
+            <h2
+              className="text-3xl md:text-4xl font-black text-white mb-4"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              A commitment to your own balance.
+            </h2>
+            <p className="text-white/85 text-base leading-relaxed">
+              Your subscription is a dedicated space for you — a weekly habit that helps you navigate your world on your own terms.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {habitPoints.map((h, i) => (
+              <motion.div
+                key={h.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6"
+              >
+                <h3 className="font-black text-white text-base mb-2" style={{ fontFamily: 'var(--font-lato)' }}>{h.title}</h3>
+                <p className="text-white/85 text-sm leading-relaxed">{h.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-10">
             <Link
-              href="/#pricing"
+              href="/questionnaire/teen"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
             >
-              See all plans
+              Begin your practice →
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -394,7 +437,7 @@ export default function AdolescentsPageClient() {
             className="text-3xl md:text-4xl font-black text-white mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            A conversation. That's all it is.
+            You’ve done the reading.<br />Now, take the key.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -403,7 +446,7 @@ export default function AdolescentsPageClient() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-white/60 text-base mb-8"
           >
-            15 minutes. Free. Private. No one in your life needs to know you tried this.
+            Start the five-minute assessment and find a person who understands the rhythm of your life.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -415,7 +458,7 @@ export default function AdolescentsPageClient() {
               href="/questionnaire/teen"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
             >
-              Start your free intro chat →
+              Begin your practice →
             </Link>
           </motion.div>
         </div>
