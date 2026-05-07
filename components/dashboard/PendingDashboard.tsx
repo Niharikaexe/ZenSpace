@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { SubscriptionPlans } from './SubscriptionPlans'
@@ -13,6 +13,7 @@ const SAMPLE_THERAPISTS = [
     experience: '8 years',
     approach: 'Cognitive Behavioural Therapy',
     languages: ['English', 'Hindi'],
+    note: 'Worked with clients across 3 countries.',
   },
   {
     initials: 'PS',
@@ -21,6 +22,7 @@ const SAMPLE_THERAPISTS = [
     experience: '12 years',
     approach: 'EMDR & Somatic Therapy',
     languages: ['English', 'Telugu'],
+    note: 'Trained in the UK. Specialises in complex trauma.',
   },
   {
     initials: 'AM',
@@ -29,6 +31,7 @@ const SAMPLE_THERAPISTS = [
     experience: '6 years',
     approach: 'Person-Centred Therapy',
     languages: ['English', 'Marathi'],
+    note: 'Understands the pressure of family expectations intimately.',
   },
   {
     initials: 'RK',
@@ -37,6 +40,25 @@ const SAMPLE_THERAPISTS = [
     experience: '10 years',
     approach: 'Mindfulness-Based Therapy',
     languages: ['English', 'Tamil'],
+    note: 'Former academic researcher turned therapist.',
+  },
+  {
+    initials: 'NP',
+    name: 'Dr. P.',
+    specializations: ['Burnout', 'Work-Life Balance'],
+    experience: '9 years',
+    approach: 'Acceptance & Commitment Therapy',
+    languages: ['English', 'Kannada'],
+    note: 'Worked extensively with professionals in high-pressure roles.',
+  },
+  {
+    initials: 'VJ',
+    name: 'Dr. J.',
+    specializations: ['Grief', 'Existential Concerns'],
+    experience: '14 years',
+    approach: 'Psychodynamic Therapy',
+    languages: ['English', 'Bengali'],
+    note: 'Trained in the US. No cultural stake in your choices.',
   },
 ]
 
@@ -130,6 +152,104 @@ function CheckIcon({ ok }: { ok: boolean }) {
         <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       </svg>
     </span>
+  )
+}
+
+function TherapistCarousel() {
+  const [current, setCurrent] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const total = SAMPLE_THERAPISTS.length
+
+  const next = useCallback(() => setCurrent(c => (c + 1) % total), [total])
+  const prev = useCallback(() => setCurrent(c => (c - 1 + total) % total), [total])
+
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(next, 3500)
+    return () => clearInterval(id)
+  }, [paused, next])
+
+  const t = SAMPLE_THERAPISTS[current]
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      {/* Card */}
+      <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm min-h-[176px] flex flex-col justify-between transition-all duration-300">
+        <div className="flex items-start gap-4">
+          <div
+            className="w-12 h-12 rounded-2xl bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-base flex items-center justify-center flex-shrink-0"
+            style={{ fontFamily: 'var(--font-lato)' }}
+          >
+            {t.initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                {t.name}
+              </p>
+              <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/15 px-2 py-0.5 rounded-full">
+                {t.experience}
+              </span>
+            </div>
+            <p className="text-xs text-[#233551]/55 mt-0.5">{t.approach}</p>
+            <p className="text-xs text-[#233551]/40 mt-2 italic leading-relaxed">&ldquo;{t.note}&rdquo;</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex flex-wrap gap-1.5">
+            {t.specializations.map(s => (
+              <span key={s} className="text-[11px] bg-[#7EC0B7]/12 text-[#3D8A80] px-2.5 py-0.5 rounded-full font-medium">
+                {s}
+              </span>
+            ))}
+            <span className="text-[11px] bg-slate-100 text-[#233551]/50 px-2.5 py-0.5 rounded-full font-medium">
+              {t.languages.join(' · ')}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Prev / Next arrows */}
+      <button
+        onClick={prev}
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 w-7 h-7 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-[#233551]/50 hover:text-[#233551] transition-colors"
+        aria-label="Previous therapist"
+      >
+        <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
+          <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <button
+        onClick={next}
+        className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 w-7 h-7 bg-white border border-slate-200 rounded-full shadow-sm flex items-center justify-center text-[#233551]/50 hover:text-[#233551] transition-colors"
+        aria-label="Next therapist"
+      >
+        <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
+          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Dots */}
+      <div className="flex items-center justify-center gap-1.5 mt-4">
+        {SAMPLE_THERAPISTS.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={`rounded-full transition-all duration-200 ${
+              i === current
+                ? 'w-4 h-1.5 bg-[#3D8A80]'
+                : 'w-1.5 h-1.5 bg-[#233551]/15 hover:bg-[#233551]/30'
+            }`}
+            aria-label={`Go to therapist ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -380,34 +500,15 @@ export function PendingDashboard({
         </div>
       </section>
 
-      {/* Sample therapist cards */}
+      {/* Therapist carousel */}
       <section className="mb-10">
-        <p className="text-xs font-bold text-[#233551]/30 uppercase tracking-widest mb-3">
-          Some of our therapists
+        <p className="text-xs font-bold text-[#233551]/30 uppercase tracking-widest mb-4">
+          The kind of therapist we&apos;re finding for you
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {SAMPLE_THERAPISTS.map(t => (
-            <div key={t.initials} className="bg-white border border-slate-100 rounded-2xl p-4 flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-sm flex items-center justify-center flex-shrink-0" style={{ fontFamily: 'var(--font-lato)' }}>
-                {t.initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#233551]">{t.name}</p>
-                <p className="text-xs text-[#233551]/50 mt-0.5">{t.approach}</p>
-                <p className="text-xs text-[#233551]/40 mt-0.5">{t.experience} experience</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {t.specializations.map(s => (
-                    <span key={s} className="text-xs bg-[#7EC0B7]/15 text-[#3D8A80] px-2 py-0.5 rounded-full font-medium">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-[#233551]/35 mt-1.5">{t.languages.join(' · ')}</p>
-              </div>
-            </div>
-          ))}
+        <div className="px-4">
+          <TherapistCarousel />
         </div>
-        <p className="text-xs text-[#233551]/30 text-center mt-3">
+        <p className="text-xs text-[#233551]/30 text-center mt-5">
           Profiles are anonymised for privacy. Your matched therapist will be revealed once assigned.
         </p>
       </section>

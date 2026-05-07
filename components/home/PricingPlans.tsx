@@ -13,7 +13,7 @@ const plans = [
     features: [
       "1 video session per week (50 min)",
       "Unlimited async text messaging",
-      "Free 15-min intro call",
+      "Free intro chat",
       "Switch therapist anytime",
     ],
     cta: "Get started",
@@ -31,7 +31,7 @@ const plans = [
       "Priority text — faster responses",
       "Foreign-trained therapist access",
       "Session notes (read-only)",
-      "Free 15-min intro call",
+      "Free intro chat",
       "Switch therapist anytime",
     ],
     cta: "Start Premium",
@@ -47,7 +47,7 @@ const plans = [
     features: [
       "4 video sessions per month (50 min)",
       "Unlimited async text messaging",
-      "Free 15-min intro call",
+      "Free intro chat",
       "Switch therapist anytime",
       "~17% savings vs weekly",
     ],
@@ -90,7 +90,7 @@ const PricingPlans = () => {
             No surprises.<br />Pay for what you use.
           </h2>
           <p className="text-[#233551]/50 text-base leading-relaxed">
-            You&apos;re not locked in. No contracts, no hidden fees. Start with the intro call — it&apos;s free.
+            You&apos;re not locked in. No contracts, no hidden fees. Start with the intro chat — it&apos;s free.
           </p>
         </motion.div>
 
@@ -198,7 +198,7 @@ const PricingPlans = () => {
           className="text-center mt-10 space-y-2"
         >
           <p className="text-xs text-[#233551]/35">
-            All plans include a free 15-minute intro call before any payment. No credit card needed to get matched.
+            All plans include a free intro chat before any payment. No credit card needed to get matched.
           </p>
           <p className="text-xs text-[#233551]/30">
             Looking for couples therapy?{" "}

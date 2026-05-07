@@ -39,7 +39,7 @@ It's slower than a quiz that spits out an instant result. It's also more conside
 
 You'll get a notification with your therapist's profile — their background, their approach, a bit about how they work.
 
-Before anything is booked and before you pay, you get a free 15-minute intro call. This is a chance to see if it feels right. If it doesn't, you pick someone else. No invoice, no awkwardness.
+Before anything is booked and before you pay, you get a free intro chat. This is a chance to see if it feels right. If it doesn't, you pick someone else. No invoice, no awkwardness.
 
 ## If the match isn't working
 
@@ -199,9 +199,9 @@ The usual alternative to therapy is hoping things resolve on their own. Sometime
 
 The things that bring people to therapy tend not to get better through avoidance. Some of them consolidate — become more habitual, more entrenched — the longer they're left.
 
-## What the free intro call is for
+## What the free intro chat is for
 
-If you're genuinely unsure, our free 15-minute intro call is designed exactly for this. You can speak to a potential therapist, explain where you are, and hear what they think. You're not committing to anything. There's no invoice if you decide it's not for you.
+If you're genuinely unsure, our free intro chat is designed exactly for this. You can speak to a potential therapist, explain where you are, and hear what they think. You're not committing to anything. There's no invoice if you decide it's not for you.
 
 Sometimes that conversation is clarifying in a way that all the uncertainty wasn't.
     `,
@@ -285,7 +285,7 @@ You don't need to explain to your current therapist why you're switching. You do
 
 Contact us through the platform. We'll arrange a new match. The process is the same as the initial matching — we'll review what you're looking for and pair you with someone appropriate.
 
-You'll get another free intro call with the new therapist before anything is booked.
+You'll get another free intro chat with the new therapist before anything is booked.
 
 ## A note on trial and error
 

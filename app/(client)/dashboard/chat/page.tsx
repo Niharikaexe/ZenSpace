@@ -1,8 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { signOut } from '@/app/actions/auth'
-import ChatInterface from '@/components/shared/ChatInterface'
+import ClientChatView from '@/components/client/ClientChatView'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,77 +17,94 @@ export default async function ClientChatPage() {
 
   if (profile?.role !== 'client') redirect('/dashboard')
 
-  const { data: match } = await supabase
+  const admin = createAdminClient()
+  const { data: match } = await (admin as any)
     .from('matches')
-    .select('id, therapist_id')
+    .select('id, therapist_id, created_at')
     .eq('client_id', user.id)
     .eq('status', 'active')
-    .maybeSingle() as { data: { id: string; therapist_id: string } | null; error: unknown }
+    .maybeSingle() as { data: { id: string; therapist_id: string; created_at: string } | null; error: unknown }
 
   if (!match) redirect('/dashboard')
 
-  // Subscription gate — only active subscribers can access chat
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('status')
-    .eq('client_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle() as { data: { status: string } | null; error: unknown }
+  const [{ data: subscription }, { data: questionnaire }, { count: clientMessageCount }] = await Promise.all([
+    (admin as any)
+      .from('subscriptions')
+      .select('status, current_period_end')
+      .eq('client_id', user.id)
+      .eq('status', 'active')
+      .gt('current_period_end', new Date().toISOString())
+      .maybeSingle() as Promise<{ data: { status: string; current_period_end: string } | null; error: unknown }>,
+    (admin as any)
+      .from('questionnaire_responses')
+      .select('responses')
+      .eq('client_id', user.id)
+      .maybeSingle() as Promise<{ data: { responses: Record<string, unknown> } | null; error: unknown }>,
+    (admin as any)
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', match.id)
+      .eq('sender_id', user.id) as Promise<{ count: number | null; error: unknown }>,
+  ])
 
-  if (!subscription) redirect('/dashboard')
+  const isSubscribed = !!subscription
 
-  const admin = createAdminClient()
-  const { data: therapistUser } = await (admin as any)
-    .from('profiles')
-    .select('full_name')
-    .eq('id', match.therapist_id)
-    .single()
+  // Intro chat: 10 free messages within 7 days of match (window hidden from client)
+  const INTRO_LIMIT = 10
+  const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+  const matchWithinWindow = new Date(match.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
+  // null = subscribed (no counter shown); 0 = exhausted; >0 = messages remaining
+  const freeMessagesLeft: number | null = isSubscribed
+    ? null
+    : matchWithinWindow
+      ? Math.max(0, INTRO_LIMIT - (clientMessageCount ?? 0))
+      : 0
+  const therapyType = (questionnaire?.responses?.type as string) ?? null
+  const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
+    (admin as any)
+      .from('therapist_profiles')
+      .select('specializations, bio, approach, years_experience, languages, availability_text, is_verified')
+      .eq('user_id', match.therapist_id)
+      .maybeSingle(),
+    (admin as any)
+      .from('profiles')
+      .select('full_name, avatar_url')
+      .eq('id', match.therapist_id)
+      .single(),
+    (supabase as any)
+      .from('messages')
+      .select('id, sender_id, content, created_at, message_type')
+      .eq('match_id', match.id)
+      .order('created_at', { ascending: true })
+      .limit(100),
+  ])
 
-  const { data: messages } = await (supabase as any)
-    .from('messages')
-    .select('id, sender_id, content, created_at, message_type')
-    .eq('match_id', match.id)
-    .order('created_at', { ascending: true })
-    .limit(100)
+  const tProfile = tProfileResult.data
+  const tUser = tUserResult.data
+  const messages = messagesResult.data ?? []
 
-  const therapistName = therapistUser?.full_name ?? 'Your Therapist'
+  const therapist = {
+    fullName: tUser?.full_name ?? 'Your Therapist',
+    avatarUrl: tUser?.avatar_url ?? null,
+    specializations: tProfile?.specializations ?? [],
+    bio: tProfile?.bio ?? null,
+    approach: tProfile?.approach ?? null,
+    yearsExperience: tProfile?.years_experience ?? 0,
+    languages: tProfile?.languages ?? ['English'],
+    availabilityText: tProfile?.availability_text ?? null,
+    isVerified: tProfile?.is_verified ?? false,
+  }
 
   return (
-    <div className="h-screen flex flex-col bg-white">
-      {/* Header */}
-      <header className="flex-none border-b border-slate-100 bg-white px-4 py-3 flex items-center gap-3">
-        <Link
-          href="/dashboard"
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-900 truncate">{therapistName}</p>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-            <p className="text-xs text-teal-600">Your therapist</p>
-          </div>
-        </div>
-        <form action={signOut}>
-          <button type="submit" className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 transition-colors">
-            Sign out
-          </button>
-        </form>
-      </header>
-
-      {/* Chat fills remaining height */}
-      <div className="flex-1 overflow-hidden">
-        <ChatInterface
-          matchId={match.id}
-          currentUserId={user.id}
-          currentUserName={profile.full_name}
-          otherPartyName={therapistName}
-          initialMessages={messages ?? []}
-        />
-      </div>
-    </div>
+    <ClientChatView
+      matchId={match.id}
+      currentUserId={user.id}
+      clientName={profile?.full_name ?? ''}
+      therapist={therapist}
+      initialMessages={messages}
+      isSubscribed={isSubscribed}
+      freeMessagesLeft={freeMessagesLeft}
+      therapyType={therapyType}
+    />
   )
 }

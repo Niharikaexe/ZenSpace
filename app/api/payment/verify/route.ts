@@ -3,12 +3,13 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 import { z } from 'zod'
+import { PLANS, PLAN_KEYS, type PlanKey } from '@/lib/plans'
 
 const schema = z.object({
   razorpay_payment_id: z.string(),
-  razorpay_order_id: z.string(),
+  razorpay_subscription_id: z.string(),
   razorpay_signature: z.string(),
-  plan: z.enum(['weekly', 'monthly']),
+  plan: z.enum(PLAN_KEYS as [PlanKey, ...PlanKey[]]),
 })
 
 export async function POST(request: Request) {
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, plan } = parsed.data
+  const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature, plan } = parsed.data
 
   const keySecret = process.env.RAZORPAY_KEY_SECRET
   if (!keySecret) {
@@ -45,42 +46,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Payment not configured' }, { status: 500 })
   }
 
-  // Verify HMAC signature
+  // Razorpay subscription signature: HMAC(payment_id + "|" + subscription_id, key_secret)
   const expectedSignature = crypto
     .createHmac('sha256', keySecret)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+    .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
     .digest('hex')
 
   if (expectedSignature !== razorpay_signature) {
     logger.warn('api/payment/verify', 'Invalid payment signature', {
       userId: user.id,
-      orderId: razorpay_order_id,
+      subscriptionId: razorpay_subscription_id,
       paymentId: razorpay_payment_id,
     })
     return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 })
   }
 
+  const planData = PLANS[plan]
   const now = new Date()
   const periodEnd = new Date(now)
-  if (plan === 'weekly') periodEnd.setDate(periodEnd.getDate() + 7)
-  else periodEnd.setMonth(periodEnd.getMonth() + 1)
+  if (planData.cadence === 'monthly') periodEnd.setMonth(periodEnd.getMonth() + 1)
+  else periodEnd.setDate(periodEnd.getDate() + 7)
 
   const admin = createAdminClient()
-  const { error: dbErr, count } = await (admin as any)
+  const { error: dbErr } = await (admin as any)
     .from('subscriptions')
     .update({
       status: 'active',
-      razorpay_subscription_id: razorpay_payment_id,
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
     })
     .eq('client_id', user.id)
-    .eq('razorpay_plan_id', razorpay_order_id)
+    .eq('razorpay_subscription_id', razorpay_subscription_id)
 
   if (dbErr) {
     logger.error('api/payment/verify', 'Failed to activate subscription', dbErr, {
       userId: user.id,
-      orderId: razorpay_order_id,
+      subscriptionId: razorpay_subscription_id,
       paymentId: razorpay_payment_id,
     })
     return NextResponse.json({ error: 'Failed to activate subscription' }, { status: 500 })
@@ -89,10 +90,9 @@ export async function POST(request: Request) {
   logger.info('api/payment/verify', 'Subscription activated', {
     userId: user.id,
     plan,
-    orderId: razorpay_order_id,
+    subscriptionId: razorpay_subscription_id,
     paymentId: razorpay_payment_id,
     periodEnd: periodEnd.toISOString(),
-    rowsUpdated: count,
   })
 
   return NextResponse.json({ success: true })

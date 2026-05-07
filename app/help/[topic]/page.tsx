@@ -138,7 +138,7 @@ export default async function HelpTopicPage({ params }: Props) {
               href="/questionnaire"
               className="inline-block bg-[#7EC0B7] text-[#233551] font-bold text-sm px-8 py-3 rounded-full hover:bg-[#6DB5AB] transition-colors"
             >
-              Book free intro call
+              Start free intro chat
             </Link>
             <a
               href="mailto:hello@zenspace.in"

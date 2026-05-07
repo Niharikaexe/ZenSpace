@@ -11,8 +11,8 @@ const items = [
         <circle cx="16" cy="21" r="2" fill="currentColor" />
       </svg>
     ),
-    title: "Nobody in your life will know.",
-    body: "No shared records with your employer, your family, or anyone else. Your sessions are yours. We don't contact anyone on your behalf — ever.",
+    title: "A Private Record",
+    body: "Your conversations exist only between you and your therapist. We don't share your details with anyone"
   },
   {
     icon: (
@@ -21,8 +21,8 @@ const items = [
         <path d="M11 16l3.5 3.5L21 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: "No clinic. No paper trail.",
-    body: "Everything happens inside the platform. No invoices on shared bank statements, no waiting rooms someone you know might walk into. It exists only where you let it.",
+    title: "Your Environment",
+    body: "our therapy happens wherever you feel most comfortable",
   },
   {
     icon: (
@@ -32,8 +32,8 @@ const items = [
         <path d="M22 19l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-    title: "Leave whenever you want.",
-    body: "No contracts. No cancellation fees. No \"please speak to a retention specialist.\" If you need to stop, you stop. That's it.",
+    title: "Your Choice.",
+    body: "This is your practice. You can pause, change therapists, or stop your subscription at any time.",
   },
 ]
 
@@ -59,10 +59,10 @@ const PrivacySection = () => {
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            It&apos;s yours.<br />All of it.
+            Your space is strictly yours.
           </h2>
           <p className="text-[#233551]/50 text-base leading-relaxed">
-            Therapy works best when you&apos;re not worried about who&apos;s watching. So we made sure no one is.
+          Therapy works best when you know you’re in a room where no one else can see in. We’ve built Zen Space to ensure it stays that way.
           </p>
         </motion.div>
 

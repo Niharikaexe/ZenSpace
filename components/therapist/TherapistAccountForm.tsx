@@ -13,12 +13,12 @@ const SPECIALIZATIONS = [
   'Anxiety', 'Depression', 'Stress', 'Relationships', 'Grief', 'Trauma',
   'Self-esteem', 'Life transitions', 'PTSD', 'Burnout', 'OCD', 'Addiction',
   'Family therapy', 'Adolescents', 'LGBTQ+', 'Career', 'Anger management',
-  'Eating disorders', 'Sleep issues', 'Chronic illness',
+  'Eating disorders', 'Sleep issues', 'Chronic illness', 'Others',
 ]
 
 const LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
+  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia', 'Others',
 ]
 
 const inputCls =
@@ -51,6 +51,7 @@ interface Props {
     specializations: string[]
     languages: string[]
     acceptsNewClients: boolean
+    availabilityText: string
     email: string
     isVerified: boolean
   }
@@ -69,6 +70,7 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [specializations, setSpecializations] = useState<string[]>(initialData.specializations)
   const [languages, setLanguages] = useState<string[]>(initialData.languages)
   const [acceptsNew, setAcceptsNew] = useState(initialData.acceptsNewClients)
+  const [availabilityText, setAvailabilityText] = useState(initialData.availabilityText)
 
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -99,6 +101,7 @@ export function TherapistAccountForm({ initialData }: Props) {
       <input type="hidden" name="specializations" value={JSON.stringify(specializations)} />
       <input type="hidden" name="languages" value={JSON.stringify(languages)} />
       <input type="hidden" name="acceptsNewClients" value={String(acceptsNew)} />
+      <input type="hidden" name="availabilityText" value={availabilityText} />
 
       {/* Section: Identity */}
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">
@@ -153,17 +156,6 @@ export function TherapistAccountForm({ initialData }: Props) {
             onChange={e => setBio(e.target.value)}
             placeholder="Describe your background, approach, and what clients can expect..."
             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
-          />
-        </Field>
-
-        <Field label="Therapeutic approach" hint="e.g. CBT, DBT, Person-centred">
-          <input
-            name="approach"
-            type="text"
-            value={approach}
-            onChange={e => setApproach(e.target.value)}
-            placeholder="CBT, Mindfulness-based, Solution-focused..."
-            className={inputCls}
           />
         </Field>
 
@@ -302,14 +294,13 @@ export function TherapistAccountForm({ initialData }: Props) {
       )}
 
       <div className="flex items-center justify-between gap-4">
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors"
-          >
-            Sign out
-          </button>
-        </form>
+        <button
+          type="submit"
+          formAction={signOut}
+          className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors"
+        >
+          Sign out
+        </button>
         <button
           type="submit"
           disabled={isPending}

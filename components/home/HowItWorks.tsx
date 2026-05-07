@@ -6,9 +6,9 @@ import { motion } from "framer-motion"
 const steps = [
   {
     number: "01",
-    label: "Tell us what's going on",
-    body: "A short questionnaire. 5 minutes. No payment, no commitment, no jargon.",
-    sub: "We read every answer to match you with the right therapist — not just any available one.",
+    label: "Tell us about your world",
+    body: "A few questions to help us understand your rhythm. It takes five minutes and helps us find the right person for your specific needs.",
+    sub: "We read every answer to match you with the right therapist.",
     icon: (
       <svg viewBox="0 0 32 32" fill="none" className="w-7 h-7">
         <rect x="6" y="4" width="20" height="24" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -19,10 +19,10 @@ const steps = [
   },
   {
     number: "02",
-    label: "Meet your therapist, free",
-    body: "Before any money changes hands, you get 15 minutes with your matched therapist.",
-    sub: "If it doesn't feel right, pick someone else. No invoice. No awkwardness.",
-    badge: "FREE INTRO CALL",
+    label: "Have a conversation",
+    body: "Meet the therapist we’ve paired you with for a free introductory chat. It’s a chance to see if the environment feels right before you commit to the practice.",
+    sub: "Align with your matched therapist.",
+    badge: "FREE INTRO CHAT",
     icon: (
       <svg viewBox="0 0 32 32" fill="none" className="w-7 h-7">
         <circle cx="16" cy="16" r="11" stroke="currentColor" strokeWidth="2" />
@@ -33,9 +33,9 @@ const steps = [
   },
   {
     number: "03",
-    label: "Start therapy, your way",
-    body: "Weekly video sessions. Text your therapist between sessions. No clinic, no commute.",
-    sub: "Switch therapists anytime. Cancel anytime. No explanation needed.",
+    label: "Make it a habit",
+    body: "Start your weekly conversations through video or messaging. It’s your space, on your schedule. If you ever feel like you need a different perspective, you can find a new therapist whenever you like.",
+    sub: "Switch therapists anytime.",
     icon: (
       <svg viewBox="0 0 32 32" fill="none" className="w-7 h-7">
         <rect x="4" y="8" width="24" height="17" rx="3" stroke="currentColor" strokeWidth="2" />
@@ -48,28 +48,15 @@ const steps = [
 
 /* ── Chevron connector (desktop only) ── */
 const Connector = ({ delay }: { delay: number }) => (
-  <div className="hidden lg:flex items-center justify-center flex-shrink-0 w-10 mt-12 relative">
-    {/* Dashed line */}
-    <motion.div
-      className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1"
-      initial={{ opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay }}
-    >
-      {[0,1,2].map(i => (
-        <div key={i} className="w-1 h-1 rounded-full bg-[#233551]/20" />
-      ))}
-    </motion.div>
-    {/* Arrow */}
+  <div className="hidden lg:flex items-center justify-center flex-shrink-0 w-8">
     <motion.div
       initial={{ opacity: 0, x: -6 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.4, delay: delay + 0.1 }}
+      transition={{ duration: 0.4, delay }}
     >
       <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5">
-        <path d="M7 4l6 6-6 6" stroke="#233551" strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 10h10M11 6l4 4-4 4" stroke="#233551" strokeOpacity="0.25" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </motion.div>
   </div>
@@ -217,10 +204,10 @@ const HowItWorks = () => {
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            From sign-up to first session —<br className="hidden md:block" /> here&apos;s exactly what happens
+             From joining to your first conversation.
           </h2>
           <p className="text-[#233551]/55 text-base leading-relaxed">
-            No surprises. No mystery. Just three steps — and you&apos;re talking to someone who gets it.
+            Just a straightforward path to finding your balance.
           </p>
         </motion.div>
 
@@ -243,7 +230,7 @@ const HowItWorks = () => {
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <Stat value="< 48hrs" label="Sign-up to first session" delay={0.55} />
-            <Stat value="15 min" label="Free intro call included" delay={0.65} />
+            <Stat value="50+" label="International therapists" delay={0.65} />
             <Stat value="Switch" label="Therapists anytime" delay={0.75} />
             <Stat value="₹0" label="Needed to get matched" delay={0.85} />
           </div>

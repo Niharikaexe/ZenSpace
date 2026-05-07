@@ -2,50 +2,7 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-
-/* ── Inline SVG: woman hugging a heart-ball ── */
-const HeroIllustration = () => (
-  <svg viewBox="0 0 280 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-    {/* Large tropical leaf — left back */}
-    <path d="M38,265 C18,205 28,135 78,108 C68,148 52,205 38,265 Z" fill="#2A6B63" />
-    <path d="M38,265 C55,208 66,158 78,108" stroke="#1E5048" strokeWidth="1.5" fill="none" />
-    {/* Large tropical leaf — right back */}
-    <path d="M242,252 C262,190 252,122 200,102 C210,142 228,195 242,252 Z" fill="#2A6B63" />
-    <path d="M242,252 C226,196 213,148 200,102" stroke="#1E5048" strokeWidth="1.5" fill="none" />
-    {/* Small leaf top-left */}
-    <path d="M72,115 C52,85 62,45 92,38 C86,64 76,92 72,115 Z" fill="#3D8A80" />
-    <path d="M72,115 C80,90 86,64 92,38" stroke="#2A6B63" strokeWidth="1" fill="none" />
-    {/* Small leaf top-right */}
-    <path d="M208,108 C228,78 218,38 188,32 C194,58 204,86 208,108 Z" fill="#3D8A80" />
-    <path d="M208,108 C200,84 194,58 188,32" stroke="#2A6B63" strokeWidth="1" fill="none" />
-    {/* Dress / body */}
-    <ellipse cx="140" cy="240" rx="62" ry="62" fill="#E8926A" />
-    {/* Neck */}
-    <rect x="129" y="177" width="22" height="28" rx="11" fill="#FDBCA7" />
-    {/* Head */}
-    <circle cx="140" cy="150" r="40" fill="#FDBCA7" />
-    {/* Hair */}
-    <path d="M100,138 Q140,90 180,138 Q188,168 184,200 Q160,218 140,218 Q120,218 96,200 Q92,168 100,138 Z" fill="#1C0E08" />
-    <path d="M100,138 Q86,170 90,208" stroke="#1C0E08" strokeWidth="9" fill="none" strokeLinecap="round" />
-    <path d="M180,138 Q194,170 190,208" stroke="#1C0E08" strokeWidth="9" fill="none" strokeLinecap="round" />
-    {/* Eyes */}
-    <ellipse cx="128" cy="148" rx="5" ry="6" fill="#1C0E08" />
-    <ellipse cx="152" cy="148" rx="5" ry="6" fill="#1C0E08" />
-    <circle cx="130" cy="146" r="1.8" fill="white" />
-    <circle cx="154" cy="146" r="1.8" fill="white" />
-    {/* Smile */}
-    <path d="M131,162 Q140,170 149,162" stroke="#D4795A" strokeWidth="2" fill="none" strokeLinecap="round" />
-    {/* Left arm hugging */}
-    <path d="M88,222 Q72,200 82,184 Q97,173 112,185" stroke="#FDBCA7" strokeWidth="21" strokeLinecap="round" fill="none" />
-    {/* Right arm hugging */}
-    <path d="M192,222 Q208,200 198,184 Q183,173 168,185" stroke="#FDBCA7" strokeWidth="21" strokeLinecap="round" fill="none" />
-    {/* Coral ball / heart */}
-    <circle cx="140" cy="228" r="38" fill="#F97B5A" />
-    {/* Ball highlights */}
-    <circle cx="127" cy="215" r="9" fill="rgba(255,255,255,0.25)" />
-    <circle cx="152" cy="238" r="5" fill="rgba(255,255,255,0.15)" />
-  </svg>
-)
+import OwlMascot from "@/components/home/OwlMascot"
 
 /* ── Floating leaf SVG ── */
 const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; className?: string }) => (
@@ -93,7 +50,7 @@ const TeenIcon = () => (
 const therapyTypes = [
   {
     label: "Individual",
-    tagline: "Just you and your therapist",
+    tagline: "A habit for your head. Just you and a person who listens.",
     href: "/for/individuals",
     Icon: IndividualIcon,
     accent: "#7EC0B7",
@@ -106,7 +63,7 @@ const therapyTypes = [
   },
   {
     label: "Couples",
-    tagline: "Both of you, one room",
+    tagline: "Finding the rhythm again. A space for both of you.",
     href: "/for/couples",
     Icon: CouplesIcon,
     accent: "#E8926A",
@@ -119,16 +76,16 @@ const therapyTypes = [
   },
   {
     label: "Teen",
-    tagline: "For the under-18s who get it",
+    tagline: "A room of your own. For when the world feels too loud.",
     href: "/for/adolescents",
     Icon: TeenIcon,
-    accent: "#F97B5A",
-    bg: "from-[#F97B5A]/10 to-[#F97B5A]/5",
-    border: "border-[#F97B5A]/25",
-    hoverBorder: "hover:border-[#F97B5A]/60",
-    hoverBg: "hover:from-[#F97B5A]/18 hover:to-[#F97B5A]/10",
-    iconBg: "bg-[#F97B5A]/15",
-    dot: "bg-[#F97B5A]",
+    accent: "#3D8A80",
+    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
+    border: "border-[#7EC0B7]/25",
+    hoverBorder: "hover:border-[#7EC0B7]/60",
+    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
+    iconBg: "bg-[#7EC0B7]/15",
+    dot: "bg-[#3D8A80]",
   },
 ]
 
@@ -176,8 +133,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Therapy that treats<br />
-              you like an adult
+              Peace isn’t a milestone<br />
+              it’s a practice
             </motion.h1>
 
             {/* Subtitle */}
@@ -187,7 +144,7 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-              You&apos;ve probably Googled what you&apos;re feeling. That&apos;s a start. We&apos;ll take it from here — with a real therapist, real sessions, and no waiting rooms.
+               Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
             </motion.p>
 
             {/* Therapy type category cards */}
@@ -202,7 +159,7 @@ const HeroSection = () => {
                 >
                   <Link
                     href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden`}
+                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
                   >
                     {/* Subtle corner glow on hover */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
@@ -236,20 +193,17 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* ── RIGHT: Illustration area ── */}
+          {/* ── RIGHT: Owl Mascot ── */}
           <div className="flex-shrink-0 relative w-72 h-72 md:w-[380px] md:h-[380px] lg:w-[440px] lg:h-[440px]">
 
-            {/* Dark navy circle — illustration container */}
+            {/* Owl */}
             <motion.div
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
-              className="w-full h-full rounded-full bg-[#233551] overflow-hidden relative shadow-2xl"
+              className="w-full h-full rounded-full bg-[#233551] overflow-hidden relative shadow-2xl float-slow"
             >
-              {/* Floating illustration */}
-              <div className="float-slow w-full h-full flex items-end justify-center pt-6">
-                <HeroIllustration />
-              </div>
+              <OwlMascot className="w-full h-full" />
             </motion.div>
 
             {/* Floating star — top right */}

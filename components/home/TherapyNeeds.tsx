@@ -159,11 +159,6 @@ const TherapyNeeds = () => {
               >
                 Whatever it is —<br />there&apos;s a name for it.
               </h2>
-              <div className="flex items-center justify-center gap-1.5 mt-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7]" />
-                <span className="w-1 h-1 rounded-full bg-[#7EC0B7]/50" />
-                <span className="w-1 h-1 rounded-full bg-[#7EC0B7]/30" />
-              </div>
             </motion.div>
 
             {/* Floating bubbles */}

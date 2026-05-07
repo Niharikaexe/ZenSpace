@@ -59,7 +59,7 @@ const ACTIONS = [
     id: 'video',
     label: 'Video session',
     sub: 'Schedule or join a 50-minute video call with your therapist.',
-    href: '/dashboard/video',
+    href: '/dashboard/sessions',
     locked: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#7EC0B7]">

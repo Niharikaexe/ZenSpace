@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
-import { MatchedDashboard } from '@/components/dashboard/MatchedDashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,8 +44,9 @@ export default async function ClientDashboard() {
     redirect(profile.role === 'admin' ? '/admin' : '/therapist/dashboard')
   }
 
-  // Fetch active match
-  const { data: match, error: matchError } = await supabase
+  // Fetch active match — use admin client to bypass any RLS issues on matches table
+  const matchAdmin = createAdminClient()
+  const { data: match, error: matchError } = await (matchAdmin as any)
     .from('matches')
     .select('id, status, therapist_id, created_at')
     .eq('client_id', user.id)
@@ -130,48 +130,6 @@ export default async function ClientDashboard() {
   const hasActiveSubscription = !!subscription
   const hasQuestionnaire = !!questionnaireRow
 
-  // Fetch therapist details if matched
-  let therapistData: {
-    fullName: string
-    avatarUrl: string | null
-    specializations: string[]
-    bio: string | null
-    approach: string | null
-    yearsExperience: number
-    languages: string[]
-  } | null = null
-
-  if (match) {
-    const admin = createAdminClient()
-    const [tProfileResult, tUserResult] = await Promise.all([
-      (admin as any)
-        .from('therapist_profiles')
-        .select('specializations, bio, approach, years_experience, languages')
-        .eq('user_id', match.therapist_id)
-        .maybeSingle(),
-      (admin as any)
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', match.therapist_id)
-        .maybeSingle(),
-    ])
-
-    const tProfile = tProfileResult.data
-    const tUser = tUserResult.data
-
-    if (tProfile && tUser) {
-      therapistData = {
-        fullName: tUser.full_name,
-        avatarUrl: tUser.avatar_url ?? null,
-        specializations: tProfile.specializations ?? [],
-        bio: tProfile.bio ?? null,
-        approach: tProfile.approach ?? null,
-        yearsExperience: tProfile.years_experience ?? 0,
-        languages: tProfile.languages ?? ['English'],
-      }
-    }
-  }
-
   logger.info('dashboard/client', 'Dashboard rendered', {
     userId: user.id,
     isMatched,
@@ -179,32 +137,23 @@ export default async function ClientDashboard() {
     hasQuestionnaire,
   })
 
+  // Matched clients go straight to the chat interface
+  if (isMatched) {
+    redirect('/dashboard/chat')
+  }
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={profile.full_name} isMatched={isMatched} />
+      <DashboardNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {isMatched && therapistData ? (
-          <MatchedDashboard
-            userName={profile.full_name}
-            userEmail={user.email ?? ''}
-            therapist={therapistData}
-            matchedSince={match!.created_at}
-            subscription={
-              subscription
-                ? { plan: subscription.plan, periodEnd: subscription.current_period_end }
-                : null
-            }
-          />
-        ) : (
-          <PendingDashboard
-            userName={profile.full_name}
-            userEmail={user.email ?? ''}
-            hasActiveSubscription={hasActiveSubscription}
-            hasQuestionnaire={hasQuestionnaire}
-            questionnairePrefs={questionnairePrefs}
-          />
-        )}
+        <PendingDashboard
+          userName={profile.full_name}
+          userEmail={user.email ?? ''}
+          hasActiveSubscription={hasActiveSubscription}
+          hasQuestionnaire={hasQuestionnaire}
+          questionnairePrefs={questionnairePrefs}
+        />
       </main>
     </div>
   )

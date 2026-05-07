@@ -69,7 +69,8 @@ export async function updateSession(request: NextRequest) {
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
     pathname === '/therapist/apply' ||          // public application form (no account yet)
     pathname.startsWith('/for') ||              // audience landing pages (public marketing)
-    pathname.startsWith('/api/payment/webhook') // webhook must be unauthenticated
+    pathname.startsWith('/api/payment/webhook') || // legacy webhook path
+    pathname.startsWith('/api/webhooks/')          // all webhook endpoints (called by external services)
 
   if (!user && !isPublic) {
     logger.info('middleware', 'Unauthenticated access — redirecting to login', { path: pathname })
