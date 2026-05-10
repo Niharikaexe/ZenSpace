@@ -83,13 +83,13 @@ const Step02Illustration = () => (
     <circle cx="150" cy="48" r="3" fill="#1a2840"/>
     <rect x="56" y="56" width="188" height="124" rx="4" fill="#2A6B63"/>
     <rect x="60" y="60" width="86" height="58" rx="4" fill="#1E5048"/>
-    <TinyHuman cx="103" cy="82" r="20" bg="#3D8A80" accent="#96CECA" skin="#D9A878" hair="#1C0E08"/>
+    <TinyHuman cx={103} cy={82} r={20} bg="#3D8A80" accent="#96CECA" skin="#D9A878" hair="#1C0E08"/>
     <rect x="150" y="60" width="90" height="58" rx="4" fill="#1a3d35"/>
-    <TinyHuman cx="195" cy="82" r="20" bg="#5EA9A0" accent="#7EC0B7" tilt={-4} skin="#B07850" hair="#2A1810"/>
+    <TinyHuman cx={195} cy={82} r={20} bg="#5EA9A0" accent="#7EC0B7" tilt={-4} skin="#B07850" hair="#2A1810"/>
     <rect x="72" y="122" width="156" height="54" rx="4" fill="#7EC0B7"/>
     <rect x="72" y="155" width="156" height="21" rx="0" fill="#5EA9A0"/>
     <g className="human-head">
-      <TinyHuman cx="150" cy="138" r="30" bg="#233551" accent="#7EC0B7" skin="#F0D8B8" hair="#1C0E08"/>
+      <TinyHuman cx={150} cy={138} r={30} bg="#233551" accent="#7EC0B7" skin="#F0D8B8" hair="#1C0E08"/>
     </g>
     <rect x="80" y="163" width="68" height="10" rx="3" fill="#233551" opacity="0.7"/>
     <text x="84" y="171" fontSize="6" fill="white" fontFamily="Lato,sans-serif" fontWeight="700">Dr. Sarah Mitchell</text>
@@ -110,7 +110,7 @@ const Step03Illustration = () => (
     <rect x="33" y="34" width="86" height="162" rx="8" fill="white"/>
     <rect x="58" y="27" width="36" height="8" rx="4" fill="#1a2840"/>
     <rect x="33" y="34" width="86" height="26" rx="8" fill="#7EC0B7"/>
-    <TinyHuman cx="50" cy="50" r="10" bg="#5EA9A0" accent="#96CECA" skin="#F0D8B8" hair="#233551"/>
+    <TinyHuman cx={50} cy={50} r={10} bg="#5EA9A0" accent="#96CECA" skin="#F0D8B8" hair="#233551"/>
     <rect x="62" y="42" width="40" height="5" rx="2.5" fill="white" opacity="0.9"/>
     <rect x="62" y="50" width="26" height="4" rx="2"   fill="white" opacity="0.55"/>
     <rect x="37" y="66"  width="58" height="18" rx="8" fill="#E8F6F4"/>
@@ -130,7 +130,7 @@ const Step03Illustration = () => (
     <rect x="181" y="24"  width="86" height="22"  rx="8"  fill="#FFF5F2"/>
     <text x="188" y="38" fontSize="8" fill="#233551" fontFamily="Lato,sans-serif" fontWeight="900">ZenSpace</text>
     <rect x="186" y="52" width="76" height="52" rx="8" fill="#7EC0B7"/>
-    <TinyHuman cx="210" cy="68" r="14" bg="#233551" accent="#96CECA" skin="#D9A878" hair="#1C0E08"/>
+    <TinyHuman cx={210} cy={68} r={14} bg="#233551" accent="#96CECA" skin="#D9A878" hair="#1C0E08"/>
     <rect x="225" y="58" width="30" height="5"  rx="2.5" fill="white" opacity="0.9"/>
     <rect x="225" y="66" width="22" height="4"  rx="2"   fill="white" opacity="0.6"/>
     <rect x="225" y="74" width="26" height="4"  rx="2"   fill="white" opacity="0.6"/>
@@ -151,7 +151,7 @@ const Step03Illustration = () => (
     <text x="204" y="182" fontSize="6.5" fill="#233551" fontFamily="Lato,sans-serif" fontWeight="900">Get started →</text>
     <path d="M128,115 Q152,100 172,115" stroke="#7EC0B7" strokeWidth="2" fill="none" strokeLinecap="round" strokeDasharray="4 3" opacity="0.6"/>
     <circle cx="150" cy="107" r="8" fill="#7EC0B7" opacity="0.15"/>
-    <TinyHuman cx="150" cy="106" r="10" bg="#5EA9A0" accent="#96CECA" tilt={5} skin="#F0D8B8" hair="#233551"/>
+    <TinyHuman cx={150} cy={106} r={10} bg="#5EA9A0" accent="#96CECA" tilt={5} skin="#F0D8B8" hair="#233551"/>
   </svg>
 )
 
