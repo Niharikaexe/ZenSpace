@@ -71,6 +71,14 @@ function fmt12(hour: number, minute: number) {
   return `${h}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
 }
 
+function cellToTimeLabel(ci: number) {
+  const startMin = ci * CELL_MIN
+  const endMin   = startMin + CELL_MIN
+  const sh = Math.floor(startMin / 60), sm = startMin % 60
+  const eh = Math.floor(endMin   / 60), em = endMin   % 60
+  return `${fmt12(sh, sm)} – ${fmt12(eh, em)}`
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props { initialData: WeeklyAvailability }
@@ -86,6 +94,7 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
   const [saveErr, setSaveErr] = useState<string | null>(null)
+  const [hoverCell, setHoverCell] = useState<{ ci: number; dayKey: string } | null>(null)
 
   // Drag state (ref so it doesn't cause re-renders)
   const drag = useRef<{
@@ -149,11 +158,6 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
   }
 
   function clearDay(k: string) { setSel(prev => ({ ...prev, [k]: new Set() })) }
-
-  // ── Derived: preview slots ──────────────────────────────────────────────────
-  const allSlots = DAYS
-    .map(d => ({ label: d.label, slots: computeSlots(sel[d.key] ?? new Set()) }))
-    .filter(d => d.slots.length > 0)
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -243,7 +247,8 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
                               : '',
                           ].filter(Boolean).join(' ')}
                           onMouseDown={e => { e.preventDefault(); startDrag(key, ci) }}
-                          onMouseEnter={() => applyDrag(ci)}
+                          onMouseEnter={() => { applyDrag(ci); setHoverCell({ ci, dayKey: key }) }}
+                          onMouseLeave={() => setHoverCell(null)}
                         />
                       )
                     })}
@@ -275,7 +280,8 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
                         mark3 ? 'border-l border-slate-200' : '',
                       ].filter(Boolean).join(' ')}
                       onMouseDown={e => { e.preventDefault(); startDrag(null, ci) }}
-                      onMouseEnter={() => applyDrag(ci)}
+                      onMouseEnter={() => { applyDrag(ci); setHoverCell({ ci, dayKey: 'all' }) }}
+                      onMouseLeave={() => setHoverCell(null)}
                     />
                   )
                 })}
@@ -283,7 +289,7 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
             </div>
           </div>
 
-          {/* Legend */}
+          {/* Legend + hover tooltip */}
           <div className="flex items-center gap-5 mt-3">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-[#7EC0B7]" />
@@ -293,39 +299,16 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
               <div className="w-3 h-3 rounded-sm bg-[#3D8A80]" />
               <span className="text-[10px] text-[#233551]/40">All days selected</span>
             </div>
+            {hoverCell && (
+              <span className="ml-auto text-[10px] font-semibold text-[#3D8A80] tabular-nums">
+                {cellToTimeLabel(hoverCell.ci)}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       {saveErr && <p className="text-xs text-red-500 mt-3">{saveErr}</p>}
-
-      {/* 50-min slot preview */}
-      {allSlots.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-slate-100">
-          <p className="text-[10px] font-bold text-[#233551]/30 uppercase tracking-widest mb-3">
-            50-min slots clients will see
-          </p>
-          <div className="space-y-2">
-            {allSlots.map(({ label, slots }) => (
-              <div key={label} className="flex items-start gap-3">
-                <span className="text-[11px] font-semibold text-[#233551]/45 w-[76px] flex-shrink-0 mt-0.5">
-                  {label}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {slots.map(s => (
-                    <span
-                      key={`${s.hour}-${s.minute}`}
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#7EC0B7]/12 text-[#3D8A80]"
-                    >
-                      {fmt12(s.hour, s.minute)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
