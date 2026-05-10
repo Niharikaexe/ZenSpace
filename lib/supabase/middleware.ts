@@ -2,6 +2,27 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { logger } from '@/lib/logger'
 
+// ── In-memory rate limiter (single-instance; sufficient for current scale) ───
+// Keyed by "<ip>:<pathname>". Values are arrays of request timestamps.
+const _rl = new Map<string, number[]>()
+const RL_WINDOW_MS = 60_000
+
+const RL_LIMITS: Record<string, number> = {
+  '/api/payment/create-subscription': 5,
+  '/api/payment/create-order':        10,
+  '/api/payment/verify':              10,
+}
+
+function checkRateLimit(key: string, limit: number): boolean {
+  const now = Date.now()
+  const hits = (_rl.get(key) ?? []).filter(t => now - t < RL_WINDOW_MS)
+  if (hits.length >= limit) return false
+  hits.push(now)
+  _rl.set(key, hits)
+  return true
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 type ProfileRow = { role: string }
 
 async function getRole(
@@ -53,6 +74,15 @@ export async function updateSession(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname
+
+  // Rate limiting on payment API routes
+  const rlLimit = RL_LIMITS[pathname]
+  if (rlLimit !== undefined) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    if (!checkRateLimit(`${ip}:${pathname}`, rlLimit)) {
+      return new NextResponse('Too Many Requests', { status: 429 })
+    }
+  }
 
   // Public routes — no auth required
   const isPublic =

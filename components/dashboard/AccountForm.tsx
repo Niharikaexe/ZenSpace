@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { updateProfile, sendPasswordReset, type ProfileActionState } from '@/app/actions/profile'
 import { signOut } from '@/app/actions/auth'
+import { deleteAccount } from '@/app/actions/delete-account'
 import { DashboardNav } from './DashboardNav'
 
 const initialState: ProfileActionState = {}
@@ -36,12 +37,23 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
   const [profileState, profileAction, profilePending] = useActionState(updateProfile, initialState)
   const [resetState, setResetState] = useState<ProfileActionState>({})
   const [resetPending, setResetPending] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
 
   async function handlePasswordReset() {
     setResetPending(true)
     const result = await sendPasswordReset()
     setResetState(result)
     setResetPending(false)
+  }
+
+  async function handleDeleteAccount() {
+    setDeletePending(true)
+    setDeleteError(null)
+    const result = await deleteAccount()
+    setDeletePending(false)
+    if (result?.error) setDeleteError(result.error)
   }
 
   const isActive = subscription?.status === 'active'
@@ -238,7 +250,7 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
         </section>
 
         {/* Sign out */}
-        <section className="bg-white border border-red-100 rounded-3xl p-6 shadow-sm">
+        <section className="bg-white border border-red-100 rounded-3xl p-6 mb-4 shadow-sm">
           <h2 className="text-xs font-black text-red-400 uppercase tracking-widest mb-2">
             Sign out
           </h2>
@@ -253,6 +265,48 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
               Sign out
             </button>
           </form>
+        </section>
+
+        {/* Delete account */}
+        <section className="bg-white border border-red-200 rounded-3xl p-6 shadow-sm">
+          <h2 className="text-xs font-black text-red-500 uppercase tracking-widest mb-2">
+            Delete account
+          </h2>
+          <p className="text-sm text-[#233551]/50 mb-4 leading-relaxed">
+            This permanently deletes your account, messages, and all personal data. This cannot be undone.
+          </p>
+
+          {deleteError && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2.5 mb-3">{deleteError}</p>
+          )}
+
+          {!deleteConfirm ? (
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(true)}
+              className="border-2 border-red-300 text-red-600 hover:bg-red-50 text-sm font-semibold px-5 py-2 rounded-full transition-colors"
+            >
+              Delete my account
+            </button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deletePending}
+                className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-2 rounded-full transition-colors disabled:opacity-50"
+              >
+                {deletePending ? 'Deleting...' : 'Yes, delete permanently'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(false)}
+                className="text-sm text-[#233551]/50 hover:text-[#233551] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
         </section>
       </main>
     </div>

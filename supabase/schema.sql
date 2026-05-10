@@ -355,3 +355,113 @@ CREATE INDEX idx_matches_therapist_id ON matches(therapist_id);
 CREATE INDEX idx_sessions_match_id ON sessions(match_id);
 CREATE INDEX idx_sessions_scheduled_at ON sessions(scheduled_at);
 CREATE INDEX idx_subscriptions_client_id ON subscriptions(client_id);
+
+-- Prevent duplicate active/pending subscriptions per client (B-11)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_one_active_per_client
+  ON subscriptions (client_id)
+  WHERE status IN ('active', 'pending');
+
+-- Prevent more than one active match per client (B-19)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_one_active_per_client
+  ON matches (client_id)
+  WHERE status = 'active';
+
+-- ============================================================
+-- NOTIFICATIONS
+-- ============================================================
+
+CREATE TABLE notifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL,
+  title      TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  metadata   JSONB NOT NULL DEFAULT '{}',
+  is_read    BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS notifications_user_unread
+  ON notifications(user_id, is_read, created_at DESC);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users read own notifications"
+  ON notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "users update own notifications"
+  ON notifications FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Inserts only via service-role key (admin client)
+-- Run manually after deploy:
+--   ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+
+-- ============================================================
+-- THERAPIST APPLICATIONS
+-- ============================================================
+
+CREATE TABLE therapist_applications (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name        TEXT NOT NULL,
+  email            TEXT NOT NULL UNIQUE,
+  phone            TEXT,
+  city             TEXT,
+  license_number   TEXT NOT NULL,
+  license_body     TEXT,
+  years_experience INT NOT NULL DEFAULT 0,
+  education        TEXT,
+  specializations  TEXT[] NOT NULL DEFAULT '{}',
+  languages        TEXT[] NOT NULL DEFAULT '{}',
+  bio              TEXT NOT NULL,
+  why_zenspace     TEXT,
+  status           TEXT NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
+  admin_notes      TEXT,
+  submitted_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at      TIMESTAMPTZ
+);
+
+ALTER TABLE therapist_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can submit a therapist application"
+  ON therapist_applications FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- ============================================================
+-- THERAPIST SWITCH REQUESTS
+-- ============================================================
+
+CREATE TABLE therapist_switch_requests (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  match_id     UUID REFERENCES matches(id) ON DELETE SET NULL,
+  reason       TEXT,
+  details      TEXT,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actioned_at  TIMESTAMPTZ,
+  actioned_by  UUID REFERENCES profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE therapist_switch_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "clients can insert own switch requests"
+  ON therapist_switch_requests FOR INSERT TO authenticated
+  WITH CHECK (client_id = auth.uid());
+
+CREATE POLICY "clients can read own switch requests"
+  ON therapist_switch_requests FOR SELECT TO authenticated
+  USING (client_id = auth.uid());
+
+CREATE POLICY "admin full access to switch requests"
+  ON therapist_switch_requests FOR ALL TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );

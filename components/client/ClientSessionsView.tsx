@@ -27,6 +27,7 @@ interface Props {
   timezone: string | null
   isSubscribed: boolean
   sessionsThisWeek: number
+  sessionsPerWeek: number
   upcoming: Session[]
   past: Session[]
   therapyType: string | null
@@ -209,6 +210,7 @@ export default function ClientSessionsView({
   timezone,
   isSubscribed,
   sessionsThisWeek,
+  sessionsPerWeek,
   upcoming,
   past,
   therapyType,
@@ -220,7 +222,7 @@ export default function ClientSessionsView({
   const [bookedLabel, setBookedLabel]       = useState<string | null>(null)
   const [expandedNotes, setExpandedNotes]   = useState<string | null>(null)
 
-  const weeklyLimitReached = sessionsThisWeek >= 1
+  const weeklyLimitReached = sessionsThisWeek >= sessionsPerWeek
   const week = buildWeek(weeklyAvailability)
 
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null

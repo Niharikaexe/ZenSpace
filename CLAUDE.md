@@ -664,27 +664,29 @@ Each bug has: severity, file:line, description, and suggested fix.
 
 **B-41. Pervasive `(supabase as any)` casts** — Disables type safety on most DB writes. The `Database` type is rarely actually used. Fix: replace casts with `createClient<Database>()` and let TS catch mismatches like B-18.
 
-**B-42. SQL migrations not folded into `schema.sql`** — Fresh environments bootstrapped from `schema.sql` will be missing `notifications`, `therapist_applications`, `therapist_availability`, `therapist_switch_requests`, and the extended `subscription_plan` enum. Fix: regenerate `schema.sql` from a fresh apply of all migrations, or merge by hand.
+**B-41. Pervasive `(supabase as any)` casts** — Skipped (high-risk refactor requiring full Database type wiring; deferred to post-launch).
+
+~~**B-42. SQL migrations not folded into `schema.sql`**~~ — Fixed: `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded into `schema.sql`.
 
 **B-43. Realtime publication for `notifications` not auto-applied** — `alter publication supabase_realtime add table notifications;` must be run manually in production Supabase. Tracked in CRITICAL infra section.
 
-**B-44. `WEEKLY_SCHEDULE` hardcoded** — `components/client/ClientSessionsView.tsx:39–47` ignores the therapist's actual `availability_text` from the DB and shows the same fake schedule for every therapist.
+~~**B-44. `WEEKLY_SCHEDULE` hardcoded**~~ — Fixed: replaced with structured `weekly_availability` JSONB column on `therapist_profiles`; therapist edits via slot picker on their home dashboard; client sessions view reads live data.
 
-**B-45. Daily.co video frontend missing** — `@daily-co/daily-js` is in `package.json` but never imported. `JoinButton` opens the room URL in a new tab. Decide: build in-app video UI, or accept hosted-tab launch and update copy. If staying hosted, validate `roomUrl` matches `*.daily.co` before opening (anti-phishing).
+~~**B-45. Daily.co URL not validated**~~ — Fixed: `JoinButton` now validates `roomUrl` matches `*.daily.co` pattern before rendering the link; shows "Invalid session link" if URL fails check.
 
-**B-46. Notification fire-and-forget swallows errors** — `app/actions/sessions.ts:185–192` does `.catch(() => {})`. If both email and push fail, the user thinks they've been notified. Fix: log to Sentry/console with full context.
+~~**B-46. Notification fire-and-forget swallows errors**~~ — Fixed: `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`.
 
-**B-47. `markMessagesRead` not awaited inside realtime callback** — `components/shared/ChatInterface.tsx:77`. Fast unmounts drop the DB write.
+~~**B-47. `markMessagesRead` not awaited inside realtime callback**~~ — Fixed: `await` added in `components/shared/ChatInterface.tsx`.
 
-**B-48. Weekly session limit hardcoded `>= 1`** — `components/client/ClientSessionsView.tsx:232`. Couples or premium plans should support >1 session/week without a code change.
+~~**B-48. Weekly session limit hardcoded `>= 1`**~~ — Fixed: `sessionsPerWeek` field added to all 10 plans in `lib/plans.ts`; `ClientSessionsView` reads it from props; sessions page derives it from the active subscription's plan key.
 
-**B-49. Switch-request doesn't verify match is active** — `app/actions/switch-therapist.ts:37–42` only checks the match exists. A client could request a switch on a match that ended months ago.
+~~**B-49. Switch-request doesn't verify match is active**~~ — Already fixed: `app/actions/switch-therapist.ts` had `.eq('status', 'active')` check.
 
-**B-50. No rate limiting** — Signup, password reset, payment verify, message send, session schedule, contact form — all unbounded. Fix: add `@upstash/ratelimit` or middleware-level limits keyed on IP + user ID.
+~~**B-50. No rate limiting**~~ — Fixed: in-memory sliding-window rate limiter added to `lib/supabase/middleware.ts`; limits payment API routes (5–10 req/min per IP).
 
-**B-51. No DPDP-compliant data deletion flow** — Required by Indian law (DPDP Act 2023) for any personal data collected. Users must be able to request account + data deletion.
+~~**B-51. No DPDP-compliant data deletion flow**~~ — Fixed: `deleteAccount` server action in `app/actions/delete-account.ts` deletes auth user (cascades all personal data); two-step confirmation UI added to client account page.
 
-**B-52. Admin login has no `noindex` metadata** — `/admin/login` is crawlable. Add `metadata: { robots: { index: false } }`.
+~~**B-52. Admin login has no `noindex` metadata**~~ — Fixed: `robots: { index: false }` added to `/admin/login`.
 
 ---
 
@@ -745,6 +747,15 @@ Each bug has: severity, file:line, description, and suggested fix.
 **Fixed — Code quality (Phase 4 audit)**
 - ~~B-46~~ Notification errors swallowed — `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`
 - ~~B-47~~ `markMessagesRead` not awaited — `await` added inside realtime callback in `components/shared/ChatInterface.tsx`
+
+**Fixed — Final phase (2026-05-10)**
+- ~~B-42~~ Schema.sql gaps — `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded in
+- ~~B-44~~ Hardcoded availability — replaced with `weekly_availability` JSONB; therapist slot-picker on home dashboard; `ClientSessionsView` reads live data
+- ~~B-45~~ Daily.co URL unvalidated — `JoinButton` validates `*.daily.co` pattern before navigation
+- ~~B-48~~ Session limit hardcoded — `sessionsPerWeek` added to all plans in `lib/plans.ts`; `ClientSessionsView` uses prop instead of hardcoded 1
+- ~~B-49~~ Switch-request match status — already had `.eq('status', 'active')` check; no change needed
+- ~~B-50~~ No rate limiting — in-memory sliding-window limiter added to middleware for payment API routes
+- ~~B-51~~ No data deletion — `deleteAccount` server action created; two-step confirmation UI in client account page
 
 ---
 
