@@ -30,23 +30,13 @@ interface Props {
   upcoming: Session[]
   past: Session[]
   therapyType: string | null
+  weeklyAvailability: Record<string, { hour: number; minute: number }[]>
 }
 
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
 
-// ── Dummy schedule: day-of-week → available times ─────────────────────────────
-const WEEKLY_SCHEDULE: Record<number, { hour: number; minute: number }[]> = {
-  1: [{ hour: 10, minute: 0 }, { hour: 15, minute: 0 }],            // Mon
-  2: [{ hour: 11, minute: 0 }, { hour: 16, minute: 0 }],            // Tue
-  3: [{ hour: 10, minute: 0 }, { hour: 14, minute: 0 }, { hour: 17, minute: 0 }], // Wed
-  4: [{ hour: 11, minute: 0 }, { hour: 16, minute: 0 }],            // Thu
-  5: [{ hour: 10, minute: 0 }, { hour: 15, minute: 0 }],            // Fri
-  6: [{ hour: 10, minute: 0 }],                                      // Sat
-  0: [],                                                             // Sun — no slots
-}
-
-function buildWeek(): DayEntry[] {
+function buildWeek(weeklyAvailability: Record<string, { hour: number; minute: number }[]>): DayEntry[] {
   const now = new Date()
   const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
   const days: DayEntry[] = []
@@ -56,7 +46,7 @@ function buildWeek(): DayEntry[] {
     d.setDate(now.getDate() + i)
     d.setHours(0, 0, 0, 0)
 
-    const slots: TimeSlot[] = (WEEKLY_SCHEDULE[d.getDay()] ?? [])
+    const slots: TimeSlot[] = (weeklyAvailability[String(d.getDay())] ?? [])
       .map(({ hour, minute }) => {
         const slotDate = new Date(d)
         slotDate.setHours(hour, minute, 0, 0)
@@ -222,6 +212,7 @@ export default function ClientSessionsView({
   upcoming,
   past,
   therapyType,
+  weeklyAvailability,
 }: Props) {
   const [showSubModal, setShowSubModal]     = useState(false)
   const [selectedDay, setSelectedDay]       = useState<string | null>(null)
@@ -230,7 +221,7 @@ export default function ClientSessionsView({
   const [expandedNotes, setExpandedNotes]   = useState<string | null>(null)
 
   const weeklyLimitReached = sessionsThisWeek >= 1
-  const week = buildWeek()
+  const week = buildWeek(weeklyAvailability)
 
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
 

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { getNotifications } from '@/app/actions/notifications'
+import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
+import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +75,7 @@ export default async function TherapistDashboard() {
       .eq('status', 'active'),
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, years_experience, weekly_capacity')
+      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability')
       .eq('user_id', user.id)
       .maybeSingle(),
   ])
@@ -441,6 +443,11 @@ export default async function TherapistDashboard() {
             )}
           </div>
         )}
+        {/* Weekly availability — always visible */}
+        <WeeklyAvailabilityEditor
+          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+        />
+
       </main>
     </div>
   )

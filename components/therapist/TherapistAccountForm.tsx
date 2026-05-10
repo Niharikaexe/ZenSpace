@@ -51,7 +51,6 @@ interface Props {
     specializations: string[]
     languages: string[]
     acceptsNewClients: boolean
-    availabilityText: string
     email: string
     isVerified: boolean
   }
@@ -70,7 +69,6 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [specializations, setSpecializations] = useState<string[]>(initialData.specializations)
   const [languages, setLanguages] = useState<string[]>(initialData.languages)
   const [acceptsNew, setAcceptsNew] = useState(initialData.acceptsNewClients)
-  const [availabilityText, setAvailabilityText] = useState(initialData.availabilityText)
 
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -101,7 +99,6 @@ export function TherapistAccountForm({ initialData }: Props) {
       <input type="hidden" name="specializations" value={JSON.stringify(specializations)} />
       <input type="hidden" name="languages" value={JSON.stringify(languages)} />
       <input type="hidden" name="acceptsNewClients" value={String(acceptsNew)} />
-      <input type="hidden" name="availabilityText" value={availabilityText} />
 
       {/* Section: Identity */}
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">

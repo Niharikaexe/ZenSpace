@@ -40,7 +40,7 @@ export default async function ClientNotesPage() {
   const [tProfileResult, tUserResult, sessionsResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, availability_text, is_verified')
+      .select('specializations, bio, approach, years_experience, languages, is_verified')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -67,7 +67,6 @@ export default async function ClientNotesPage() {
     approach: tProfile?.approach ?? null,
     yearsExperience: tProfile?.years_experience ?? 0,
     languages: tProfile?.languages ?? ['English'],
-    availabilityText: tProfile?.availability_text ?? null,
     isVerified: tProfile?.is_verified ?? false,
   }
 

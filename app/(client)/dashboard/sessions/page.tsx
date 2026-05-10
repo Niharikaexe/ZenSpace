@@ -59,7 +59,7 @@ export default async function ClientSessionsPage() {
   const [tProfileResult, tUserResult, sessionsResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, availability_text, is_verified')
+      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -84,9 +84,9 @@ export default async function ClientSessionsPage() {
     approach: tp?.approach ?? null,
     yearsExperience: tp?.years_experience ?? 0,
     languages: tp?.languages ?? ['English'],
-    availabilityText: tp?.availability_text ?? null,
     isVerified: tp?.is_verified ?? false,
   }
+  const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
   const allSessions: Session[] = sessionsResult.data ?? []
 
   // Count sessions in current calendar week (Mon–Sun) for this match
@@ -124,6 +124,7 @@ export default async function ClientSessionsPage() {
       upcoming={upcoming}
       past={past}
       therapyType={therapyType}
+      weeklyAvailability={weeklyAvailability}
     />
   )
 }

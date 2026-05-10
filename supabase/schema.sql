@@ -78,6 +78,7 @@ CREATE TABLE therapist_profiles (
   accepts_new_clients BOOLEAN DEFAULT TRUE,
   is_verified BOOLEAN DEFAULT FALSE,      -- admin verifies credentials
   weekly_capacity INTEGER DEFAULT 10,     -- max clients per week
+  weekly_availability JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
