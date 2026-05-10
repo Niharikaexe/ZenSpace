@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { AssessmentButton } from '@/components/shared/AssessmentButton'
 
 const EyebrowBadge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
@@ -175,12 +176,10 @@ export default function IndividualsPageClient() {
                 transition={{ duration: 0.7, delay: 0.3 }}
                 className="flex flex-wrap gap-4"
               >
-                <Link
-                  href="/questionnaire/individual"
+                <AssessmentButton
+                  label="Start the assessment →"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
-                >
-                  Start the assessment →
-                </Link>
+                />
               </motion.div>
 
               <motion.p
@@ -248,12 +247,10 @@ export default function IndividualsPageClient() {
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
                   Therapy isn’t a last resort for when things break. It’s the practice of making sure they don’t. It’s a space where you can set the weight down and just exist.
                 </p>
-                <Link
-                  href="/questionnaire/individual"
+                <AssessmentButton
+                  label="Take the 5-min assessment →"
                   className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-[#3D8A80] transition-colors"
-                >
-                  Take the 5-min assessment →
-                </Link>
+                />
               </div>
             </div>
           </div>
@@ -379,12 +376,10 @@ export default function IndividualsPageClient() {
           </div>
 
           <div className="text-center mt-10">
-            <Link
-              href="/questionnaire/individual"
+            <AssessmentButton
+              label="Start the assessment →"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
-            >
-              Start the assessment →
-            </Link>
+            />
           </div>
         </div>
       </section>
@@ -446,12 +441,10 @@ export default function IndividualsPageClient() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link
-              href="/questionnaire/individual"
+            <AssessmentButton
+              label="Start the assessment →"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
-            >
-              Start the assessment →
-            </Link>
+            />
           </motion.div>
         </div>
       </section>

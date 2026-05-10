@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { AssessmentButton } from "@/components/shared/AssessmentButton"
 
 export default function CTASection() {
   return (
@@ -44,13 +45,10 @@ export default function CTASection() {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  href="/questionnaire/individual"
+                <AssessmentButton
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[#7EC0B7] px-8 py-4 text-sm font-black text-[#233551] shadow-[0_12px_28px_rgba(126,192,183,0.25)] transition hover:-translate-y-0.5 hover:bg-[#8DCFC6] hover:shadow-[0_18px_40px_rgba(126,192,183,0.35)]"
                   style={{ fontFamily: 'var(--font-lato)' }}
-                >
-                  Start the assessment
-                </Link>
+                />
                 <Link
                   href="/signup"
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-white/70 transition hover:border-white/50 hover:text-white"

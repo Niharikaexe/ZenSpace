@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { AssessmentButton } from '@/components/shared/AssessmentButton'
 
 const EyebrowBadge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
@@ -182,12 +183,10 @@ export default function AdolescentsPageClient() {
                 transition={{ duration: 0.7, delay: 0.3 }}
                 className="flex flex-wrap gap-4"
               >
-                <Link
-                  href="/questionnaire/teen"
+                <AssessmentButton
+                  label="Begin the teen assessment →"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
-                >
-                  Begin the teen assessment →
-                </Link>
+                />
               </motion.div>
 
               <motion.p
@@ -256,12 +255,10 @@ export default function AdolescentsPageClient() {
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
                   Therapy isn’t a sign that something is wrong with you. It’s just a way to make sure you have the space to breathe in a world that asks a lot of you.
                 </p>
-                <Link
-                  href="/questionnaire/teen"
+                <AssessmentButton
+                  label="Begin the teen assessment →"
                   className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-[#3D8A80] transition-colors"
-                >
-                  Begin the teen assessment →
-                </Link>
+                />
               </div>
             </div>
           </div>
@@ -387,12 +384,10 @@ export default function AdolescentsPageClient() {
           </div>
 
           <div className="text-center mt-10">
-            <Link
-              href="/questionnaire/teen"
+            <AssessmentButton
+              label="Begin your practice →"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
-            >
-              Begin your practice →
-            </Link>
+            />
           </div>
         </div>
       </section>
@@ -454,12 +449,10 @@ export default function AdolescentsPageClient() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link
-              href="/questionnaire/teen"
+            <AssessmentButton
+              label="Begin your practice →"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
-            >
-              Begin your practice →
-            </Link>
+            />
           </motion.div>
         </div>
       </section>
