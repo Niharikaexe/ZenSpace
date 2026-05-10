@@ -142,7 +142,7 @@ export default function SignupPage() {
               <>
                 <div className="mb-8">
                   <h1
-                    className="text-2xl font-black text-[#233551]"
+                    className="text-3xl font-black text-[#233551]"
                     style={{ fontFamily: 'var(--font-lato)' }}
                   >
                     Create your account
@@ -150,7 +150,7 @@ export default function SignupPage() {
                   <p className="text-sm text-[#233551]/55 mt-1">
                     {questionnaireData
                       ? 'Almost there — just a few details to get started'
-                      : 'Start talking to a real therapist, on your terms.'}
+                      : 'Start talking to a real therapist.'}
                   </p>
                 </div>
 

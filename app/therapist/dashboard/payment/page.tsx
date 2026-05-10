@@ -4,12 +4,16 @@ import { TherapistNav } from '@/components/therapist/TherapistNav'
 
 export const dynamic = 'force-dynamic'
 
-// Plan rates (INR per session, therapist share ~60%)
+// Therapist share per session (~60% of plan price). Keys match canonical plan names.
 const THERAPIST_SHARE: Record<string, number> = {
-  essentials: 1800,    // ₹2,999 → ~₹1,800 therapist share
-  premium: 2700,       // ₹4,499 → ~₹2,700 therapist share
-  couples: 3600,       // ₹5,999 → ~₹3,600 therapist share
-  monthly: 6000,       // ₹9,999/mo → ~₹6,000/mo therapist share
+  basic_weekly:           1079,  // ₹1,799 × 60%
+  basic_monthly:           975,  // ₹6,499 ÷ 4 × 60%
+  premium_weekly:         2699,  // ₹4,499 × 60%
+  premium_monthly:        2475,  // ₹16,499 ÷ 4 × 60%
+  couples_basic_weekly:   1920,  // ₹3,200 × 60%
+  couples_basic_monthly:  1755,  // ₹11,699 ÷ 4 × 60%
+  couples_premium_weekly: 4499,  // ₹7,499 × 60%
+  couples_premium_monthly:3750,  // ₹25,000 ÷ 4 × 60%
 }
 
 function formatINR(amount: number) {
@@ -106,8 +110,8 @@ export default async function TherapistPaymentPage() {
   }
 
   // Estimate earnings
-  const estThisMonth = sessionsThisMonth * (THERAPIST_SHARE['essentials']) // conservative estimate
-  const estTotal = sessionsTotal * (THERAPIST_SHARE['essentials'])
+  const estThisMonth = sessionsThisMonth * (THERAPIST_SHARE['basic_weekly']) // conservative estimate
+  const estTotal = sessionsTotal * (THERAPIST_SHARE['basic_weekly'])
 
   // Pending payout (all earnings — illustrative only, payouts are off-app)
   const pendingPayout = estThisMonth
@@ -183,7 +187,7 @@ export default async function TherapistPaymentPage() {
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-[#3D8A80]">
-                    {formatINR(THERAPIST_SHARE[s.plan] ?? THERAPIST_SHARE['essentials'])}
+                    {formatINR(THERAPIST_SHARE[s.plan] ?? THERAPIST_SHARE['basic_weekly'])}
                   </p>
                 </div>
               ))}

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /admin/login
+Disallow: /dashboard
+Disallow: /therapist/dashboard
+Disallow: /api/
+
+Sitemap: https://zenspace.in/sitemap.xml

@@ -25,6 +25,18 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   const adminUser = await assertAdmin()
   const admin = createAdminClient()
 
+  // B-19: prevent double-matching — reject if client already has an active match
+  const { data: existingMatch } = await (admin as any)
+    .from('matches')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+  if (existingMatch) {
+    throw new Error('This client already has an active match. End the current match before creating a new one.')
+  }
+
   const { error } = await (admin as any).from('matches').insert({
     client_id: clientId,
     therapist_id: therapistId,

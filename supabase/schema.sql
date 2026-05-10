@@ -11,7 +11,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE user_role AS ENUM ('client', 'therapist', 'admin');
 CREATE TYPE subscription_status AS ENUM ('pending', 'active', 'paused', 'cancelled', 'expired');
-CREATE TYPE subscription_plan AS ENUM ('weekly', 'monthly');
+CREATE TYPE subscription_plan AS ENUM (
+  'weekly', 'monthly',
+  'basic_weekly', 'basic_monthly',
+  'premium_weekly', 'premium_monthly',
+  'couples_basic_weekly', 'couples_basic_monthly',
+  'couples_premium_weekly', 'couples_premium_monthly'
+);
 CREATE TYPE match_status AS ENUM ('pending', 'active', 'ended');
 CREATE TYPE session_type AS ENUM ('chat', 'video');
 CREATE TYPE session_status AS ENUM ('scheduled', 'ongoing', 'completed', 'cancelled');
@@ -25,6 +31,7 @@ CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role user_role NOT NULL DEFAULT 'client',
   full_name TEXT NOT NULL,
+  email TEXT,
   avatar_url TEXT,
   phone TEXT,
   timezone TEXT DEFAULT 'UTC',
@@ -87,6 +94,8 @@ CREATE TABLE subscriptions (
   -- Razorpay fields
   razorpay_subscription_id TEXT UNIQUE,
   razorpay_plan_id TEXT,
+  razorpay_order_id TEXT,
+  razorpay_payment_id TEXT,
   razorpay_customer_id TEXT,
   amount INTEGER NOT NULL,               -- in paise (INR) or cents
   currency TEXT DEFAULT 'INR',
@@ -260,7 +269,7 @@ CREATE POLICY "Clients manage own questionnaire" ON questionnaire_responses
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, full_name, role)
+  INSERT INTO profiles (id, full_name, role, email)
   VALUES (
     NEW.id,
     COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''), NEW.email),
@@ -268,12 +277,29 @@ BEGIN
       WHEN NEW.raw_user_meta_data->>'role' IN ('client', 'therapist', 'admin')
         THEN (NEW.raw_user_meta_data->>'role')::user_role
       ELSE 'client'::user_role
-    END
+    END,
+    NEW.email
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Keep email in sync when auth.users.email is updated
+CREATE OR REPLACE FUNCTION sync_profile_email()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    UPDATE profiles SET email = NEW.email WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER on_auth_user_email_updated
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_profile_email();
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

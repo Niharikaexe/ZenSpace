@@ -93,7 +93,7 @@ const jsonLd = {
   areaServed: "IN",
   serviceType: "Online Therapy",
   priceRange: "₹₹",
-  medicalSpecialty: "Psychiatry",
+  medicalSpecialty: "Psychotherapy",
   availableService: [
     { "@type": "MedicalTherapy", name: "Individual Therapy" },
     { "@type": "MedicalTherapy", name: "Couples Therapy" },

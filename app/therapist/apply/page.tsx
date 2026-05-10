@@ -24,10 +24,10 @@ const STEPS = ['Personal', 'Credentials', 'Practice']
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30'
+  'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30'
 
 const textareaCls =
-  'w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none'
+  'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none'
 
 function Field({
   label,
@@ -429,7 +429,7 @@ export default function TherapistApplyPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-10">
         {/* Step pills */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((label, i) => (

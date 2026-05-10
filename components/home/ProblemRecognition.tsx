@@ -102,7 +102,7 @@ const ProblemRecognition = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5 }}
-              className="text-xs font-bold uppercase tracking-widest text-[#7EC0B7]"
+              className="text-xs font-bold uppercase tracking-widest text-[#3D8A80]"
             >
               Sound familiar?
             </motion.p>

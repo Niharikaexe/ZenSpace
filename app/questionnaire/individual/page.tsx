@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { saveQuestionnaire } from '@/app/actions/questionnaire'
+import Footer from '@/components/home/Footer'
 
 const TOTAL_QUESTIONS = 11
 
@@ -154,7 +155,7 @@ export default function IndividualQuestionnairePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-10">
         {/* Section label */}
         <div className="mb-6 flex items-center gap-3">
           <span className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest">
@@ -310,7 +311,7 @@ export default function IndividualQuestionnairePage() {
                 value={answers.q7}
                 onChange={e => setSingle('q7', e.target.value)}
                 placeholder="Anything you want them to know..."
-                className="w-full min-h-[120px] resize-none rounded-xl border-2 border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
+                className="w-full min-h-[120px] resize-none rounded-xl border border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
               />
             </div>
           )}
@@ -346,7 +347,7 @@ export default function IndividualQuestionnairePage() {
                 value={answers.q9}
                 onChange={e => setSingle('q9', e.target.value)}
                 placeholder="e.g. family dynamics, cultural expectations, religious background..."
-                className="w-full min-h-[120px] resize-none rounded-xl border-2 border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
+                className="w-full min-h-[120px] resize-none rounded-xl border border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
               />
             </div>
           )}
@@ -429,6 +430,7 @@ export default function IndividualQuestionnairePage() {
           </p>
         )}
       </div>
+      <Footer />
     </div>
   )
 }

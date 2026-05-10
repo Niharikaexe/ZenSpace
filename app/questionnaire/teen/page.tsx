@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { saveQuestionnaire } from '@/app/actions/questionnaire'
+import Footer from '@/components/home/Footer'
 
 const TOTAL_QUESTIONS = 8
 
@@ -145,7 +146,7 @@ export default function TeenQuestionnairePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-10">
         {/* Section label */}
         <div className="mb-6 flex items-center gap-3">
           <span className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest">
@@ -343,7 +344,7 @@ export default function TeenQuestionnairePage() {
                 value={answers.q8}
                 onChange={e => setSingle('q8', e.target.value)}
                 placeholder="Anything at all. No judgment."
-                className="w-full min-h-[120px] resize-none rounded-xl border-2 border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
+                className="w-full min-h-[120px] resize-none rounded-xl border border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
               />
               <p className="text-xs text-[#233551]/40 pt-2">
                 Your therapist will ask what they need in the first session. This is just a head start.
@@ -384,6 +385,7 @@ export default function TeenQuestionnairePage() {
           </p>
         )}
       </div>
+      <Footer />
     </div>
   )
 }

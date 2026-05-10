@@ -105,13 +105,13 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             <div className="mb-8">
               <h1
-                className="text-2xl font-black text-[#233551]"
+                className="text-3xl font-black text-[#233551]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
                 Welcome back
               </h1>
               <p className="text-sm text-[#233551]/55 mt-1">
-                Sign in to continue your therapy journey.
+                Sign in to pick up where you left off.
               </p>
             </div>
 

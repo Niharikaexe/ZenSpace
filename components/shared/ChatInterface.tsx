@@ -57,7 +57,7 @@ export default function ChatInterface({
 
   // Mark messages as read on mount
   useEffect(() => {
-    markMessagesRead(matchId)
+    void markMessagesRead(matchId)
   }, [matchId])
 
   // Supabase Realtime subscription
@@ -74,7 +74,7 @@ export default function ChatInterface({
             if (prev.some(m => m.id === newMsg.id)) return prev
             return [...prev, newMsg]
           })
-          markMessagesRead(matchId)
+          void markMessagesRead(matchId)
         }
       )
       .subscribe()

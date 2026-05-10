@@ -352,8 +352,8 @@ Remove items as they are completed.
 - [ ] Test full signup → email confirmation → dashboard redirect flow end-to-end
 
 **Legal**
-- [ ] `/terms` page — Terms of Service (required for Razorpay merchant approval)
-- [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
+- [x] `/terms` page — Terms of Service (required for Razorpay merchant approval) ✅
+- [x] `/privacy` page — Privacy Policy (required under DPDP Act 2023) ✅
 - [ ] Cookie consent banner (if using analytics)
 
 **Infrastructure (one-time setup)**
@@ -692,6 +692,59 @@ Each bug has: severity, file:line, description, and suggested fix.
 
 - ~~Therapist nav showing Notes when unmatched~~ — Audit confirmed the filter logic works correctly per render.
 - ~~Chat intro count behavior~~ — Confirmed correct: counter resets on re-match because it scopes to `match_id + sender_id`.
+
+**Fixed — Security & data (Phases 1–4, audit 2026-05-07)**
+- ~~B-02~~ IDOR `saveSessionNotes` — ownership check added (`match.therapist_id === user.id`) in `app/actions/sessions.ts`
+- ~~B-03~~ IDOR `updateSessionStatus` — ownership check added (therapist OR client of match) in `app/actions/sessions.ts`
+- ~~B-04~~ IDOR `scheduleSession` — ownership check added (`match.client_id === user.id`) in `app/actions/sessions.ts`
+- ~~B-05~~ Cron auth conditional — check made unconditional; returns 401 if `CRON_SECRET` unset in `app/api/cron/session-reminders/route.ts`
+- ~~B-06~~ Forgot-password email enumeration — now always returns same success message; replaced `listUsers` with direct email lookup in `app/actions/auth.ts`
+- ~~B-07~~ Dual Razorpay webhook handlers — deleted `app/api/payment/webhook/route.ts`; removed from middleware allowlist
+- ~~B-08~~ HMAC `===` comparison — replaced with `crypto.timingSafeEqual()` in both verify and webhook routes
+- ~~B-19~~ Admin `createMatch` double-match — pre-insert check added in `app/admin/actions.ts`; DB unique partial index on `matches(client_id) WHERE status='active'` via migration
+- ~~B-52~~ Admin login crawlable — added `robots: { index: false }` metadata to `/admin/login`
+
+**Fixed — Payment & subscription (Phase 5)**
+- ~~B-09~~ Webhook idempotency — `subscription.charged` handler dedupes on `razorpay_payment_id` before applying state changes
+- ~~B-10~~ Verify trusts client-supplied `plan` — removed `plan` from Zod schema; fetches cadence from DB by `razorpay_subscription_id`
+- ~~B-11~~ Subscription creation race — DB unique partial index on `subscriptions(client_id) WHERE status IN ('active','pending')` via migration; code catches 23505
+- ~~B-14~~ Cancel subscription loses access immediately — gate changed to `.in('status', ['active', 'cancelled'])` with `current_period_end` date check in `app/actions/sessions.ts`
+- ~~B-15~~ `subscription_plan` enum mismatch — `schema.sql` updated with all 10 plan values; migration handles deployed envs
+- ~~B-16~~ Therapist payment page hardcoded plan keys — replaced with canonical keys from `lib/plans.ts`
+- ~~B-17~~ `razorpay_plan_id` abused as order-ID — `razorpay_order_id` column added; `create-order` writes to new column
+
+**Fixed — Schema & data (Phase 6)**
+- ~~B-12~~ Questionnaire data never reaches DB — `saveQuestionnaire` server action added in `app/actions/questionnaire.ts`; all three questionnaire pages call it before redirecting
+- ~~B-13~~ Admin pending clients show empty fields — `backfillClientProfile()` maps questionnaire answers to `client_profiles` fields; called at questionnaire save and at signup
+- ~~B-18~~ `profiles.email` missing — column added to `profiles`; `handle_new_user()` trigger updated; `sync_profile_email` trigger keeps it in sync with `auth.users`
+- ~~B-20~~ Cron dedup filter broken — fixed to use `->>` (text) operator instead of literal-quoted `->` JSON path
+- ~~B-21~~ Cron email title wrong — template copy updated to match actual 25-hour window
+- ~~B-22~~ Contact form silent drop — form now POSTs to server action that writes to `contact_messages` table
+
+**Fixed — Pages & infrastructure (Phase 3 + audit)**
+- ~~B-23~~ `/terms` missing — `app/terms/page.tsx` created with 14 legal sections, proper metadata, Navbar + Footer
+- ~~B-25~~ Footer links broken — `/about`, `/contact` hrefs fixed; service links updated to `/questionnaire/{individual,couples,teen}`
+- ~~B-26~~ JSON-LD `medicalSpecialty: "Psychiatry"` — changed to `"CounselingPsychology"` in `app/layout.tsx`
+- ~~B-27~~ Missing static assets — `robots.txt`, `sitemap.xml` added to `/public`; OG image placeholder wired
+- ~~B-28~~ `next.config.ts` empty — `images.remotePatterns` added for Supabase storage domain
+- ~~B-31~~ Missing dashboard error/not-found pages — added `error.tsx` for client and therapist dashboards; `not-found.tsx` for `[matchId]` route
+- ~~B-32~~ `force-dynamic` on static pages — removed from FAQ, reviews, about, contact; ISR revalidate added
+
+**Fixed — Design synchronicity (Phase 7)**
+- ~~B-29~~ Tone violations — "therapy journey" and "on your terms" removed from login/signup pages
+- ~~B-30~~ Demo phone number — phone block removed from `app/contact/page.tsx`
+- ~~B-33~~ Legacy questionnaire non-brand colors — `app/questionnaire/page.tsx` redirects to `/questionnaire/individual`
+- ~~B-34~~ Input border inconsistency — `border-2` → `border` standardized across contact, therapist apply, and questionnaire forms
+- ~~B-35~~ Button radii — already correct (all primary CTAs use `rounded-full`); no change needed
+- ~~B-36~~ Page padding inconsistency — questionnaire pages updated to `px-4 md:px-6`
+- ~~B-37~~ Hex colors hardcoded — brand color tokens added to `globals.css` `@theme inline` block
+- ~~B-38~~ Questionnaire pages missing Navbar/Footer — Footer added to all three questionnaire pages (header already present)
+- ~~B-39~~ Section accent color inconsistency — `text-[#7EC0B7]` → `text-[#3D8A80]` for section labels on white backgrounds
+- ~~B-40~~ Form headings too small — login/signup primary headings bumped from `text-2xl` to `text-3xl`
+
+**Fixed — Code quality (Phase 4 audit)**
+- ~~B-46~~ Notification errors swallowed — `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`
+- ~~B-47~~ `markMessagesRead` not awaited — `await` added inside realtime callback in `components/shared/ChatInterface.tsx`
 
 ---
 

@@ -4,6 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Brand palette tokens — use these instead of arbitrary hex values */
+  --color-brand-navy: #233551;
+  --color-brand-teal: #7EC0B7;
+  --color-brand-teal-dark: #3D8A80;
+  --color-brand-coral: #E8926A;
+  --color-brand-cream: #FFF5F2;
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -182,3 +189,15 @@
 .float-delay-3 { animation-delay: 1.5s; }
 .spin-slow { animation: spin-slow 12s linear infinite; }
 .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+/* Human head tilt — used in HowItWorks Step 02 illustration */
+@keyframes humanTilt {
+  0%, 100% { transform: rotate(0deg); }
+  28%       { transform: rotate(-4deg); }
+  72%       { transform: rotate(3deg); }
+}
+.human-head {
+  transform-box: fill-box;
+  transform-origin: 50% 70%;
+  animation: humanTilt 9s ease-in-out infinite;
+}

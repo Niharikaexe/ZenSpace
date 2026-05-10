@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 
-export const dynamic = 'force-dynamic'
-
 const FAQS = [
   {
     q: 'How long does it take to get matched with a therapist?',

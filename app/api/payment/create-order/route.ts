@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     status: 'pending',
     amount: planData.amount,
     currency: 'INR',
-    razorpay_plan_id: order.id,
+    razorpay_order_id: order.id,
   })
 
   if (dbErr) {

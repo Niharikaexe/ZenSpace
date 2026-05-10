@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DashboardNav } from '@/components/dashboard/DashboardNav'
 
-export const dynamic = 'force-dynamic'
-
 const REVIEWS = [
   {
     name: 'Priya M.',

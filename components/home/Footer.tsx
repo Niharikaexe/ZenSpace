@@ -42,14 +42,16 @@ const Footer = () => {
             {/* Social icons */}
             <div className="flex items-center gap-4 pt-1">
               {[
-                { icon: LinkedIn, label: "LinkedIn" },
-                { icon: Twitter, label: "Twitter" },
-                { icon: YouTube, label: "YouTube" },
-              ].map(({ icon: Icon, label }) => (
+                { icon: LinkedIn, label: "LinkedIn", href: "https://linkedin.com/company/zenspace-in" },
+                { icon: Twitter, label: "Twitter", href: "#" },
+                { icon: YouTube, label: "YouTube", href: "#" },
+              ].map(({ icon: Icon, label, href }) => (
                 <Link
                   key={label}
-                  href="#"
+                  href={href}
                   aria-label={label}
+                  target={href !== "#" ? "_blank" : undefined}
+                  rel={href !== "#" ? "noopener noreferrer" : undefined}
                   className="w-9 h-9 rounded-full bg-white/8 hover:bg-[#7EC0B7]/30 text-white/50 hover:text-white flex items-center justify-center transition-all duration-200"
                 >
                   <Icon />
@@ -65,9 +67,9 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { label: "Individual Therapy", href: "/questionnaire?type=individual" },
-                { label: "Couples Therapy", href: "/questionnaire?type=couples" },
-                { label: "Teen Therapy", href: "/questionnaire?type=teen" },
+                { label: "Individual Therapy", href: "/questionnaire/individual" },
+                { label: "Couples Therapy", href: "/questionnaire/couples" },
+                { label: "Teen Therapy", href: "/questionnaire/teen" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
@@ -104,8 +106,8 @@ const Footer = () => {
               {[
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
-                { label: "About Us", href: "#" },
-                { label: "Contact", href: "#" },
+                { label: "About Us", href: "/about" },
+                { label: "Contact", href: "/contact" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>

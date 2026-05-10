@@ -9,11 +9,12 @@ import { createNotification } from '@/lib/notifications'
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret) {
-    const auth = request.headers.get('authorization')
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 })
+  }
+  const auth = request.headers.get('authorization')
+  if (auth !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const admin = createAdminClient()
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
       .from('notifications')
       .select('id')
       .eq('type', 'session_reminder')
-      .filter('metadata->sessionId', 'eq', `"${s.id}"`)
+      .eq('metadata->>sessionId', s.id)
       .limit(1)
 
     if (existing?.length) continue

@@ -113,11 +113,11 @@ function tplSessionScheduled(name: string, dateStr: string, sessionType: string)
 
 function tplSessionReminder(name: string, dateStr: string, sessionType: string) {
   return base(`
-    ${tag('Session in 1 Hour', '#E8926A')}
+    ${tag('Session Reminder', '#E8926A')}
     <br/><br/>
-    ${h1(`Reminder: session in ~1 hour.`)}
-    ${p(`Your <strong>${sessionType}</strong> session is at <strong>${dateStr}</strong>. Make sure you&rsquo;re in a quiet, private space.`)}
-    ${btn('Join Session →', `${SITE}/therapist/dashboard/video`)}
+    ${h1(`You have an upcoming session.`)}
+    ${p(`Your <strong>${sessionType}</strong> session is on <strong>${dateStr}</strong>. Make sure you&rsquo;re in a quiet, private space before it starts.`)}
+    ${btn('View Sessions →', `${SITE}/therapist/dashboard/video`)}
   `)
 }
 

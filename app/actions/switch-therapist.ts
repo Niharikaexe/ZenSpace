@@ -100,7 +100,7 @@ export async function requestTherapistSwitch(
           matchId: match.id,
           reason: reason ?? '',
         },
-      }).catch(() => {})
+      }).catch((err) => logger.error('switch-therapist', 'Failed to send switch notification', err))
     }
   }
 
