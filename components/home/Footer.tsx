@@ -67,9 +67,9 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { label: "Individual Therapy", href: "/questionnaire/individual" },
-                { label: "Couples Therapy", href: "/questionnaire/couples" },
-                { label: "Teen Therapy", href: "/questionnaire/teen" },
+                { label: "Individual Therapy", href: "/for/individuals" },
+                { label: "Couples Therapy", href: "/for/couples" },
+                { label: "Teen Therapy", href: "/for/adolescents" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
