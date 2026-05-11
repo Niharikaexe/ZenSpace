@@ -160,13 +160,13 @@ export default async function TherapistPaymentPage() {
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
             <a
-              href="mailto:hello@zenspace.in?subject=Payout request&body=Hi, I'd like to request my payout for this month."
+              href="mailto:hello@mindcanopy.in?subject=Payout request&body=Hi, I'd like to request my payout for this month."
               className="px-6 py-3 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors inline-block"
             >
               Request payout →
             </a>
             <p className="text-xs text-white/35 text-center sm:text-right max-w-[220px]">
-              Email hello@zenspace.in — we'll process within 5 business days.
+              Email hello@mindcanopy.in — we'll process within 5 business days.
             </p>
           </div>
         </div>

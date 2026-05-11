@@ -15,7 +15,7 @@ const REVIEWS = [
     name: 'Arjun & Sneha',
     location: 'Bangalore',
     rating: 5,
-    text: 'We\'d tried couples therapy before and it felt too clinical. ZenSpace was different — our therapist actually understood the specific pressures of an Indian family setup without us having to over-explain everything.',
+    text: 'We\'d tried couples therapy before and it felt too clinical. MindCanopy was different — our therapist actually understood the specific pressures of an Indian family setup without us having to over-explain everything.',
     type: 'Couples',
   },
   {
@@ -69,7 +69,7 @@ export default async function ReviewsPage() {
         <h1 className="text-2xl font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
           What people are saying
         </h1>
-        <p className="text-sm text-[#233551]/50 mb-8">Real experiences from ZenSpace clients.</p>
+        <p className="text-sm text-[#233551]/50 mb-8">Real experiences from MindCanopy clients.</p>
 
         <div className="space-y-4">
           {REVIEWS.map((r, i) => (

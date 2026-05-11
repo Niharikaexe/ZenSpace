@@ -2,14 +2,14 @@ import Navbar from '@/components/home/Navbar'
 import Footer from '@/components/home/Footer'
 
 export const metadata = {
-  title: 'Privacy Policy — ZenSpace',
-  description: 'How ZenSpace collects, uses, and protects your personal and health data.',
+  title: 'Privacy Policy — MindCanopy',
+  description: 'How MindCanopy collects, uses, and protects your personal and health data.',
 }
 
 const sections = [
   {
     title: '1. Introduction',
-    body: `[PLACEHOLDER — Legal team to draft.] ZenSpace ("we", "us", "our") is committed to protecting the privacy and confidentiality of your personal information. This Privacy Policy explains how we collect, use, store, and share data when you use our platform.`,
+    body: `[PLACEHOLDER — Legal team to draft.] MindCanopy ("we", "us", "our") is committed to protecting the privacy and confidentiality of your personal information. This Privacy Policy explains how we collect, use, store, and share data when you use our platform.`,
   },
   {
     title: '2. Data We Collect',
@@ -21,7 +21,7 @@ const sections = [
   },
   {
     title: '4. Sensitive Health Information',
-    body: `[PLACEHOLDER — Legal team to draft.] Information you share in questionnaires and therapy sessions is treated as sensitive health data. We apply additional safeguards to this category of data and do not use it for advertising purposes. Access is restricted to your therapist and authorised ZenSpace personnel.`,
+    body: `[PLACEHOLDER — Legal team to draft.] Information you share in questionnaires and therapy sessions is treated as sensitive health data. We apply additional safeguards to this category of data and do not use it for advertising purposes. Access is restricted to your therapist and authorised MindCanopy personnel.`,
   },
   {
     title: '5. Data Sharing',
@@ -45,7 +45,7 @@ const sections = [
   },
   {
     title: '10. Children\'s Privacy',
-    body: `[PLACEHOLDER — Legal team to draft.] ZenSpace offers a teen therapy service for users aged 13–17. For users under 18, parental or guardian consent is required. We take additional care with data belonging to minors and do not share it beyond what is necessary to provide the service.`,
+    body: `[PLACEHOLDER — Legal team to draft.] MindCanopy offers a teen therapy service for users aged 13–17. For users under 18, parental or guardian consent is required. We take additional care with data belonging to minors and do not share it beyond what is necessary to provide the service.`,
   },
   {
     title: '11. International Data Transfers',
@@ -57,7 +57,7 @@ const sections = [
   },
   {
     title: '13. Contact Us',
-    body: `If you have questions about this Privacy Policy or how we handle your data, please contact us at hello@zenspace.in. For data-related requests, please include "Privacy Request" in the subject line.`,
+    body: `If you have questions about this Privacy Policy or how we handle your data, please contact us at hello@mindcanopy.in. For data-related requests, please include "Privacy Request" in the subject line.`,
   },
 ]
 

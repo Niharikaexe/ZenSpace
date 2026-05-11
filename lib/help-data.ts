@@ -111,7 +111,7 @@ We'll be straight with you: therapy is not everything. It's also not nothing. He
 
 ## What therapy cannot do
 
-**Prescribe medication.** ZenSpace is a talk therapy platform. We do not prescribe medication and we never will. If you think medication might be relevant for you, we'll say so and help you find the right person.
+**Prescribe medication.** MindCanopy is a talk therapy platform. We do not prescribe medication and we never will. If you think medication might be relevant for you, we'll say so and help you find the right person.
 
 **Fix your circumstances.** A difficult job, a difficult relationship, real financial stress — therapy can help you navigate these, but it can't change them directly. That work is still yours to do.
 
@@ -219,7 +219,7 @@ Yes. Here's exactly how, and who can see what.
 
 ## What we store and how
 
-All data on ZenSpace is encrypted — in transit and at rest. Your sessions, your messages, your intake information, your payment details.
+All data on MindCanopy is encrypted — in transit and at rest. Your sessions, your messages, your intake information, your payment details.
 
 We don't sell your data. We don't share it with your employer, your insurance company, or any third party for advertising.
 
@@ -243,7 +243,7 @@ This is a narrow exception. It doesn't mean your therapist will report your anxi
 
 ## India-specific note
 
-ZenSpace is not a HIPAA jurisdiction — that's US legislation. Our data practices follow applicable Indian data protection law and the professional standards of the therapists working on our platform.
+MindCanopy is not a HIPAA jurisdiction — that's US legislation. Our data practices follow applicable Indian data protection law and the professional standards of the therapists working on our platform.
 
 If you have specific questions about your data, contact us directly.
     `,
@@ -315,7 +315,7 @@ They help you understand your thoughts, feelings, and patterns of behaviour. The
 
 In India, therapists typically hold a Master's or doctoral degree in psychology or a related field. Training and credential requirements vary.
 
-ZenSpace connects you with therapists in this category.
+MindCanopy connects you with therapists in this category.
 
 ## Psychiatrist
 
@@ -333,7 +333,7 @@ If you're experiencing symptoms that significantly impair your daily functioning
 
 If you're not sure, start with a therapist. They'll tell you honestly if they think a psychiatric evaluation would be useful.
 
-## A note on ZenSpace
+## A note on MindCanopy
 
 We're a therapy platform. Our therapists are not psychiatrists and do not prescribe medication. We'll tell you clearly if we think a psychiatric consultation is relevant for you.
     `,

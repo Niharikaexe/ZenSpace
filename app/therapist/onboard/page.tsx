@@ -32,7 +32,7 @@ function StepInviteCode({ value, onChange }: { value: string; onChange: (v: stri
           </svg>
         </div>
         <h2 className="text-xl font-semibold text-slate-900">Enter your invite code</h2>
-        <p className="text-sm text-slate-500 mt-1">Your invite code was shared by the ZenSpace admin.</p>
+        <p className="text-sm text-slate-500 mt-1">Your invite code was shared by the MindCanopy admin.</p>
       </div>
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">Invite Code</label>
@@ -59,7 +59,7 @@ function StepAccount({
     <div className="space-y-5">
       <div className="text-center mb-2">
         <h2 className="text-xl font-semibold text-slate-900">Create your account</h2>
-        <p className="text-sm text-slate-500 mt-1">This is how you'll sign in to ZenSpace.</p>
+        <p className="text-sm text-slate-500 mt-1">This is how you'll sign in to MindCanopy.</p>
       </div>
       <Field label="Full name" required>
         <input
@@ -338,7 +338,7 @@ export default function TherapistOnboardPage() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center mx-auto mb-3 shadow-md">
             <span className="text-white font-bold text-base">Z</span>
           </div>
-          <h1 className="text-lg font-semibold text-slate-800">ZenSpace</h1>
+          <h1 className="text-lg font-semibold text-slate-800">MindCanopy</h1>
           <p className="text-sm text-slate-500">Therapist Onboarding</p>
         </div>
 

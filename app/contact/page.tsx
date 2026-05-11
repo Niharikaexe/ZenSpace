@@ -49,10 +49,10 @@ export default function ContactPage() {
                     <div>
                       <p className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-1">Email</p>
                       <a
-                        href="mailto:hello@zenspace.in"
+                        href="mailto:hello@mindcanopy.in"
                         className="text-sm font-semibold text-[#233551] hover:text-[#3D8A80] transition-colors"
                       >
-                        hello@zenspace.in
+                        hello@mindcanopy.in
                       </a>
                       <p className="text-xs text-[#233551]/40 mt-0.5">For general enquiries and support</p>
                     </div>
@@ -75,7 +75,7 @@ export default function ContactPage() {
                   <p className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-3">Follow us</p>
                   <div className="flex items-center gap-3">
                     <a
-                      href="https://instagram.com/zenspace.in"
+                      href="https://instagram.com/mindcanopy.in"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-[#233551]/5 hover:bg-[#7EC0B7]/15 flex items-center justify-center transition-colors"
@@ -83,7 +83,7 @@ export default function ContactPage() {
                       <Instagram size={18} className="text-[#233551]/60 hover:text-[#3D8A80]" />
                     </a>
                     <a
-                      href="https://linkedin.com/company/zenspace-in"
+                      href="https://linkedin.com/company/mindcanopy-in"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-[#233551]/5 hover:bg-[#7EC0B7]/15 flex items-center justify-center transition-colors"
@@ -99,7 +99,7 @@ export default function ContactPage() {
                     Are you a therapist?
                   </p>
                   <p className="text-xs text-[#233551]/55 mb-3 leading-relaxed">
-                    If you're interested in joining ZenSpace as a therapist, use the application link — it goes to a different queue and gets reviewed faster.
+                    If you're interested in joining MindCanopy as a therapist, use the application link — it goes to a different queue and gets reviewed faster.
                   </p>
                   <Link
                     href="/therapist/apply"

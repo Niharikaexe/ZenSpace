@@ -84,7 +84,7 @@ export async function toggleTherapistVerification(therapistProfileId: string, cu
         userId: tProfile.user_id,
         type: 'profile_verified',
         title: 'Profile verified',
-        body: 'Your ZenSpace profile has been verified. You are now eligible to receive client matches.',
+        body: 'Your MindCanopy profile has been verified. You are now eligible to receive client matches.',
         metadata: {},
       }).catch(() => {})
     }
@@ -164,7 +164,7 @@ export async function approveApplication(applicationId: string, adminNotes: stri
   if (updateErr) throw new Error(updateErr.message)
 
   // Send invite email (fire-and-forget)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zenspace.in'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
   const inviteUrl = `${siteUrl}/therapist/onboard?code=${code}`
   sendApplicationInviteEmail({
     to: application.email,

@@ -162,7 +162,7 @@ export default function SubscribeCheckout({ userName, userEmail, activeSubscript
       const rzp = new (window as any).Razorpay({
         key,
         subscription_id,
-        name: 'ZenSpace',
+        name: 'MindCanopy',
         description: `${selectedPlan.name} — ${selectedPlan.price}/${selectedPlan.per}`,
         theme: { color: '#233551' },
         prefill: { name: userName, email: userEmail },
@@ -217,7 +217,7 @@ export default function SubscribeCheckout({ userName, userEmail, activeSubscript
       <div className="bg-white border-b border-slate-100 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center gap-3">
           <Link href="/dashboard">
-            <span className="font-black text-xl tracking-tight text-[#233551]">ZenSpace</span>
+            <span className="font-black text-xl tracking-tight text-[#233551]">MindCanopy</span>
           </Link>
           <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-slate-300">
             <path d="M6 12l4-4-4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

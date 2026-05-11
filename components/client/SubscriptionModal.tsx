@@ -54,7 +54,7 @@ export default function SubscriptionModal({ onClose, trigger = 'chat', therapyTy
 
   const subtext =
     trigger === 'session'
-      ? 'Sessions are included in all ZenSpace plans. Pick one that works for you.'
+      ? 'Sessions are included in all MindCanopy plans. Pick one that works for you.'
       : 'Text your therapist anytime — between sessions, after a hard day, whenever.'
 
   return (
@@ -75,7 +75,7 @@ export default function SubscriptionModal({ onClose, trigger = 'chat', therapyTy
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">ZenSpace Plans</p>
+          <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">MindCanopy Plans</p>
           <h2 className="text-white text-xl font-black leading-snug">{heading}</h2>
           <p className="text-white/60 text-sm mt-1.5 leading-relaxed">{subtext}</p>
         </div>

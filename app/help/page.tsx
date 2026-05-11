@@ -5,16 +5,16 @@ import Footer from "@/components/home/Footer"
 import { helpTopics } from "@/lib/help-data"
 
 export const metadata: Metadata = {
-  title: "Help Centre — How ZenSpace Works",
+  title: "Help Centre — How MindCanopy Works",
   description:
     "Answers to the questions most people have before they start. How matching works, what happens in the first session, your privacy, switching therapists, and more.",
   openGraph: {
-    title: "ZenSpace Help Centre",
+    title: "MindCanopy Help Centre",
     description:
       "How matching works, what happens in the first session, your privacy, switching therapists, and more.",
   },
   alternates: {
-    canonical: "https://zenspace.in/help",
+    canonical: "https://mindcanopy.in/help",
   },
 }
 
@@ -77,10 +77,10 @@ export default function HelpPage() {
             Write to us. We respond — usually within a few hours.
           </p>
           <a
-            href="mailto:hello@zenspace.in"
+            href="mailto:hello@mindcanopy.in"
             className="inline-block bg-[#233551] text-white text-sm font-bold px-8 py-3.5 rounded-full hover:bg-[#2d4568] transition-colors"
           >
-            hello@zenspace.in
+            hello@mindcanopy.in
           </a>
         </div>
       </main>

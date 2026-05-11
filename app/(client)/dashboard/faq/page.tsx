@@ -21,8 +21,8 @@ const FAQS = [
     a: 'Completely. Your data is encrypted, your therapist has no connection to your social or professional network, and we never share your information with third parties.',
   },
   {
-    q: 'Does ZenSpace prescribe medication?',
-    a: 'No. ZenSpace is a talk therapy and counselling platform only. We do not provide diagnoses or prescriptions.',
+    q: 'Does MindCanopy prescribe medication?',
+    a: 'No. MindCanopy is a talk therapy and counselling platform only. We do not provide diagnoses or prescriptions.',
   },
   {
     q: 'Can my parents see my answers (for teen users)?',

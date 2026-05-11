@@ -1,5 +1,5 @@
 -- ============================================================
--- ZenSpace Database Schema
+-- MindCanopy Database Schema
 -- ============================================================
 
 -- Enable UUID extension
@@ -416,7 +416,7 @@ CREATE TABLE therapist_applications (
   specializations  TEXT[] NOT NULL DEFAULT '{}',
   languages        TEXT[] NOT NULL DEFAULT '{}',
   bio              TEXT NOT NULL,
-  why_zenspace     TEXT,
+  why_mindcanopy     TEXT,
   status           TEXT NOT NULL DEFAULT 'pending'
                    CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
   admin_notes      TEXT,

@@ -159,7 +159,7 @@ export default async function AdminPage() {
     specializations: a.specializations ?? [],
     languages: a.languages ?? [],
     bio: a.bio,
-    why_zenspace: a.why_zenspace ?? null,
+    why_mindcanopy: a.why_mindcanopy ?? null,
     status: a.status,
     submitted_at: a.submitted_at,
   }))

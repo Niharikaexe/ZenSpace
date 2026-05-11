@@ -1,5 +1,5 @@
 /**
- * Structured server-side logger for ZenSpace.
+ * Structured server-side logger for MindCanopy.
  * All logs include: timestamp, level, context, optional userId, message, data/error.
  * Use this instead of raw console.log/error throughout server code.
  */

@@ -36,7 +36,7 @@ export function DashboardNav({ userName, isMatched }: Props) {
             className="font-black text-xl tracking-tight text-[#233551]"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            ZenSpace
+            MindCanopy
           </span>
         </Link>
 

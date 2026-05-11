@@ -56,7 +56,7 @@ export async function submitTherapistOnboarding(
       .maybeSingle()
 
     if (inviteError || !data) {
-      return { error: 'Invalid or already used invite code. Please contact the ZenSpace admin.' }
+      return { error: 'Invalid or already used invite code. Please contact the MindCanopy admin.' }
     }
     invite = data
   }

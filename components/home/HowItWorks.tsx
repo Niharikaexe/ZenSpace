@@ -128,7 +128,7 @@ const Step03Illustration = () => (
     <rect x="181" y="24"  width="86" height="162" rx="8"  fill="white"/>
     <rect x="206" y="17"  width="36" height="8"   rx="4"  fill="#1a2840"/>
     <rect x="181" y="24"  width="86" height="22"  rx="8"  fill="#FFF5F2"/>
-    <text x="188" y="38" fontSize="8" fill="#233551" fontFamily="Lato,sans-serif" fontWeight="900">ZenSpace</text>
+    <text x="188" y="38" fontSize="8" fill="#233551" fontFamily="Lato,sans-serif" fontWeight="900">MindCanopy</text>
     <rect x="186" y="52" width="76" height="52" rx="8" fill="#7EC0B7"/>
     <TinyHuman cx={210} cy={68} r={14} bg="#233551" accent="#96CECA" skin="#D9A878" hair="#1C0E08"/>
     <rect x="225" y="58" width="30" height="5"  rx="2.5" fill="white" opacity="0.9"/>

@@ -48,7 +48,7 @@ export default function LoginPage() {
               className="font-black text-2xl tracking-tight text-white"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              ZenSpace
+              MindCanopy
             </span>
           </Link>
           <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
@@ -98,7 +98,7 @@ export default function LoginPage() {
                 className="font-black text-2xl tracking-tight text-[#233551]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                ZenSpace
+                MindCanopy
               </span>
             </Link>
             <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>

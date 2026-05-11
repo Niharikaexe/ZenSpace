@@ -18,7 +18,7 @@ export default function TherapistLoginPage() {
             <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
           </div>
           <span className="font-black text-base text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-            ZenSpace
+            MindCanopy
           </span>
         </Link>
         <Link href="/" className="text-sm text-[#233551]/50 hover:text-[#233551] transition-colors">

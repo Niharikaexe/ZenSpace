@@ -23,10 +23,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: post.excerpt,
       type: "article",
       publishedTime: post.publishedAt,
-      authors: ["ZenSpace"],
+      authors: ["MindCanopy"],
     },
     alternates: {
-      canonical: `https://zenspace.in/blog/${post.slug}`,
+      canonical: `https://mindcanopy.in/blog/${post.slug}`,
     },
   }
 }
@@ -98,8 +98,8 @@ export default async function BlogPostPage({ params }: Props) {
     headline: post.title,
     description: post.excerpt,
     datePublished: post.publishedAt,
-    author: { "@type": "Organization", name: "ZenSpace" },
-    publisher: { "@type": "Organization", name: "ZenSpace" },
+    author: { "@type": "Organization", name: "MindCanopy" },
+    publisher: { "@type": "Organization", name: "MindCanopy" },
   }
 
   return (
@@ -136,7 +136,7 @@ export default async function BlogPostPage({ params }: Props) {
           </h1>
           <p className="mt-4 text-lg text-[#233551]/55 leading-relaxed">{post.excerpt}</p>
           <div className="mt-6 flex items-center gap-4 text-sm text-[#233551]/35 border-t border-slate-100 pt-6">
-            <span>ZenSpace</span>
+            <span>MindCanopy</span>
             <span>·</span>
             <span>{post.readTime}</span>
             <span>·</span>

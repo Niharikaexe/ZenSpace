@@ -784,7 +784,7 @@ const ruralDesert: DeepDiveReport = {
     },
   ],
   implications:
-    "Rural India's mental health gap will not be closed by the private sector. It requires public investment in community health worker training, primary care integration, and telemedicine infrastructure — backed by policy commitment that treats mental health as a priority rather than a specialty. Online platforms like ZenSpace are relevant for the rural population that has smartphone access and disposable income — a growing but still minority group. The majority of rural India needs a different solution, and the evidence for that solution already exists.",
+    "Rural India's mental health gap will not be closed by the private sector. It requires public investment in community health worker training, primary care integration, and telemedicine infrastructure — backed by policy commitment that treats mental health as a priority rather than a specialty. Online platforms like MindCanopy are relevant for the rural population that has smartphone access and disposable income — a growing but still minority group. The majority of rural India needs a different solution, and the evidence for that solution already exists.",
   sources: [
     {
       title: "National Mental Health Survey of India 2015–16",

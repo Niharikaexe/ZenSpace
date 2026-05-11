@@ -40,13 +40,13 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('zenspace_questionnaire')
+    const stored = sessionStorage.getItem('mindcanopy_questionnaire')
     if (stored) setQuestionnaireData(stored)
   }, [])
 
   useEffect(() => {
     if (state.success) {
-      sessionStorage.removeItem('zenspace_questionnaire')
+      sessionStorage.removeItem('mindcanopy_questionnaire')
     }
   }, [state.success])
 
@@ -61,7 +61,7 @@ export default function SignupPage() {
               className="font-black text-2xl tracking-tight text-white"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              ZenSpace
+              MindCanopy
             </span>
           </Link>
           <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
@@ -114,7 +114,7 @@ export default function SignupPage() {
                 className="font-black text-2xl tracking-tight text-[#233551]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                ZenSpace
+                MindCanopy
               </span>
             </Link>
             <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>

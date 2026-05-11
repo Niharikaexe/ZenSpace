@@ -385,7 +385,7 @@ export default async function TherapistDashboard() {
                 No clients yet
               </h2>
               <p className="text-sm text-[#233551]/45 mt-2 max-w-sm mx-auto leading-relaxed">
-                The ZenSpace admin matches clients to you based on fit.
+                The MindCanopy admin matches clients to you based on fit.
                 You&apos;ll be notified as soon as someone is assigned.
               </p>
               <div className="mt-6 inline-flex items-center gap-2 text-xs font-medium text-[#3D8A80] bg-[#7EC0B7]/10 px-4 py-2 rounded-full">

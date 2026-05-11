@@ -147,7 +147,7 @@ export default function CouplesQuestionnairePage() {
         if (result.error) { setSaveError(result.error); return }
         router.push('/dashboard')
       } else {
-        sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
+        sessionStorage.setItem('mindcanopy_questionnaire', JSON.stringify(data))
         router.push('/signup')
       }
     }
@@ -180,7 +180,7 @@ export default function CouplesQuestionnairePage() {
         <div className="w-full max-w-lg">
           <div className="text-center mb-8">
             <Link href="/">
-              <span className="font-black text-2xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>ZenSpace</span>
+              <span className="font-black text-2xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>MindCanopy</span>
             </Link>
             <p className="text-sm text-[#3D8A80] mt-1">Couples therapy assessment</p>
           </div>
@@ -253,7 +253,7 @@ export default function CouplesQuestionnairePage() {
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
           <Link href="/" className="font-black text-lg text-[#233551] flex-shrink-0" style={{ fontFamily: 'var(--font-lato)' }}>
-            ZenSpace
+            MindCanopy
           </Link>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div

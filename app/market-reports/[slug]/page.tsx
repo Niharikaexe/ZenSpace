@@ -19,13 +19,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${report.title} — ${report.subtitle}`,
     description: report.intro.slice(0, 160),
     openGraph: {
-      title: `${report.title} | ZenSpace Market Reports`,
+      title: `${report.title} | MindCanopy Market Reports`,
       description: report.intro.slice(0, 160),
       type: "article",
       publishedTime: report.publishedAt,
     },
     alternates: {
-      canonical: `https://zenspace.in/market-reports/${report.slug}`,
+      canonical: `https://mindcanopy.in/market-reports/${report.slug}`,
     },
   }
 }
@@ -56,8 +56,8 @@ export default async function ReportPage({ params }: Props) {
     name: report.title,
     description: report.intro.slice(0, 160),
     datePublished: report.publishedAt,
-    author: { "@type": "Organization", name: "ZenSpace" },
-    publisher: { "@type": "Organization", name: "ZenSpace" },
+    author: { "@type": "Organization", name: "MindCanopy" },
+    publisher: { "@type": "Organization", name: "MindCanopy" },
     about: { "@type": "Thing", name: "Mental Health in India" },
   }
 

@@ -2,8 +2,8 @@
 // Set RESEND_API_KEY in .env.local to enable emails.
 // Without it, emails are silently skipped (non-fatal).
 
-const FROM = 'ZenSpace <notifications@zenspace.in>'
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zenspace.in'
+const FROM = 'MindCanopy <notifications@mindcanopy.in>'
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
 // ── Template helpers ─────────────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ function base(content: string) {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ZenSpace</title>
+<title>MindCanopy</title>
 </head>
 <body style="margin:0;padding:0;background:#FAFAFA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:40px 16px;">
@@ -22,7 +22,7 @@ function base(content: string) {
         <!-- Header -->
         <tr>
           <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">ZenSpace</span>
+            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
           </td>
         </tr>
         <!-- Body -->
@@ -31,8 +31,8 @@ function base(content: string) {
         <tr>
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
-              You&rsquo;re receiving this because you&rsquo;re a verified therapist on ZenSpace.
-              <br/>Questions? Email us at <a href="mailto:hello@zenspace.in" style="color:#3D8A80;">hello@zenspace.in</a>
+              You&rsquo;re receiving this because you&rsquo;re a verified therapist on MindCanopy.
+              <br/>Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
             </p>
           </td>
         </tr>
@@ -66,7 +66,7 @@ function tplClientMatched(name: string, clientName: string) {
     ${tag('New Client')}
     <br/><br/>
     ${h1(`Hi ${name}, you have a new client.`)}
-    ${p(`<strong>${clientName}</strong> has been matched with you by the ZenSpace admin. Head to your dashboard to review their profile and reach out.`)}
+    ${p(`<strong>${clientName}</strong> has been matched with you by the MindCanopy admin. Head to your dashboard to review their profile and reach out.`)}
     ${btn('View Dashboard →', `${SITE}/therapist/dashboard`)}
   `)
 }
@@ -76,7 +76,7 @@ function tplClientUnmatched(name: string, clientName: string) {
     ${tag('Match Ended', '#E8926A')}
     <br/><br/>
     ${h1(`Your match with ${clientName} has ended.`)}
-    ${p('The ZenSpace admin has ended this match. If you have questions, please contact support.')}
+    ${p('The MindCanopy admin has ended this match. If you have questions, please contact support.')}
     ${btn('Go to Dashboard →', `${SITE}/therapist/dashboard`)}
   `)
 }
@@ -96,7 +96,7 @@ function tplProfileVerified(name: string) {
     ${tag('Account Verified', '#3D8A80')}
     <br/><br/>
     ${h1(`Your profile has been verified, ${name}.`)}
-    ${p('You&rsquo;re now eligible to receive client matches on ZenSpace. Keep your profile up to date so clients can find the best fit.')}
+    ${p('You&rsquo;re now eligible to receive client matches on MindCanopy. Keep your profile up to date so clients can find the best fit.')}
     ${btn('View Profile →', `${SITE}/therapist/dashboard/account`)}
   `)
 }
@@ -131,7 +131,7 @@ function tplSwitchRequest(adminName: string, clientName: string, reason: string)
     ${tag('Switch Request', '#E8926A')}
     <br/><br/>
     ${h1(`${clientName} wants a new therapist.`)}
-    ${p(`A client on ZenSpace has requested a different therapist match.`)}
+    ${p(`A client on MindCanopy has requested a different therapist match.`)}
     ${reasonBlock}
     ${p(`Log in to the admin panel, end their current match, and re-queue them for matching.`)}
     ${btn('Open Admin Panel →', `${SITE}/admin`)}
@@ -151,7 +151,7 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ZenSpace</title>
+<title>MindCanopy</title>
 </head>
 <body style="margin:0;padding:0;background:#FAFAFA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:40px 16px;">
@@ -159,13 +159,13 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
         <tr>
           <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">ZenSpace</span>
+            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
           </td>
         </tr>
         <tr><td style="padding:32px;">
           <span style="display:inline-block;padding:4px 12px;border-radius:100px;background:#7EC0B722;color:#7EC0B7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Application Approved</span>
           <br/><br/>
-          <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;">Welcome to ZenSpace, ${name}.</h1>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;">Welcome to MindCanopy, ${name}.</h1>
           <p style="margin:8px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your application has been reviewed and approved. Use the link below to complete your onboarding and set up your therapist profile.</p>
           ${notesBlock}
           <a href="${inviteUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Complete Onboarding →</a>
@@ -174,7 +174,7 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
         <tr>
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
-              Questions? Email us at <a href="mailto:hello@zenspace.in" style="color:#3D8A80;">hello@zenspace.in</a>
+              Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
             </p>
           </td>
         </tr>
@@ -207,7 +207,7 @@ export async function sendApplicationInviteEmail({
       body: JSON.stringify({
         from: FROM,
         to,
-        subject: 'Your ZenSpace therapist application has been approved',
+        subject: 'Your MindCanopy therapist application has been approved',
         html: tplApplicationApproved(name, inviteUrl, adminNotes),
       }),
     })
@@ -237,7 +237,7 @@ interface EmailParams {
 export async function sendNotificationEmail({ to, name, type, meta = {} }: EmailParams): Promise<void> {
   if (!process.env.RESEND_API_KEY) return // silently skip if not configured
 
-  let subject = 'Notification from ZenSpace'
+  let subject = 'Notification from MindCanopy'
   let html = ''
 
   switch (type) {
@@ -254,7 +254,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       html = tplClientMessage(name, meta.clientName ?? 'Your client')
       break
     case 'profile_verified':
-      subject = 'Your ZenSpace profile has been verified'
+      subject = 'Your MindCanopy profile has been verified'
       html = tplProfileVerified(name)
       break
     case 'session_scheduled':

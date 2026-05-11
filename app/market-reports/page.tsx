@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   description:
     "Six research reports on mental health in India: the treatment gap, suicide, workplace burnout, disclosure barriers, urban access, and rural exclusion. Aggregated from WHO, NIMHANS, Lancet, and Deloitte.",
   openGraph: {
-    title: "ZenSpace Market Reports — India Mental Health Index",
+    title: "MindCanopy Market Reports — India Mental Health Index",
     description:
       "Six research reports on mental health in India. Treatment gap, workplace burnout, regional access.",
   },
   alternates: {
-    canonical: "https://zenspace.in/market-reports",
+    canonical: "https://mindcanopy.in/market-reports",
   },
 }
 

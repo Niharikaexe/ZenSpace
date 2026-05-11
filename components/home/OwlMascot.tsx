@@ -3,7 +3,7 @@
 import React from "react";
 
 /**
- * ZenSpace Owl Mascot
+ * MindCanopy Owl Mascot
  *
  * Drop-in React component. Renders a 280×310 SVG owl with:
  *  - Slow blink every ~5s

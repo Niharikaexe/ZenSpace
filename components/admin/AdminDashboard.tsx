@@ -72,7 +72,7 @@ export type TherapistApplication = {
   specializations: string[]
   languages: string[]
   bio: string
-  why_zenspace: string | null
+  why_mindcanopy: string | null
   status: string
   submitted_at: string
 }
@@ -207,7 +207,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
               <span className="text-white text-sm font-bold">Z</span>
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">ZenSpace Admin</p>
+              <p className="text-sm font-semibold text-slate-900">MindCanopy Admin</p>
               <p className="text-xs text-slate-400">Welcome back, {adminName.split(' ')[0]}</p>
             </div>
           </div>
@@ -330,10 +330,10 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                             <p className="text-xs text-slate-400">Bio</p>
                             <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.bio}</p>
                           </div>
-                          {app.why_zenspace && (
+                          {app.why_mindcanopy && (
                             <div className="col-span-2 md:col-span-3">
-                              <p className="text-xs text-slate-400">Why ZenSpace</p>
-                              <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.why_zenspace}</p>
+                              <p className="text-xs text-slate-400">Why MindCanopy</p>
+                              <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.why_mindcanopy}</p>
                             </div>
                           )}
                         </div>

@@ -42,7 +42,7 @@ export async function sendContactEmail(
       <hr style="border: none; border-top: 1px solid #e8ecef; margin: 16px 0;" />
       <p style="white-space: pre-wrap; color: #4a5568;">${message}</p>
       <hr style="border: none; border-top: 1px solid #e8ecef; margin: 16px 0;" />
-      <p style="font-size: 12px; color: #9aa3ad;">Sent via the ZenSpace contact form.</p>
+      <p style="font-size: 12px; color: #9aa3ad;">Sent via the MindCanopy contact form.</p>
     </div>
   `
 
@@ -54,7 +54,7 @@ export async function sendContactEmail(
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'ZenSpace Contact <notifications@zenspace.in>',
+        from: 'MindCanopy Contact <notifications@mindcanopy.in>',
         to: 'nikki1339999@gmail.com',
         reply_to: email,
         subject: `Contact form: ${name}`,
@@ -65,11 +65,11 @@ export async function sendContactEmail(
     if (!res.ok) {
       const body = await res.text()
       logger.error('contact', 'Resend API error', new Error(body))
-      return { error: 'Failed to send message. Please email us directly at hello@zenspace.in.' }
+      return { error: 'Failed to send message. Please email us directly at hello@mindcanopy.in.' }
     }
   } catch (err) {
     logger.error('contact', 'Failed to send contact email', err)
-    return { error: 'Failed to send message. Please email us directly at hello@zenspace.in.' }
+    return { error: 'Failed to send message. Please email us directly at hello@mindcanopy.in.' }
   }
 
   logger.info('contact', 'Contact email sent', { name, email })

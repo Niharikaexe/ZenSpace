@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: data.title,
     description: data.excerpt,
     alternates: {
-      canonical: `https://zenspace.in/help/${data.slug}`,
+      canonical: `https://mindcanopy.in/help/${data.slug}`,
     },
   }
 }
@@ -141,7 +141,7 @@ export default async function HelpTopicPage({ params }: Props) {
               Start free intro chat
             </Link>
             <a
-              href="mailto:hello@zenspace.in"
+              href="mailto:hello@mindcanopy.in"
               className="inline-block border border-white/25 text-white font-bold text-sm px-8 py-3 rounded-full hover:border-white/60 transition-colors"
             >
               Email us

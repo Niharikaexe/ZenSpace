@@ -130,7 +130,7 @@ export default function IndividualQuestionnairePage() {
       if (result.error) { setSaveError(result.error); return }
       router.push('/dashboard')
     } else {
-      sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
+      sessionStorage.setItem('mindcanopy_questionnaire', JSON.stringify(data))
       router.push('/signup')
     }
   }
@@ -143,7 +143,7 @@ export default function IndividualQuestionnairePage() {
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
           <Link href="/" className="font-black text-lg text-[#233551] flex-shrink-0" style={{ fontFamily: 'var(--font-lato)' }}>
-            ZenSpace
+            MindCanopy
           </Link>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div

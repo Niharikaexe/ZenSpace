@@ -33,7 +33,7 @@ const Footer = () => {
                 <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
               </div>
               <span className="font-black text-lg text-white tracking-tight" style={{ fontFamily: 'var(--font-lato)' }}>
-                ZenSpace
+                MindCanopy
               </span>
             </div>
             <p className="text-sm text-white/45 leading-relaxed max-w-xs">
@@ -42,7 +42,7 @@ const Footer = () => {
             {/* Social icons */}
             <div className="flex items-center gap-4 pt-1">
               {[
-                { icon: LinkedIn, label: "LinkedIn", href: "https://linkedin.com/company/zenspace-in" },
+                { icon: LinkedIn, label: "LinkedIn", href: "https://linkedin.com/company/mindcanopy-in" },
                 { icon: Twitter, label: "Twitter", href: "#" },
                 { icon: YouTube, label: "YouTube", href: "#" },
               ].map(({ icon: Icon, label, href }) => (
@@ -121,7 +121,7 @@ const Footer = () => {
       {/* Bottom bar */}
       <div className="border-t border-white/8">
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-white/30">
-          <p>© 2026 ZenSpace. All rights reserved.</p>
+          <p>© 2026 MindCanopy. All rights reserved.</p>
           <p>If you are in crisis, please call iCall: <span className="text-white/50 font-semibold">9152987821</span></p>
         </div>
       </div>

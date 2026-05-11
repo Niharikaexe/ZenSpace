@@ -12,7 +12,7 @@ create table if not exists therapist_applications (
   specializations text[] not null default '{}',
   languages       text[] not null default '{}',
   bio             text not null,
-  why_zenspace    text,
+  why_mindcanopy    text,
   -- admin review
   status          text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'invited')),
   admin_notes     text,

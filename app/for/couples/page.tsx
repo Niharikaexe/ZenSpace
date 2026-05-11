@@ -4,9 +4,9 @@ import Footer from '@/components/home/Footer'
 import CouplesPageClient from './CouplesPageClient'
 
 export const metadata: Metadata = {
-  title: 'Online Couples Therapy & Marriage Counselling in India | ZenSpace',
+  title: 'Online Couples Therapy & Marriage Counselling in India | MindCanopy',
   description:
-    'Feeling distant from your partner? Communication breaking down? Online couples counselling with licensed therapists. No judgment, no taking sides. First session free. ZenSpace India.',
+    'Feeling distant from your partner? Communication breaking down? Online couples counselling with licensed therapists. No judgment, no taking sides. First session free. MindCanopy India.',
   keywords: [
     'couples therapy marriage counseling',
     'online couples counseling',

@@ -2,22 +2,22 @@ import Navbar from '@/components/home/Navbar'
 import Footer from '@/components/home/Footer'
 
 export const metadata = {
-  title: 'Terms of Service — ZenSpace',
-  description: 'The terms that govern your use of ZenSpace, our therapy platform.',
+  title: 'Terms of Service — MindCanopy',
+  description: 'The terms that govern your use of MindCanopy, our therapy platform.',
 }
 
 const sections = [
   {
     title: '1. Acceptance of Terms',
-    body: `[PLACEHOLDER — Legal team to draft.] By accessing or using ZenSpace, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, please do not use the platform.`,
+    body: `[PLACEHOLDER — Legal team to draft.] By accessing or using MindCanopy, you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, please do not use the platform.`,
   },
   {
     title: '2. Description of Service',
-    body: `[PLACEHOLDER — Legal team to draft.] ZenSpace is an online platform that connects clients with licensed mental-health professionals for therapeutic services delivered via video and chat. We are a technology platform and are not a medical provider.`,
+    body: `[PLACEHOLDER — Legal team to draft.] MindCanopy is an online platform that connects clients with licensed mental-health professionals for therapeutic services delivered via video and chat. We are a technology platform and are not a medical provider.`,
   },
   {
     title: '3. Eligibility',
-    body: `[PLACEHOLDER — Legal team to draft.] You must be at least 13 years old to use ZenSpace. Users under 18 require parental or guardian consent. By registering, you confirm that the information you provide is accurate and complete.`,
+    body: `[PLACEHOLDER — Legal team to draft.] You must be at least 13 years old to use MindCanopy. Users under 18 require parental or guardian consent. By registering, you confirm that the information you provide is accurate and complete.`,
   },
   {
     title: '4. User Accounts',
@@ -25,7 +25,7 @@ const sections = [
   },
   {
     title: '5. Therapist Relationship',
-    body: `[PLACEHOLDER — Legal team to draft.] Therapists on ZenSpace are independent professionals, not employees of ZenSpace. The therapeutic relationship is solely between you and your therapist. ZenSpace does not provide clinical supervision or override professional judgements made by therapists.`,
+    body: `[PLACEHOLDER — Legal team to draft.] Therapists on MindCanopy are independent professionals, not employees of MindCanopy. The therapeutic relationship is solely between you and your therapist. MindCanopy does not provide clinical supervision or override professional judgements made by therapists.`,
   },
   {
     title: '6. Subscriptions and Payments',
@@ -41,15 +41,15 @@ const sections = [
   },
   {
     title: '9. Intellectual Property',
-    body: `[PLACEHOLDER — Legal team to draft.] All content on ZenSpace — including text, graphics, logos, and software — is owned by or licensed to ZenSpace. You may not reproduce or redistribute any part of the platform without our express written permission.`,
+    body: `[PLACEHOLDER — Legal team to draft.] All content on MindCanopy — including text, graphics, logos, and software — is owned by or licensed to MindCanopy. You may not reproduce or redistribute any part of the platform without our express written permission.`,
   },
   {
     title: '10. Limitation of Liability',
-    body: `[PLACEHOLDER — Legal team to draft.] ZenSpace is provided "as is." To the maximum extent permitted by law, we disclaim all warranties and limit our liability for any indirect or consequential damages arising from your use of the platform.`,
+    body: `[PLACEHOLDER — Legal team to draft.] MindCanopy is provided "as is." To the maximum extent permitted by law, we disclaim all warranties and limit our liability for any indirect or consequential damages arising from your use of the platform.`,
   },
   {
     title: '11. Crisis and Emergency Situations',
-    body: `[PLACEHOLDER — Legal team to draft.] ZenSpace is not a crisis service. If you or someone you know is in immediate danger, please call emergency services (112) or a crisis helpline such as iCall (9152987821). Our platform is not equipped to handle psychiatric emergencies.`,
+    body: `[PLACEHOLDER — Legal team to draft.] MindCanopy is not a crisis service. If you or someone you know is in immediate danger, please call emergency services (112) or a crisis helpline such as iCall (9152987821). Our platform is not equipped to handle psychiatric emergencies.`,
   },
   {
     title: '12. Changes to These Terms',
@@ -61,7 +61,7 @@ const sections = [
   },
   {
     title: '14. Contact',
-    body: `If you have questions about these terms, please contact us at hello@zenspace.in.`,
+    body: `If you have questions about these terms, please contact us at hello@mindcanopy.in.`,
   },
 ]
 
@@ -89,7 +89,7 @@ export default function TermsPage() {
               Effective date: <strong>[DATE — to be confirmed by legal team]</strong>
             </p>
             <p className="text-[#233551]/55 text-base leading-relaxed mb-12">
-              Please read these terms carefully before using ZenSpace. They explain your rights and responsibilities as a user of our platform.
+              Please read these terms carefully before using MindCanopy. They explain your rights and responsibilities as a user of our platform.
             </p>
 
             {/* Notice banner */}

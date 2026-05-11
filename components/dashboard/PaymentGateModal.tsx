@@ -20,7 +20,7 @@ export function PaymentGateModal({ open, onClose, userName, userEmail, action }:
             Subscribe to continue
           </DialogTitle>
           <DialogDescription className="text-[#233551]/60">
-            To {action ?? 'access this feature'}, you need an active ZenSpace subscription.
+            To {action ?? 'access this feature'}, you need an active MindCanopy subscription.
             Choose a plan below to get started.
           </DialogDescription>
         </DialogHeader>

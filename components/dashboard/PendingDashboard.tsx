@@ -63,13 +63,13 @@ const SAMPLE_THERAPISTS = [
 ]
 
 const COMPARISON_ROWS = [
-  { feature: 'Qualified, licensed therapist', zenspace: true, traditional: true },
-  { feature: 'No clinic visits required', zenspace: true, traditional: false },
-  { feature: 'Async text messaging anytime', zenspace: true, traditional: false },
-  { feature: 'Weekly video sessions', zenspace: true, traditional: true },
-  { feature: 'Switch therapist anytime', zenspace: true, traditional: false },
-  { feature: 'Complete privacy — no one in your network knows', zenspace: true, traditional: false },
-  { feature: 'Available across India', zenspace: true, traditional: false },
+  { feature: 'Qualified, licensed therapist', mindcanopy: true, traditional: true },
+  { feature: 'No clinic visits required', mindcanopy: true, traditional: false },
+  { feature: 'Async text messaging anytime', mindcanopy: true, traditional: false },
+  { feature: 'Weekly video sessions', mindcanopy: true, traditional: true },
+  { feature: 'Switch therapist anytime', mindcanopy: true, traditional: false },
+  { feature: 'Complete privacy — no one in your network knows', mindcanopy: true, traditional: false },
+  { feature: 'Available across India', mindcanopy: true, traditional: false },
 ]
 
 type QuestionnairePrefs = {
@@ -446,7 +446,7 @@ export function PendingDashboard({
           How much does it cost?
         </h2>
         <p className="text-sm text-[#233551]/60 mb-5 leading-relaxed">
-          ZenSpace offers two plans — Essentials and Premium — available weekly or monthly.
+          MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -469,10 +469,10 @@ export function PendingDashboard({
         </p>
       </section>
 
-      {/* ZenSpace vs Traditional comparison */}
+      {/* MindCanopy vs Traditional comparison */}
       <section className="mb-10">
         <h2 className="text-lg font-black text-[#233551] mb-4" style={{ fontFamily: 'var(--font-lato)' }}>
-          ZenSpace vs traditional in-office therapy
+          MindCanopy vs traditional in-office therapy
         </h2>
         <div className="overflow-hidden rounded-2xl border border-slate-200">
           <table className="w-full text-sm">
@@ -481,7 +481,7 @@ export function PendingDashboard({
                 <th className="text-left px-4 py-3 text-[#233551]/50 font-medium text-xs" />
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-black text-white bg-[#233551] px-3 py-1 rounded-full" style={{ fontFamily: 'var(--font-lato)' }}>
-                    ZenSpace
+                    MindCanopy
                   </span>
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-semibold text-[#233551]/50">In-office</th>
@@ -491,7 +491,7 @@ export function PendingDashboard({
               {COMPARISON_ROWS.map((row, i) => (
                 <tr key={row.feature} className={cn('border-b border-slate-100 last:border-0', i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50')}>
                   <td className="px-4 py-3 text-xs text-[#233551]/70">{row.feature}</td>
-                  <td className="px-4 py-3 text-center"><CheckIcon ok={row.zenspace} /></td>
+                  <td className="px-4 py-3 text-center"><CheckIcon ok={row.mindcanopy} /></td>
                   <td className="px-4 py-3 text-center"><CheckIcon ok={row.traditional} /></td>
                 </tr>
               ))}

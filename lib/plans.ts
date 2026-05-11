@@ -1,4 +1,4 @@
-// Central plan configuration for ZenSpace subscriptions.
+// Central plan configuration for MindCanopy subscriptions.
 // Each plan maps to one Razorpay plan (created in Razorpay dashboard).
 // Razorpay plan IDs are set in Vercel env vars.
 

@@ -7,4 +7,4 @@ Disallow: /dashboard
 Disallow: /therapist/dashboard
 Disallow: /api/
 
-Sitemap: https://zenspace.in/sitemap.xml
+Sitemap: https://mindcanopy.in/sitemap.xml

@@ -255,7 +255,7 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
             Sign out
           </h2>
           <p className="text-sm text-[#233551]/50 mb-4">
-            Sign out of your ZenSpace account on this device.
+            Sign out of your MindCanopy account on this device.
           </p>
           <form action={signOut}>
             <button
