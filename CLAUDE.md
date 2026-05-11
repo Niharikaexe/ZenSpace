@@ -780,3 +780,28 @@ Each bug has: severity, file:line, description, and suggested fix.
 - Use the admin Supabase client only in server-side code, never expose service role key to client.
 - Validate all inputs with Zod before DB writes.
 - No dummy data in production paths — use real Supabase queries.
+
+
+---
+
+## Legal & Platform Protection
+
+### What You Should Actually Do to Protect Yourself
+Even though no one is actively checking right now, do these things from Day 1:
+
+**1. Terms of Service must clearly state:**
+- You are a marketplace platform, not a therapy provider
+- Therapists are independent contractors, not your employees
+- You don't verify or guarantee therapist credentials (or alternatively — you do verify, and state how)
+- Users engage with therapists at their own discretion
+
+**2. Therapist onboarding agreement must state:**
+- They are responsible for holding valid licenses in their own country
+- They are responsible for complying with laws in the countries they serve clients in
+- They indemnify your platform for any malpractice claims
+
+**3. Consider basic credential verification:**
+- Not legally required for your platform
+- But it builds massive trust with Indian users who are skeptical about online therapy
+- Even a simple "we verify degree certificates" goes a long way
+- Look at how Practo or Therapize India does this
