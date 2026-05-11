@@ -201,3 +201,117 @@
   transform-origin: 50% 70%;
   animation: humanTilt 9s ease-in-out infinite;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MindCanopy Mobile System
+   Tag: mc-*
+   Purpose: consistent responsive behaviour across every section.
+   Usage: add the relevant mc-* class to any element; the CSS handles mobile
+   automatically. No per-component media query logic needed.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* Section wrapper — consistent vertical rhythm + padding */
+.mc-section {
+  @apply relative overflow-hidden py-16 md:py-24 lg:py-28 px-4 md:px-6;
+}
+
+/* Content layer — always above animations */
+.mc-content {
+  @apply relative z-10;
+}
+
+/* Animation wrapper — full size on desktop, minimised on mobile */
+.mc-anim {
+  @apply transition-all duration-300;
+}
+@media (max-width: 767px) {
+  .mc-anim {
+    max-width: 140px;
+    max-height: 140px;
+    opacity: 0.85;
+  }
+}
+
+/* Smaller animation — for tight sections */
+.mc-anim-mini {
+  @apply transition-all duration-300;
+}
+@media (max-width: 767px) {
+  .mc-anim-mini {
+    max-width: 80px;
+    max-height: 80px;
+    opacity: 0.75;
+  }
+}
+
+/* Decorative-only elements — pushed behind content on mobile */
+.mc-anim-bg {
+  @apply transition-all duration-300;
+}
+@media (max-width: 767px) {
+  .mc-anim-bg {
+    position: absolute !important;
+    z-index: 0 !important;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+}
+
+/* Responsive headings */
+.mc-h1 {
+  @apply text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-black leading-tight tracking-tight;
+}
+.mc-h2 {
+  @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight;
+}
+.mc-h3 {
+  @apply text-xl sm:text-2xl md:text-3xl font-black leading-snug;
+}
+
+/* Responsive body copy */
+.mc-body {
+  @apply text-sm sm:text-base leading-relaxed;
+}
+
+/* Touch-safe interactive elements — minimum 44×44 px hit area */
+.mc-touch {
+  @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+}
+
+/* Stack on mobile, side-by-side on desktop */
+.mc-stack {
+  @apply flex flex-col md:flex-row;
+}
+
+/* Card with responsive padding */
+.mc-card {
+  @apply rounded-2xl p-5 md:p-8;
+}
+
+/* Horizontal scroll container with snap — replaces JS carousels on mobile */
+.mc-scroll-x {
+  @apply flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mc-scroll-x::-webkit-scrollbar { display: none; }
+.mc-scroll-x > * {
+  @apply snap-start flex-shrink-0;
+}
+
+/* Reduced float distance on mobile — overrides the global float-* animations */
+@media (max-width: 767px) {
+  @keyframes float-slow   { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-6px);  } }
+  @keyframes float-medium { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-4px);  } }
+  @keyframes float-fast   { 0%,100% { transform: translateY(0);   } 50% { transform: translateY(-3px);  } }
+}
+
+/* Respect user preference — disable all motion if requested */
+@media (prefers-reduced-motion: reduce) {
+  .mc-anim, .mc-anim-mini, .mc-anim-bg,
+  .float-slow, .float-medium, .float-fast,
+  .human-head, .spin-slow, .pulse-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
