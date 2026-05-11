@@ -93,8 +93,8 @@ const HeroSection = () => {
   return (
     <section className="bg-white relative overflow-hidden min-h-[90vh] flex items-center">
 
-      {/* ── Background wavy peach blob (right side) ── */}
-      <div className="absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
+      {/* ── Background wavy peach blob — mc-anim-bg shrinks opacity on mobile ── */}
+      <div className="mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
         <svg viewBox="0 0 640 780" fill="none" preserveAspectRatio="xMaxYMid slice" className="w-full h-full">
           <path
             d="M120,10 C260,-15 520,40 600,180 C680,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
@@ -108,11 +108,16 @@ const HeroSection = () => {
         </svg>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-16 md:py-24 w-full relative z-10">
+      {/* ── Mobile-only background owl ── */}
+      <div className="lg:hidden absolute right-0 top-1/2 -translate-y-1/2 w-56 h-56 opacity-[0.10] pointer-events-none z-0 rounded-full overflow-hidden">
+        <OwlMascot className="w-full h-full float-slow" />
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 w-full relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
           {/* ── LEFT: Text content ── */}
-          <div className="flex-1 space-y-7">
+          <div className="mc-content flex-1 space-y-7">
             {/* Eyebrow badge */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -193,8 +198,8 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* ── RIGHT: Owl Mascot ── */}
-          <div className="flex-shrink-0 relative w-72 h-72 md:w-[380px] md:h-[380px] lg:w-[440px] lg:h-[440px]">
+          {/* ── RIGHT: Owl Mascot — desktop only ── */}
+          <div className="hidden lg:block flex-shrink-0 relative w-[380px] h-[380px] xl:w-[440px] xl:h-[440px]">
 
             {/* Owl */}
             <motion.div
@@ -206,53 +211,20 @@ const HeroSection = () => {
               <OwlMascot className="w-full h-full" />
             </motion.div>
 
-            {/* Floating star — top right */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute -top-4 -right-4 float-medium float-delay-1"
-            >
+            {/* Floating decorative elements — desktop only */}
+            <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.8 }} className="absolute -top-4 -right-4 float-medium float-delay-1">
               <StarSVG color="#FF8C5A" className="w-8 h-8" />
             </motion.div>
-
-            {/* Floating star — bottom left */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 1 }}
-              className="absolute -bottom-2 -left-6 float-fast float-delay-2"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1 }} className="absolute -bottom-2 -left-6 float-fast float-delay-2">
               <StarSVG color="#FF8C5A" className="w-5 h-5" />
             </motion.div>
-
-            {/* Floating leaf — right */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
-              className="absolute top-1/3 -right-8 float-slow float-delay-3"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.9 }} className="absolute top-1/3 -right-8 float-slow float-delay-3">
               <LeafSVG color="#7EC0B7" className="w-7 h-10 rotate-45" />
             </motion.div>
-
-            {/* Floating small star — mid left */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.1 }}
-              className="absolute top-1/4 -left-10 float-medium"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 1.1 }} className="absolute top-1/4 -left-10 float-medium">
               <StarSVG color="#F97B5A" className="w-4 h-4 opacity-70" />
             </motion.div>
-
-            {/* Floating teal leaf — top left */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 1 }}
-              className="absolute -top-6 left-8 float-slow float-delay-1"
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 1 }} className="absolute -top-6 left-8 float-slow float-delay-1">
               <LeafSVG color="#7EC0B7" className="w-5 h-7 -rotate-12" />
             </motion.div>
           </div>

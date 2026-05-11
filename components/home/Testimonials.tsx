@@ -86,17 +86,17 @@ export default function Testimonials() {
 
   return (
     <section className="bg-[#FFF5F2] pt-16 md:pt-20 pb-20 md:pb-28 relative overflow-hidden">
-      {/* Decorative blob */}
+      {/* Decorative blobs — mc-anim-bg keeps them subtle on mobile */}
       <div
-        className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
+        className="mc-anim-bg absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(232,146,106,0.10) 0%, transparent 70%)" }}
       />
       <div
-        className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full pointer-events-none"
+        className="mc-anim-bg absolute -bottom-16 -left-16 w-64 h-64 rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(126,192,183,0.08) 0%, transparent 70%)" }}
       />
 
-      <div className="max-w-6xl mx-auto px-6 relative z-10">
+      <div className="mc-content max-w-6xl mx-auto px-4 md:px-6">
 
         {/* Header */}
         <motion.div
@@ -184,19 +184,21 @@ export default function Testimonials() {
               </svg>
             </button>
 
-            {/* Page dots */}
-            <div className="flex items-center gap-2">
+            {/* Page dots — wrapped in mc-touch padding for tap target */}
+            <div className="flex items-center gap-1">
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   key={i}
                   onClick={() => { setDirection(i > page ? 1 : -1); setPage(i) }}
                   aria-label={`Go to page ${i + 1}`}
-                  className={`rounded-full transition-all duration-300 ${
+                  className="mc-touch px-2"
+                >
+                  <span className={`block rounded-full transition-all duration-300 ${
                     i === page
                       ? 'w-6 h-2 bg-[#7EC0B7]'
                       : 'w-2 h-2 bg-[#233551]/15 hover:bg-[#233551]/30'
-                  }`}
-                />
+                  }`} />
+                </button>
               ))}
             </div>
 

@@ -16,11 +16,19 @@ export default function CTASection() {
           </svg>
         </div>
 
+        {/* Tree+owl — mobile background layer */}
+        <div className="lg:hidden mc-anim-bg absolute inset-0 flex items-center justify-end pr-0 pointer-events-none overflow-hidden">
+          <div className="w-64 h-80 opacity-[0.12]">
+            <TreeOwl />
+          </div>
+        </div>
+
         <div className="pt-28 md:pt-36 pb-24 md:pb-32">
-          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 lg:grid-cols-[1.15fr_1fr]">
+          <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 md:px-6 lg:grid-cols-[1.15fr_1fr]">
 
             {/* Copy */}
             <motion.div
+              className="mc-content"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.3 }}
@@ -73,13 +81,13 @@ export default function CTASection() {
               </div>
             </motion.div>
 
-            {/* Tree + owl illustration */}
+            {/* Tree + owl illustration — desktop only */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, amount: 0.3 }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-              className="relative mx-auto aspect-[360/440] w-full max-w-[360px]"
+              className="hidden lg:block relative mx-auto aspect-[360/440] w-full max-w-[360px]"
               aria-hidden
             >
               <TreeOwl />
