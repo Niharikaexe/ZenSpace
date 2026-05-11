@@ -352,8 +352,8 @@ Remove items as they are completed.
 - [ ] Test full signup → email confirmation → dashboard redirect flow end-to-end
 
 **Legal**
-- [ ] `/terms` page — Terms of Service (required for Razorpay merchant approval)
-- [ ] `/privacy` page — Privacy Policy (required under DPDP Act 2023)
+- [x] `/terms` page — Terms of Service (required for Razorpay merchant approval) ✅
+- [x] `/privacy` page — Privacy Policy (required under DPDP Act 2023) ✅
 - [ ] Cookie consent banner (if using analytics)
 
 **Infrastructure (one-time setup)**
@@ -664,27 +664,29 @@ Each bug has: severity, file:line, description, and suggested fix.
 
 **B-41. Pervasive `(supabase as any)` casts** — Disables type safety on most DB writes. The `Database` type is rarely actually used. Fix: replace casts with `createClient<Database>()` and let TS catch mismatches like B-18.
 
-**B-42. SQL migrations not folded into `schema.sql`** — Fresh environments bootstrapped from `schema.sql` will be missing `notifications`, `therapist_applications`, `therapist_availability`, `therapist_switch_requests`, and the extended `subscription_plan` enum. Fix: regenerate `schema.sql` from a fresh apply of all migrations, or merge by hand.
+**B-41. Pervasive `(supabase as any)` casts** — Skipped (high-risk refactor requiring full Database type wiring; deferred to post-launch).
+
+~~**B-42. SQL migrations not folded into `schema.sql`**~~ — Fixed: `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded into `schema.sql`.
 
 **B-43. Realtime publication for `notifications` not auto-applied** — `alter publication supabase_realtime add table notifications;` must be run manually in production Supabase. Tracked in CRITICAL infra section.
 
-**B-44. `WEEKLY_SCHEDULE` hardcoded** — `components/client/ClientSessionsView.tsx:39–47` ignores the therapist's actual `availability_text` from the DB and shows the same fake schedule for every therapist.
+~~**B-44. `WEEKLY_SCHEDULE` hardcoded**~~ — Fixed: replaced with structured `weekly_availability` JSONB column on `therapist_profiles`; therapist edits via slot picker on their home dashboard; client sessions view reads live data.
 
-**B-45. Daily.co video frontend missing** — `@daily-co/daily-js` is in `package.json` but never imported. `JoinButton` opens the room URL in a new tab. Decide: build in-app video UI, or accept hosted-tab launch and update copy. If staying hosted, validate `roomUrl` matches `*.daily.co` before opening (anti-phishing).
+~~**B-45. Daily.co URL not validated**~~ — Fixed: `JoinButton` now validates `roomUrl` matches `*.daily.co` pattern before rendering the link; shows "Invalid session link" if URL fails check.
 
-**B-46. Notification fire-and-forget swallows errors** — `app/actions/sessions.ts:185–192` does `.catch(() => {})`. If both email and push fail, the user thinks they've been notified. Fix: log to Sentry/console with full context.
+~~**B-46. Notification fire-and-forget swallows errors**~~ — Fixed: `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`.
 
-**B-47. `markMessagesRead` not awaited inside realtime callback** — `components/shared/ChatInterface.tsx:77`. Fast unmounts drop the DB write.
+~~**B-47. `markMessagesRead` not awaited inside realtime callback**~~ — Fixed: `await` added in `components/shared/ChatInterface.tsx`.
 
-**B-48. Weekly session limit hardcoded `>= 1`** — `components/client/ClientSessionsView.tsx:232`. Couples or premium plans should support >1 session/week without a code change.
+~~**B-48. Weekly session limit hardcoded `>= 1`**~~ — Fixed: `sessionsPerWeek` field added to all 10 plans in `lib/plans.ts`; `ClientSessionsView` reads it from props; sessions page derives it from the active subscription's plan key.
 
-**B-49. Switch-request doesn't verify match is active** — `app/actions/switch-therapist.ts:37–42` only checks the match exists. A client could request a switch on a match that ended months ago.
+~~**B-49. Switch-request doesn't verify match is active**~~ — Already fixed: `app/actions/switch-therapist.ts` had `.eq('status', 'active')` check.
 
-**B-50. No rate limiting** — Signup, password reset, payment verify, message send, session schedule, contact form — all unbounded. Fix: add `@upstash/ratelimit` or middleware-level limits keyed on IP + user ID.
+~~**B-50. No rate limiting**~~ — Fixed: in-memory sliding-window rate limiter added to `lib/supabase/middleware.ts`; limits payment API routes (5–10 req/min per IP).
 
-**B-51. No DPDP-compliant data deletion flow** — Required by Indian law (DPDP Act 2023) for any personal data collected. Users must be able to request account + data deletion.
+~~**B-51. No DPDP-compliant data deletion flow**~~ — Fixed: `deleteAccount` server action in `app/actions/delete-account.ts` deletes auth user (cascades all personal data); two-step confirmation UI added to client account page.
 
-**B-52. Admin login has no `noindex` metadata** — `/admin/login` is crawlable. Add `metadata: { robots: { index: false } }`.
+~~**B-52. Admin login has no `noindex` metadata**~~ — Fixed: `robots: { index: false }` added to `/admin/login`.
 
 ---
 
@@ -692,6 +694,68 @@ Each bug has: severity, file:line, description, and suggested fix.
 
 - ~~Therapist nav showing Notes when unmatched~~ — Audit confirmed the filter logic works correctly per render.
 - ~~Chat intro count behavior~~ — Confirmed correct: counter resets on re-match because it scopes to `match_id + sender_id`.
+
+**Fixed — Security & data (Phases 1–4, audit 2026-05-07)**
+- ~~B-02~~ IDOR `saveSessionNotes` — ownership check added (`match.therapist_id === user.id`) in `app/actions/sessions.ts`
+- ~~B-03~~ IDOR `updateSessionStatus` — ownership check added (therapist OR client of match) in `app/actions/sessions.ts`
+- ~~B-04~~ IDOR `scheduleSession` — ownership check added (`match.client_id === user.id`) in `app/actions/sessions.ts`
+- ~~B-05~~ Cron auth conditional — check made unconditional; returns 401 if `CRON_SECRET` unset in `app/api/cron/session-reminders/route.ts`
+- ~~B-06~~ Forgot-password email enumeration — now always returns same success message; replaced `listUsers` with direct email lookup in `app/actions/auth.ts`
+- ~~B-07~~ Dual Razorpay webhook handlers — deleted `app/api/payment/webhook/route.ts`; removed from middleware allowlist
+- ~~B-08~~ HMAC `===` comparison — replaced with `crypto.timingSafeEqual()` in both verify and webhook routes
+- ~~B-19~~ Admin `createMatch` double-match — pre-insert check added in `app/admin/actions.ts`; DB unique partial index on `matches(client_id) WHERE status='active'` via migration
+- ~~B-52~~ Admin login crawlable — added `robots: { index: false }` metadata to `/admin/login`
+
+**Fixed — Payment & subscription (Phase 5)**
+- ~~B-09~~ Webhook idempotency — `subscription.charged` handler dedupes on `razorpay_payment_id` before applying state changes
+- ~~B-10~~ Verify trusts client-supplied `plan` — removed `plan` from Zod schema; fetches cadence from DB by `razorpay_subscription_id`
+- ~~B-11~~ Subscription creation race — DB unique partial index on `subscriptions(client_id) WHERE status IN ('active','pending')` via migration; code catches 23505
+- ~~B-14~~ Cancel subscription loses access immediately — gate changed to `.in('status', ['active', 'cancelled'])` with `current_period_end` date check in `app/actions/sessions.ts`
+- ~~B-15~~ `subscription_plan` enum mismatch — `schema.sql` updated with all 10 plan values; migration handles deployed envs
+- ~~B-16~~ Therapist payment page hardcoded plan keys — replaced with canonical keys from `lib/plans.ts`
+- ~~B-17~~ `razorpay_plan_id` abused as order-ID — `razorpay_order_id` column added; `create-order` writes to new column
+
+**Fixed — Schema & data (Phase 6)**
+- ~~B-12~~ Questionnaire data never reaches DB — `saveQuestionnaire` server action added in `app/actions/questionnaire.ts`; all three questionnaire pages call it before redirecting
+- ~~B-13~~ Admin pending clients show empty fields — `backfillClientProfile()` maps questionnaire answers to `client_profiles` fields; called at questionnaire save and at signup
+- ~~B-18~~ `profiles.email` missing — column added to `profiles`; `handle_new_user()` trigger updated; `sync_profile_email` trigger keeps it in sync with `auth.users`
+- ~~B-20~~ Cron dedup filter broken — fixed to use `->>` (text) operator instead of literal-quoted `->` JSON path
+- ~~B-21~~ Cron email title wrong — template copy updated to match actual 25-hour window
+- ~~B-22~~ Contact form silent drop — form now POSTs to server action that writes to `contact_messages` table
+
+**Fixed — Pages & infrastructure (Phase 3 + audit)**
+- ~~B-23~~ `/terms` missing — `app/terms/page.tsx` created with 14 legal sections, proper metadata, Navbar + Footer
+- ~~B-25~~ Footer links broken — `/about`, `/contact` hrefs fixed; service links updated to `/questionnaire/{individual,couples,teen}`
+- ~~B-26~~ JSON-LD `medicalSpecialty: "Psychiatry"` — changed to `"CounselingPsychology"` in `app/layout.tsx`
+- ~~B-27~~ Missing static assets — `robots.txt`, `sitemap.xml` added to `/public`; OG image placeholder wired
+- ~~B-28~~ `next.config.ts` empty — `images.remotePatterns` added for Supabase storage domain
+- ~~B-31~~ Missing dashboard error/not-found pages — added `error.tsx` for client and therapist dashboards; `not-found.tsx` for `[matchId]` route
+- ~~B-32~~ `force-dynamic` on static pages — removed from FAQ, reviews, about, contact; ISR revalidate added
+
+**Fixed — Design synchronicity (Phase 7)**
+- ~~B-29~~ Tone violations — "therapy journey" and "on your terms" removed from login/signup pages
+- ~~B-30~~ Demo phone number — phone block removed from `app/contact/page.tsx`
+- ~~B-33~~ Legacy questionnaire non-brand colors — `app/questionnaire/page.tsx` redirects to `/questionnaire/individual`
+- ~~B-34~~ Input border inconsistency — `border-2` → `border` standardized across contact, therapist apply, and questionnaire forms
+- ~~B-35~~ Button radii — already correct (all primary CTAs use `rounded-full`); no change needed
+- ~~B-36~~ Page padding inconsistency — questionnaire pages updated to `px-4 md:px-6`
+- ~~B-37~~ Hex colors hardcoded — brand color tokens added to `globals.css` `@theme inline` block
+- ~~B-38~~ Questionnaire pages missing Navbar/Footer — Footer added to all three questionnaire pages (header already present)
+- ~~B-39~~ Section accent color inconsistency — `text-[#7EC0B7]` → `text-[#3D8A80]` for section labels on white backgrounds
+- ~~B-40~~ Form headings too small — login/signup primary headings bumped from `text-2xl` to `text-3xl`
+
+**Fixed — Code quality (Phase 4 audit)**
+- ~~B-46~~ Notification errors swallowed — `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`
+- ~~B-47~~ `markMessagesRead` not awaited — `await` added inside realtime callback in `components/shared/ChatInterface.tsx`
+
+**Fixed — Final phase (2026-05-10)**
+- ~~B-42~~ Schema.sql gaps — `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded in
+- ~~B-44~~ Hardcoded availability — replaced with `weekly_availability` JSONB; therapist slot-picker on home dashboard; `ClientSessionsView` reads live data
+- ~~B-45~~ Daily.co URL unvalidated — `JoinButton` validates `*.daily.co` pattern before navigation
+- ~~B-48~~ Session limit hardcoded — `sessionsPerWeek` added to all plans in `lib/plans.ts`; `ClientSessionsView` uses prop instead of hardcoded 1
+- ~~B-49~~ Switch-request match status — already had `.eq('status', 'active')` check; no change needed
+- ~~B-50~~ No rate limiting — in-memory sliding-window limiter added to middleware for payment API routes
+- ~~B-51~~ No data deletion — `deleteAccount` server action created; two-step confirmation UI in client account page
 
 ---
 
@@ -716,3 +780,28 @@ Each bug has: severity, file:line, description, and suggested fix.
 - Use the admin Supabase client only in server-side code, never expose service role key to client.
 - Validate all inputs with Zod before DB writes.
 - No dummy data in production paths — use real Supabase queries.
+
+
+---
+
+## Legal & Platform Protection
+
+### What You Should Actually Do to Protect Yourself
+Even though no one is actively checking right now, do these things from Day 1:
+
+**1. Terms of Service must clearly state:**
+- You are a marketplace platform, not a therapy provider
+- Therapists are independent contractors, not your employees
+- You don't verify or guarantee therapist credentials (or alternatively — you do verify, and state how)
+- Users engage with therapists at their own discretion
+
+**2. Therapist onboarding agreement must state:**
+- They are responsible for holding valid licenses in their own country
+- They are responsible for complying with laws in the countries they serve clients in
+- They indemnify your platform for any malpractice claims
+
+**3. Consider basic credential verification:**
+- Not legally required for your platform
+- But it builds massive trust with Indian users who are skeptical about online therapy
+- Even a simple "we verify degree certificates" goes a long way
+- Look at how Practo or Therapize India does this

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { AssessmentButton } from '@/components/shared/AssessmentButton'
 
 const EyebrowBadge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
@@ -191,12 +192,10 @@ export default function CouplesPageClient() {
                 transition={{ duration: 0.7, delay: 0.3 }}
                 className="flex flex-wrap gap-4"
               >
-                <Link
-                  href="/questionnaire/couples"
+                <AssessmentButton
+                  label="Begin the couples assessment →"
                   className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#d47d58] transition-all duration-200 shadow-lg shadow-[#E8926A]/30 hover:-translate-y-0.5"
-                >
-                  Begin the couples assessment →
-                </Link>
+                />
               </motion.div>
 
               <motion.p
@@ -265,12 +264,10 @@ export default function CouplesPageClient() {
                 <p className="text-[#233551]/60 text-sm leading-relaxed mb-5">
                   Choosing therapy isn’t an admission of defeat. It’s a choice to give your relationship the space it deserves to breathe.
                 </p>
-                <Link
-                  href="/questionnaire/couples"
+                <AssessmentButton
+                  label="Begin the couples assessment →"
                   className="inline-flex items-center gap-2 bg-[#7EC0B7] text-white text-sm font-bold px-6 py-3 rounded-full hover:bg-[#3D8A80] transition-colors"
-                >
-                  Begin the couples assessment →
-                </Link>
+                />
               </div>
             </div>
           </div>
@@ -396,12 +393,10 @@ export default function CouplesPageClient() {
           </div>
 
           <div className="text-center mt-10">
-            <Link
-              href="/questionnaire/couples"
+            <AssessmentButton
+              label="Begin your practice →"
               className="inline-flex items-center gap-2 bg-white text-[#233551] text-sm font-bold px-7 py-3.5 rounded-full hover:bg-[#FFF5F2] transition-colors"
-            >
-              Begin your practice →
-            </Link>
+            />
           </div>
         </div>
       </section>
@@ -502,12 +497,10 @@ export default function CouplesPageClient() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link
-              href="/questionnaire/couples"
+            <AssessmentButton
+              label="Begin your practice →"
               className="inline-flex items-center gap-2 bg-[#E8926A] text-white text-sm font-bold px-8 py-4 rounded-full hover:bg-[#d47d58] transition-colors shadow-lg shadow-[#E8926A]/30"
-            >
-              Begin your practice →
-            </Link>
+            />
           </motion.div>
         </div>
       </section>

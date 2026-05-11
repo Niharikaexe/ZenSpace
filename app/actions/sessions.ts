@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
+import { logger } from '@/lib/logger'
 
 async function getAuthUser() {
   const supabase = await createClient()
@@ -29,11 +30,14 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
     .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
 
   if (senderProfile?.role === 'client') {
+    // B-14: allow access while current_period_end is in the future, even if
+    // status='cancelled' (user paid for the period; Razorpay cancel_at_cycle_end
+    // means they keep access until period_end, not immediately).
     const { data: activeSub } = await (admin as any)
       .from('subscriptions')
       .select('id')
       .eq('client_id', user.id)
-      .eq('status', 'active')
+      .in('status', ['active', 'cancelled'])
       .gt('current_period_end', new Date().toISOString())
       .maybeSingle() as { data: { id: string } | null; error: unknown }
 
@@ -88,7 +92,7 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
           title: 'New message',
           body: `${senderName} sent you a message.`,
           metadata: { matchId, senderId: user.id, clientName: senderName },
-        }).catch(() => {})
+        }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
   } catch { /* notification failure must not break message send */ }
@@ -119,19 +123,30 @@ export async function scheduleSession(
   scheduledAt: string,
   sessionType: 'video' | 'chat'
 ): Promise<{ error?: string }> {
-  await getAuthUser()
+  const { user } = await getAuthUser()
 
   const parsed = scheduleSchema.safeParse({ matchId, scheduledAt, sessionType })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const admin = createAdminClient()
 
+  // B-04: verify caller is the client of this match
+  const { data: matchOwnership } = await (admin as any)
+    .from('matches')
+    .select('client_id')
+    .eq('id', matchId)
+    .single() as { data: { client_id: string } | null; error: unknown }
+
+  if (!matchOwnership || matchOwnership.client_id !== user.id) {
+    return { error: 'Not authorized to schedule this session' }
+  }
+
   let dailyRoomUrl: string | null = null
   let dailyRoomName: string | null = null
 
   if (sessionType === 'video' && process.env.DAILY_API_KEY) {
     try {
-      const roomName = `zenspace-${matchId.slice(0, 8)}-${Date.now()}`
+      const roomName = `mindcanopy-${matchId.slice(0, 8)}-${Date.now()}`
       const exp = Math.floor(new Date(scheduledAt).getTime() / 1000) + 7200
 
       const res = await fetch('https://api.daily.co/v1/rooms', {
@@ -188,7 +203,7 @@ export async function scheduleSession(
         title: 'Session scheduled',
         body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
         metadata: { matchId, scheduledAt, sessionType, dateStr },
-      }).catch(() => {})
+      }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
     }
   } catch { /* non-fatal */ }
 
@@ -203,8 +218,27 @@ export async function saveSessionNotes(
   sessionId: string,
   notes: string
 ): Promise<{ error?: string }> {
-  await getAuthUser()
+  const { user } = await getAuthUser()
   const admin = createAdminClient()
+
+  // B-02: verify caller is the therapist who owns this session
+  const { data: sessionRow } = await (admin as any)
+    .from('sessions')
+    .select('match_id')
+    .eq('id', sessionId)
+    .single() as { data: { match_id: string } | null; error: unknown }
+
+  if (!sessionRow) return { error: 'Session not found' }
+
+  const { data: matchRow } = await (admin as any)
+    .from('matches')
+    .select('therapist_id')
+    .eq('id', sessionRow.match_id)
+    .single() as { data: { therapist_id: string } | null; error: unknown }
+
+  if (!matchRow || matchRow.therapist_id !== user.id) {
+    return { error: 'Not authorized to edit these notes' }
+  }
 
   const { error } = await (admin as any)
     .from('sessions')
@@ -222,8 +256,27 @@ export async function updateSessionStatus(
   sessionId: string,
   status: 'ongoing' | 'completed' | 'cancelled'
 ): Promise<{ error?: string }> {
-  await getAuthUser()
+  const { user } = await getAuthUser()
   const admin = createAdminClient()
+
+  // B-03: verify caller is the therapist or client of this session's match
+  const { data: sessionRow } = await (admin as any)
+    .from('sessions')
+    .select('match_id')
+    .eq('id', sessionId)
+    .single() as { data: { match_id: string } | null; error: unknown }
+
+  if (!sessionRow) return { error: 'Session not found' }
+
+  const { data: matchRow } = await (admin as any)
+    .from('matches')
+    .select('therapist_id, client_id')
+    .eq('id', sessionRow.match_id)
+    .single() as { data: { therapist_id: string; client_id: string } | null; error: unknown }
+
+  if (!matchRow || (matchRow.therapist_id !== user.id && matchRow.client_id !== user.id)) {
+    return { error: 'Not authorized to update this session' }
+  }
 
   const updates: Record<string, string> = { status }
   if (status === 'ongoing') updates.started_at = new Date().toISOString()

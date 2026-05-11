@@ -23,7 +23,7 @@ const faqs = [
   },
   {
     q: "Do you prescribe medication?",
-    a: "We don't. ZenSpace is a talk therapy and counselling platform — no prescriptions, no diagnoses. If you think you need medication, we'll say so honestly and help you find the right person for that.",
+    a: "We don't. MindCanopy is a talk therapy and counselling platform — no prescriptions, no diagnoses. If you think you need medication, we'll say so honestly and help you find the right person for that.",
   },
 ]
 

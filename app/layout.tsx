@@ -23,8 +23,8 @@ const lato = Lato({
 
 export const metadata: Metadata = {
   title: {
-    default: "ZenSpace — Online Therapy for India",
-    template: "%s | ZenSpace",
+    default: "MindCanopy — Online Therapy for India",
+    template: "%s | MindCanopy",
   },
   description:
     "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions. Starting ₹2,999/week.",
@@ -40,15 +40,15 @@ export const metadata: Metadata = {
     "therapist near me",
     "online counselling India",
   ],
-  authors: [{ name: "ZenSpace" }],
-  creator: "ZenSpace",
-  metadataBase: new URL("https://zenspace.in"),
+  authors: [{ name: "MindCanopy" }],
+  creator: "MindCanopy",
+  metadataBase: new URL("https://mindcanopy.in"),
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://zenspace.in",
-    siteName: "ZenSpace",
-    title: "ZenSpace — Online Therapy for India",
+    url: "https://mindcanopy.in",
+    siteName: "MindCanopy",
+    title: "MindCanopy — Online Therapy for India",
     description:
       "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. Starting ₹2,999/week.",
     images: [
@@ -56,13 +56,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ZenSpace — Online Therapy for India",
+        alt: "MindCanopy — Online Therapy for India",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ZenSpace — Online Therapy for India",
+    title: "MindCanopy — Online Therapy for India",
     description:
       "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat.",
     images: ["/og-image.png"],
@@ -79,21 +79,21 @@ export const metadata: Metadata = {
     },
   },
   alternates: {
-    canonical: "https://zenspace.in",
+    canonical: "https://mindcanopy.in",
   },
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "MedicalBusiness",
-  name: "ZenSpace",
+  name: "MindCanopy",
   description:
     "Online therapy platform for India. Weekly video sessions with globally trained therapists, unlimited async text messaging.",
-  url: "https://zenspace.in",
+  url: "https://mindcanopy.in",
   areaServed: "IN",
   serviceType: "Online Therapy",
   priceRange: "₹₹",
-  medicalSpecialty: "Psychiatry",
+  medicalSpecialty: "Psychotherapy",
   availableService: [
     { "@type": "MedicalTherapy", name: "Individual Therapy" },
     { "@type": "MedicalTherapy", name: "Couples Therapy" },

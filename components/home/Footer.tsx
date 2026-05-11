@@ -33,7 +33,7 @@ const Footer = () => {
                 <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
               </div>
               <span className="font-black text-lg text-white tracking-tight" style={{ fontFamily: 'var(--font-lato)' }}>
-                ZenSpace
+                MindCanopy
               </span>
             </div>
             <p className="text-sm text-white/45 leading-relaxed max-w-xs">
@@ -42,14 +42,16 @@ const Footer = () => {
             {/* Social icons */}
             <div className="flex items-center gap-4 pt-1">
               {[
-                { icon: LinkedIn, label: "LinkedIn" },
-                { icon: Twitter, label: "Twitter" },
-                { icon: YouTube, label: "YouTube" },
-              ].map(({ icon: Icon, label }) => (
+                { icon: LinkedIn, label: "LinkedIn", href: "https://linkedin.com/company/mindcanopy-in" },
+                { icon: Twitter, label: "Twitter", href: "#" },
+                { icon: YouTube, label: "YouTube", href: "#" },
+              ].map(({ icon: Icon, label, href }) => (
                 <Link
                   key={label}
-                  href="#"
+                  href={href}
                   aria-label={label}
+                  target={href !== "#" ? "_blank" : undefined}
+                  rel={href !== "#" ? "noopener noreferrer" : undefined}
                   className="w-9 h-9 rounded-full bg-white/8 hover:bg-[#7EC0B7]/30 text-white/50 hover:text-white flex items-center justify-center transition-all duration-200"
                 >
                   <Icon />
@@ -65,9 +67,9 @@ const Footer = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               {[
-                { label: "Individual Therapy", href: "/questionnaire?type=individual" },
-                { label: "Couples Therapy", href: "/questionnaire?type=couples" },
-                { label: "Teen Therapy", href: "/questionnaire?type=teen" },
+                { label: "Individual Therapy", href: "/questionnaire/individual" },
+                { label: "Couples Therapy", href: "/questionnaire/couples" },
+                { label: "Teen Therapy", href: "/questionnaire/teen" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
@@ -104,8 +106,8 @@ const Footer = () => {
               {[
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
-                { label: "About Us", href: "#" },
-                { label: "Contact", href: "#" },
+                { label: "About Us", href: "/about" },
+                { label: "Contact", href: "/contact" },
               ].map(l => (
                 <li key={l.label}>
                   <Link href={l.href} className="text-white/45 hover:text-white transition-colors">{l.label}</Link>
@@ -119,7 +121,7 @@ const Footer = () => {
       {/* Bottom bar */}
       <div className="border-t border-white/8">
         <div className="max-w-6xl mx-auto px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-white/30">
-          <p>© 2026 ZenSpace. All rights reserved.</p>
+          <p>© 2026 MindCanopy. All rights reserved.</p>
           <p>If you are in crisis, please call iCall: <span className="text-white/50 font-semibold">9152987821</span></p>
         </div>
       </div>

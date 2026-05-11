@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Honest writing about anxiety, burnout, relationships, and what therapy actually does. No wellness speak. No poster copy. Just things worth reading.",
   openGraph: {
-    title: "ZenSpace Blog — Mental Health in Plain Language",
+    title: "MindCanopy Blog — Mental Health in Plain Language",
     description:
       "Honest writing about anxiety, burnout, relationships, and what therapy actually does.",
   },
@@ -47,7 +47,7 @@ export default function BlogPage() {
       <section className="bg-[#F7FAFA] border-b border-slate-100 py-16 md:py-24">
         <div className="max-w-4xl mx-auto px-6">
           <span className="inline-block text-xs font-bold uppercase tracking-widest text-[#3D8A80] bg-[#7EC0B7]/15 px-4 py-2 rounded-full mb-6">
-            ZenSpace Blog
+            MindCanopy Blog
           </span>
           <h1
             className="text-4xl md:text-5xl font-black text-[#233551] leading-tight mb-5"

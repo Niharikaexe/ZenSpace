@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { saveQuestionnaire } from '@/app/actions/questionnaire'
+import Footer from '@/components/home/Footer'
 
 type SharedAnswers = {
   q1: string   // How long together
@@ -146,7 +147,7 @@ export default function CouplesQuestionnairePage() {
         if (result.error) { setSaveError(result.error); return }
         router.push('/dashboard')
       } else {
-        sessionStorage.setItem('zenspace_questionnaire', JSON.stringify(data))
+        sessionStorage.setItem('mindcanopy_questionnaire', JSON.stringify(data))
         router.push('/signup')
       }
     }
@@ -179,7 +180,7 @@ export default function CouplesQuestionnairePage() {
         <div className="w-full max-w-lg">
           <div className="text-center mb-8">
             <Link href="/">
-              <span className="font-black text-2xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>ZenSpace</span>
+              <span className="font-black text-2xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>MindCanopy</span>
             </Link>
             <p className="text-sm text-[#3D8A80] mt-1">Couples therapy assessment</p>
           </div>
@@ -252,7 +253,7 @@ export default function CouplesQuestionnairePage() {
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
           <Link href="/" className="font-black text-lg text-[#233551] flex-shrink-0" style={{ fontFamily: 'var(--font-lato)' }}>
-            ZenSpace
+            MindCanopy
           </Link>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
@@ -264,7 +265,7 @@ export default function CouplesQuestionnairePage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-10">
         {/* Section label */}
         <div className="mb-6 flex items-center gap-3 flex-wrap">
           <span className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest">
@@ -370,7 +371,7 @@ export default function CouplesQuestionnairePage() {
                 value={partnerAnswers.q7}
                 onChange={e => updatePartner(currentPartner, 'q7', e.target.value)}
                 placeholder="You can be honest here. Your partner won't see this."
-                className="w-full min-h-[120px] resize-none rounded-xl border-2 border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
+                className="w-full min-h-[120px] resize-none rounded-xl border border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
               />
             </div>
           )}
@@ -384,7 +385,7 @@ export default function CouplesQuestionnairePage() {
                 value={partnerAnswers.q8}
                 onChange={e => updatePartner(currentPartner, 'q8', e.target.value)}
                 placeholder="Anything at all — background, concerns, things that help."
-                className="w-full min-h-[120px] resize-none rounded-xl border-2 border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
+                className="w-full min-h-[120px] resize-none rounded-xl border border-slate-200 focus:border-[#7EC0B7] focus:outline-none px-4 py-3 text-sm text-[#233551] leading-relaxed"
               />
             </div>
           )}
@@ -459,6 +460,7 @@ export default function CouplesQuestionnairePage() {
           </p>
         )}
       </div>
+      <Footer />
     </div>
   )
 }

@@ -62,7 +62,7 @@ export function TherapistNav({
             className="font-black text-lg text-[#233551] tracking-tight hidden sm:block"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            ZenSpace
+            MindCanopy
           </span>
         </Link>
 

@@ -3,13 +3,14 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 import { z } from 'zod'
-import { PLANS, PLAN_KEYS, type PlanKey } from '@/lib/plans'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
+// B-10: plan is NOT accepted from the client — fetched from DB to prevent
+// a user paying weekly then claiming a monthly period end.
 const schema = z.object({
   razorpay_payment_id: z.string(),
   razorpay_subscription_id: z.string(),
   razorpay_signature: z.string(),
-  plan: z.enum(PLAN_KEYS as [PlanKey, ...PlanKey[]]),
 })
 
 export async function POST(request: Request) {
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature, plan } = parsed.data
+  const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = parsed.data
 
   const keySecret = process.env.RAZORPAY_KEY_SECRET
   if (!keySecret) {
@@ -52,7 +53,10 @@ export async function POST(request: Request) {
     .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
     .digest('hex')
 
-  if (expectedSignature !== razorpay_signature) {
+  const signaturesMatch =
+    expectedSignature.length === razorpay_signature.length &&
+    crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))
+  if (!signaturesMatch) {
     logger.warn('api/payment/verify', 'Invalid payment signature', {
       userId: user.id,
       subscriptionId: razorpay_subscription_id,
@@ -61,13 +65,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 })
   }
 
-  const planData = PLANS[plan]
+  const admin = createAdminClient()
+
+  // B-10: fetch plan from DB — do not trust client-supplied value
+  const { data: subRecord } = await (admin as any)
+    .from('subscriptions')
+    .select('plan')
+    .eq('client_id', user.id)
+    .eq('razorpay_subscription_id', razorpay_subscription_id)
+    .maybeSingle() as { data: { plan: string } | null; error: unknown }
+
+  if (!subRecord) {
+    logger.error('api/payment/verify', 'Subscription not found in DB', {
+      userId: user.id,
+      subscriptionId: razorpay_subscription_id,
+    })
+    return NextResponse.json({ error: 'Subscription not found' }, { status: 404 })
+  }
+
+  const planKey = subRecord.plan as PlanKey
+  const planData = PLANS[planKey]
+
+  if (!planData) {
+    logger.error('api/payment/verify', 'Unknown plan on subscription record', {
+      plan: subRecord.plan,
+      userId: user.id,
+    })
+    return NextResponse.json({ error: 'Unknown plan' }, { status: 500 })
+  }
+
   const now = new Date()
   const periodEnd = new Date(now)
   if (planData.cadence === 'monthly') periodEnd.setMonth(periodEnd.getMonth() + 1)
   else periodEnd.setDate(periodEnd.getDate() + 7)
 
-  const admin = createAdminClient()
   const { error: dbErr } = await (admin as any)
     .from('subscriptions')
     .update({
@@ -89,7 +120,7 @@ export async function POST(request: Request) {
 
   logger.info('api/payment/verify', 'Subscription activated', {
     userId: user.id,
-    plan,
+    plan: planKey,
     subscriptionId: razorpay_subscription_id,
     paymentId: razorpay_payment_id,
     periodEnd: periodEnd.toISOString(),

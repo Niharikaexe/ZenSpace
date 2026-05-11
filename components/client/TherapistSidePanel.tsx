@@ -8,7 +8,6 @@ export type TherapistPanelData = {
   approach: string | null
   yearsExperience: number
   languages: string[]
-  availabilityText: string | null
   isVerified: boolean
 }
 
@@ -109,12 +108,6 @@ export default function TherapistSidePanel({ therapist }: { therapist: Therapist
           </div>
         )}
 
-        {therapist.availabilityText && (
-          <div>
-            <p className="text-[10px] font-black text-[#233551]/35 uppercase tracking-widest mb-1.5">General availability</p>
-            <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-line">{therapist.availabilityText}</p>
-          </div>
-        )}
       </div>
     </div>
   )

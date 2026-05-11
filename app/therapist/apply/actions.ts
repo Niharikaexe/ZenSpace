@@ -23,7 +23,7 @@ export async function submitTherapistApplication(
   const specializationsRaw = formData.get('specializations') as string | null
   const languagesRaw = formData.get('languages') as string | null
   const bio = (formData.get('bio') as string | null)?.trim() ?? ''
-  const whyZenspace = (formData.get('whyZenspace') as string | null)?.trim() ?? ''
+  const whyMindcanopy = (formData.get('whyMindcanopy') as string | null)?.trim() ?? ''
 
   if (!fullName || !email || !licenseNumber || !bio) {
     return { error: 'Please fill in all required fields.' }
@@ -61,7 +61,7 @@ export async function submitTherapistApplication(
       specializations,
       languages,
       bio,
-      why_zenspace: whyZenspace || null,
+      why_mindcanopy: whyMindcanopy || null,
       status: 'pending',
     })
 

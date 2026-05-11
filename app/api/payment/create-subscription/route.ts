@@ -52,22 +52,26 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient()
 
-  // Block if there's already an active subscription
-  const { data: existing } = await (admin as any)
+  // B-11: Block if there's already an active or in-flight pending subscription.
+  // Checking both statuses reduces (but does not fully eliminate) the race window;
+  // the unique partial index in 20260507_subscription_unique_constraint.sql is
+  // the hard guarantee — a concurrent insert will hit a 23505 violation and be
+  // caught below.
+  const { data: existingActive } = await (admin as any)
     .from('subscriptions')
-    .select('id, status, plan')
+    .select('id, status')
     .eq('client_id', user.id)
     .eq('status', 'active')
     .maybeSingle()
 
-  if (existing) {
+  if (existingActive) {
     return NextResponse.json(
       { error: 'You already have an active subscription.' },
       { status: 409 }
     )
   }
 
-  // Cancel any stale pending records before creating new one
+  // Cancel any stale pending records before creating a new one
   await (admin as any)
     .from('subscriptions')
     .update({ status: 'cancelled' })
@@ -121,6 +125,10 @@ export async function POST(request: Request) {
   })
 
   if (dbErr) {
+    // 23505 = unique_violation: a concurrent request beat us to the insert
+    if ((dbErr as any).code === '23505') {
+      return NextResponse.json({ error: 'You already have an active subscription.' }, { status: 409 })
+    }
     logger.error('api/payment/create-subscription', 'Failed to insert pending subscription', dbErr, {
       userId: user.id,
       subscriptionId: razorpaySubscription.id,

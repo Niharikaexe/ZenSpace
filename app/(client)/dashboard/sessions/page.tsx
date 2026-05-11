@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientSessionsView from '@/components/client/ClientSessionsView'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,9 @@ export default async function ClientSessionsPage() {
     .maybeSingle() as { data: { status: string; plan: string; current_period_end: string } | null; error: unknown }
 
   const isSubscribed = !!subscription
+  const sessionsPerWeek = subscription?.plan
+    ? (PLANS[subscription.plan as PlanKey]?.sessionsPerWeek ?? 1)
+    : 1
 
   const { data: questionnaire } = await (admin as any)
     .from('questionnaire_responses')
@@ -59,7 +63,7 @@ export default async function ClientSessionsPage() {
   const [tProfileResult, tUserResult, sessionsResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, availability_text, is_verified')
+      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -84,9 +88,9 @@ export default async function ClientSessionsPage() {
     approach: tp?.approach ?? null,
     yearsExperience: tp?.years_experience ?? 0,
     languages: tp?.languages ?? ['English'],
-    availabilityText: tp?.availability_text ?? null,
     isVerified: tp?.is_verified ?? false,
   }
+  const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
   const allSessions: Session[] = sessionsResult.data ?? []
 
   // Count sessions in current calendar week (Mon–Sun) for this match
@@ -121,9 +125,11 @@ export default async function ClientSessionsPage() {
       timezone={profile?.timezone ?? null}
       isSubscribed={isSubscribed}
       sessionsThisWeek={sessionsThisWeek}
+      sessionsPerWeek={sessionsPerWeek}
       upcoming={upcoming}
       past={past}
       therapyType={therapyType}
+      weeklyAvailability={weeklyAvailability}
     />
   )
 }

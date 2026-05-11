@@ -92,7 +92,7 @@ export function SubscriptionPlans({ userName, userEmail, onSuccess }: Props) {
         key,
         amount,
         currency,
-        name: 'ZenSpace',
+        name: 'MindCanopy',
         description: `${PLANS[selectedPlan].label} Therapy Subscription`,
         order_id,
         prefill: { name: userName, email: userEmail },

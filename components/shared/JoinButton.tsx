@@ -58,6 +58,10 @@ export default function JoinButton({ scheduledAt, roomUrl, sessionType }: Props)
   }
 
   if (canJoin && roomUrl) {
+    const isSafeDailyUrl = /^https:\/\/[a-zA-Z0-9-]+\.daily\.co\//.test(roomUrl)
+    if (!isSafeDailyUrl) {
+      return <span className="text-xs text-red-400 italic">Invalid session link</span>
+    }
     return (
       <a
         href={roomUrl}

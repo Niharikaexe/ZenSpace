@@ -38,7 +38,10 @@ export async function POST(request: Request) {
     .update(rawBody)
     .digest('hex')
 
-  if (expectedSignature !== signature) {
+  const signaturesMatch =
+    expectedSignature.length === signature.length &&
+    crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature))
+  if (!signaturesMatch) {
     logger.warn('api/webhooks/razorpay', 'Invalid webhook signature — possible spoofing attempt')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
@@ -103,16 +106,33 @@ export async function POST(request: Request) {
   // Update the period end date to reflect the new billing cycle.
   if (event.event === 'subscription.charged') {
     const sub = (event.payload as any).subscription?.entity
+    const payment = (event.payload as any).payment?.entity
     if (!sub) {
       logger.warn('api/webhooks/razorpay', 'subscription.charged missing subscription entity')
       return NextResponse.json({ received: true })
     }
 
     const subscriptionId: string = sub.id
+    const paymentId: string | undefined = payment?.id
     const currentStart = sub.current_start ? new Date(sub.current_start * 1000) : new Date()
     const currentEnd = sub.current_end
       ? new Date(sub.current_end * 1000)
       : (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d })()
+
+    // B-09: idempotency — skip if we've already processed this payment ID
+    if (paymentId) {
+      const { data: alreadyProcessed } = await (admin as any)
+        .from('subscriptions')
+        .select('id')
+        .eq('razorpay_subscription_id', subscriptionId)
+        .eq('razorpay_payment_id', paymentId)
+        .maybeSingle()
+
+      if (alreadyProcessed) {
+        logger.info('api/webhooks/razorpay', 'subscription.charged — already processed, skipping', { subscriptionId, paymentId })
+        return NextResponse.json({ received: true })
+      }
+    }
 
     const { error } = await (admin as any)
       .from('subscriptions')
@@ -120,6 +140,7 @@ export async function POST(request: Request) {
         status: 'active',
         current_period_start: currentStart.toISOString(),
         current_period_end: currentEnd.toISOString(),
+        ...(paymentId ? { razorpay_payment_id: paymentId } : {}),
       })
       .eq('razorpay_subscription_id', subscriptionId)
 
@@ -128,6 +149,7 @@ export async function POST(request: Request) {
     } else {
       logger.info('api/webhooks/razorpay', 'Subscription period renewed', {
         subscriptionId,
+        paymentId,
         periodEnd: currentEnd.toISOString(),
       })
     }

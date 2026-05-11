@@ -32,7 +32,7 @@ export default function ContactPage() {
         <div className="max-w-6xl mx-auto px-5 h-14 flex items-center gap-3">
           <Link href="/dashboard">
             <span className="font-black text-xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-              ZenSpace
+              MindCanopy
             </span>
           </Link>
           <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-slate-300">

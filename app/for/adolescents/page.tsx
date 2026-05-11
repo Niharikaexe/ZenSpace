@@ -4,9 +4,9 @@ import Footer from '@/components/home/Footer'
 import AdolescentsPageClient from './AdolescentsPageClient'
 
 export const metadata: Metadata = {
-  title: 'Online Therapy for Teenagers & Adolescents in India | ZenSpace',
+  title: 'Online Therapy for Teenagers & Adolescents in India | MindCanopy',
   description:
-    'Exam anxiety, social pressure, and feeling alone — teen struggles are real. Online therapy for Indian adolescents aged 14–20. Safe, private, and on your schedule. ZenSpace.',
+    'Exam anxiety, social pressure, and feeling alone — teen struggles are real. Online therapy for Indian adolescents aged 14–20. Safe, private, and on your schedule. MindCanopy.',
   keywords: [
     'online therapy for teens',
     'child therapy near me',

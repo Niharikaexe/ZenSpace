@@ -5,6 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
+import { backfillClientProfile } from '@/app/actions/questionnaire'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -92,6 +93,8 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
         })
       } else {
         logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
+        // B-12/B-13: backfill client_profiles so admin match modal has structured data
+        await backfillClientProfile(signUpData.user.id, parsed as { type: string; answers: Record<string, unknown> })
       }
     } catch (err) {
       logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, {
@@ -192,38 +195,20 @@ export async function requestPasswordReset(_: AuthState, formData: FormData): Pr
   }
 
   const { email } = parsed.data
-  const admin = createAdminClient()
 
-  // Verify the email is actually registered before sending a reset link.
-  // listUsers with service role — acceptable for MVP scale.
-  const { data: listData, error: listError } = await (admin as any).auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  })
-
-  if (listError) {
-    logger.error('auth/resetPassword', 'listUsers failed', listError)
-    return { error: 'Something went wrong. Please try again.' }
-  }
-
-  const registered = (listData?.users as Array<{ email?: string }> ?? [])
-    .some(u => u.email?.toLowerCase() === email.toLowerCase())
-
-  if (!registered) {
-    return { error: "We don't have an account with that email." }
-  }
-
+  // Always call resetPasswordForEmail regardless of whether the email is registered.
+  // Supabase silently no-ops for unknown emails — this prevents user enumeration.
   const supabase = await createClient()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/reset-password`,
   })
 
   if (error) {
-    logger.error('auth/resetPassword', 'Reset email failed', error, { email })
-    return { error: error.message }
+    logger.error('auth/resetPassword', 'Reset email failed', error)
+    return { error: 'Something went wrong. Please try again.' }
   }
 
-  logger.info('auth/resetPassword', 'Reset email sent', { email })
+  logger.info('auth/resetPassword', 'Reset email requested', { email })
   return { success: true }
 }
 

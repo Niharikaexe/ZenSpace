@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic'
 const FAQS = [
   {
     q: "How does client matching work?",
-    a: "The ZenSpace admin manually reviews client questionnaires and matches them based on your specialisations, language, and availability. You'll receive an email notification when a new client is assigned.",
+    a: "The MindCanopy admin manually reviews client questionnaires and matches them based on your specialisations, language, and availability. You'll receive an email notification when a new client is assigned.",
   },
   {
     q: "When do I get paid?",
-    a: "Payouts are processed off-platform. Once a session is marked as completed, earnings are calculated at your agreed rate. Contact the ZenSpace admin via the Payment Dashboard to request a cash-out.",
+    a: "Payouts are processed off-platform. Once a session is marked as completed, earnings are calculated at your agreed rate. Contact the MindCanopy admin via the Payment Dashboard to request a cash-out.",
   },
   {
     q: "What happens if a client cancels a session?",
@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "What if a client isn't a good fit?",
-    a: "Contact the ZenSpace admin directly. Re-matching is possible. You can also message the admin via the Contact Us page.",
+    a: "Contact the MindCanopy admin directly. Re-matching is possible. You can also message the admin via the Contact Us page.",
   },
   {
     q: "Are my session notes private?",
@@ -35,7 +35,7 @@ const FAQS = [
   },
   {
     q: "How do I handle a crisis situation with a client?",
-    a: "If you believe a client is at immediate risk, advise them to call iCall (9152987821) or go to their nearest emergency service. Document the conversation in your session notes. Contact ZenSpace support immediately after.",
+    a: "If you believe a client is at immediate risk, advise them to call iCall (9152987821) or go to their nearest emergency service. Document the conversation in your session notes. Contact MindCanopy support immediately after.",
   },
 ]
 
@@ -66,7 +66,7 @@ export default async function TherapistFaqPage() {
             Frequently Asked Questions
           </h1>
           <p className="text-sm text-[#233551]/45 mt-1">
-            For therapists on the ZenSpace platform.
+            For therapists on the MindCanopy platform.
           </p>
         </div>
 

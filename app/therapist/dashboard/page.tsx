@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { getNotifications } from '@/app/actions/notifications'
+import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
+import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,7 +75,7 @@ export default async function TherapistDashboard() {
       .eq('status', 'active'),
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, years_experience, weekly_capacity')
+      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability')
       .eq('user_id', user.id)
       .maybeSingle(),
   ])
@@ -383,7 +385,7 @@ export default async function TherapistDashboard() {
                 No clients yet
               </h2>
               <p className="text-sm text-[#233551]/45 mt-2 max-w-sm mx-auto leading-relaxed">
-                The ZenSpace admin matches clients to you based on fit.
+                The MindCanopy admin matches clients to you based on fit.
                 You&apos;ll be notified as soon as someone is assigned.
               </p>
               <div className="mt-6 inline-flex items-center gap-2 text-xs font-medium text-[#3D8A80] bg-[#7EC0B7]/10 px-4 py-2 rounded-full">
@@ -441,6 +443,11 @@ export default async function TherapistDashboard() {
             )}
           </div>
         )}
+        {/* Weekly availability — always visible */}
+        <WeeklyAvailabilityEditor
+          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+        />
+
       </main>
     </div>
   )

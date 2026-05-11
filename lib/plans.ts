@@ -1,4 +1,4 @@
-// Central plan configuration for ZenSpace subscriptions.
+// Central plan configuration for MindCanopy subscriptions.
 // Each plan maps to one Razorpay plan (created in Razorpay dashboard).
 // Razorpay plan IDs are set in Vercel env vars.
 
@@ -12,6 +12,7 @@ export const PLANS = {
     price: '₹1,799',
     per: 'week',
     amountPaise: 179900,
+    sessionsPerWeek: 1,
     features: [
       '1 video session per week (50 min)',
       'Unlimited async text messaging',
@@ -30,6 +31,7 @@ export const PLANS = {
     price: '₹6,499',
     per: 'month',
     amountPaise: 649900,
+    sessionsPerWeek: 1,
     features: [
       '4 video sessions per month (50 min each)',
       'Unlimited async text messaging',
@@ -48,6 +50,7 @@ export const PLANS = {
     price: '₹4,499',
     per: 'week',
     amountPaise: 449900,
+    sessionsPerWeek: 1,
     features: [
       '1 video session per week (50 min)',
       'Unlimited async text messaging',
@@ -67,6 +70,7 @@ export const PLANS = {
     price: '₹16,499',
     per: 'month',
     amountPaise: 1649900,
+    sessionsPerWeek: 1,
     features: [
       '4 video sessions per month (50 min each)',
       'Unlimited async text messaging',
@@ -88,6 +92,7 @@ export const PLANS = {
     price: '₹3,200',
     per: 'week',
     amountPaise: 320000,
+    sessionsPerWeek: 1,
     features: [
       '1 couples session per week (60 min)',
       'Unlimited async text for both partners',
@@ -106,6 +111,7 @@ export const PLANS = {
     price: '₹11,699',
     per: 'month',
     amountPaise: 1169900,
+    sessionsPerWeek: 1,
     features: [
       '4 couples sessions per month (60 min each)',
       'Unlimited async text for both partners',
@@ -124,6 +130,7 @@ export const PLANS = {
     price: '₹7,499',
     per: 'week',
     amountPaise: 749900,
+    sessionsPerWeek: 1,
     features: [
       '1 couples session per week (60 min)',
       'Unlimited async text for both partners',
@@ -143,6 +150,7 @@ export const PLANS = {
     price: '₹25,000',
     per: 'month',
     amountPaise: 2500000,
+    sessionsPerWeek: 1,
     features: [
       '4 couples sessions per month (60 min each)',
       'Unlimited async text for both partners',

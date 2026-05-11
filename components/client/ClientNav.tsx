@@ -38,7 +38,7 @@ export default function ClientNav({ userName }: Props) {
             className="font-black text-xl tracking-tight text-[#233551]"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            ZenSpace
+            MindCanopy
           </span>
         </Link>
 

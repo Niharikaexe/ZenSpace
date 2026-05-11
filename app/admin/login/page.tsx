@@ -18,7 +18,7 @@ export default function AdminLoginPage() {
             <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
           </div>
           <span className="font-black text-base text-white" style={{ fontFamily: 'var(--font-lato)' }}>
-            ZenSpace
+            MindCanopy
           </span>
         </Link>
         <Link href="/" className="text-sm text-white/40 hover:text-white transition-colors">
@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
                   type="email"
                   name="email"
                   required
-                  placeholder="admin@zenspace.in"
+                  placeholder="admin@mindcanopy.in"
                   className="w-full px-4 py-3 rounded-xl bg-white/6 border border-white/12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#7EC0B7]/40 focus:border-[#7EC0B7]/50 transition-all"
                 />
               </div>

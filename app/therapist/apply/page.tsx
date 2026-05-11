@@ -24,10 +24,10 @@ const STEPS = ['Personal', 'Credentials', 'Practice']
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30'
+  'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30'
 
 const textareaCls =
-  'w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none'
+  'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none'
 
 function Field({
   label,
@@ -205,7 +205,7 @@ function StepPractice({
     specializations: string[]
     languages: string[]
     bio: string
-    whyZenspace: string
+    whyMindcanopy: string
   }
   onChange: (key: string, value: string) => void
   toggleSpecialization: (s: string) => void
@@ -278,10 +278,10 @@ function StepPractice({
         />
       </Field>
 
-      <Field label="Why do you want to join ZenSpace?" hint="optional">
+      <Field label="Why do you want to join MindCanopy?" hint="optional">
         <textarea
-          value={values.whyZenspace}
-          onChange={e => onChange('whyZenspace', e.target.value)}
+          value={values.whyMindcanopy}
+          onChange={e => onChange('whyMindcanopy', e.target.value)}
           placeholder="What draws you to online therapy? What kind of clients do you most want to work with?"
           rows={3}
           className={textareaCls}
@@ -334,7 +334,7 @@ function SuccessScreen() {
         href="/"
         className="inline-block text-sm font-semibold text-[#3D8A80] hover:text-[#233551] transition-colors"
       >
-        ← Back to ZenSpace
+        ← Back to MindCanopy
       </Link>
     </div>
   )
@@ -354,7 +354,7 @@ export default function TherapistApplyPage() {
     specializations: [] as string[],
     languages: ['English'] as string[],
     bio: '',
-    whyZenspace: '',
+    whyMindcanopy: '',
   })
 
   const updatePersonal = (key: string, value: string) => setPersonal(prev => ({ ...prev, [key]: value }))
@@ -417,7 +417,7 @@ export default function TherapistApplyPage() {
             className="font-black text-lg text-[#233551] flex-shrink-0"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            ZenSpace
+            MindCanopy
           </Link>
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
@@ -429,7 +429,7 @@ export default function TherapistApplyPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 py-10">
         {/* Step pills */}
         <div className="flex items-center gap-2 mb-6">
           {STEPS.map((label, i) => (
@@ -467,7 +467,7 @@ export default function TherapistApplyPage() {
             <input type="hidden" name="specializations" value={JSON.stringify(practice.specializations)} />
             <input type="hidden" name="languages" value={JSON.stringify(practice.languages)} />
             <input type="hidden" name="bio" value={practice.bio} />
-            <input type="hidden" name="whyZenspace" value={practice.whyZenspace} />
+            <input type="hidden" name="whyMindcanopy" value={practice.whyMindcanopy} />
 
             {/* Step content */}
             {step === 0 && <StepPersonal values={personal} onChange={updatePersonal} />}

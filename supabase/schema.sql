@@ -1,5 +1,5 @@
 -- ============================================================
--- ZenSpace Database Schema
+-- MindCanopy Database Schema
 -- ============================================================
 
 -- Enable UUID extension
@@ -11,7 +11,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TYPE user_role AS ENUM ('client', 'therapist', 'admin');
 CREATE TYPE subscription_status AS ENUM ('pending', 'active', 'paused', 'cancelled', 'expired');
-CREATE TYPE subscription_plan AS ENUM ('weekly', 'monthly');
+CREATE TYPE subscription_plan AS ENUM (
+  'weekly', 'monthly',
+  'basic_weekly', 'basic_monthly',
+  'premium_weekly', 'premium_monthly',
+  'couples_basic_weekly', 'couples_basic_monthly',
+  'couples_premium_weekly', 'couples_premium_monthly'
+);
 CREATE TYPE match_status AS ENUM ('pending', 'active', 'ended');
 CREATE TYPE session_type AS ENUM ('chat', 'video');
 CREATE TYPE session_status AS ENUM ('scheduled', 'ongoing', 'completed', 'cancelled');
@@ -25,6 +31,7 @@ CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role user_role NOT NULL DEFAULT 'client',
   full_name TEXT NOT NULL,
+  email TEXT,
   avatar_url TEXT,
   phone TEXT,
   timezone TEXT DEFAULT 'UTC',
@@ -71,6 +78,7 @@ CREATE TABLE therapist_profiles (
   accepts_new_clients BOOLEAN DEFAULT TRUE,
   is_verified BOOLEAN DEFAULT FALSE,      -- admin verifies credentials
   weekly_capacity INTEGER DEFAULT 10,     -- max clients per week
+  weekly_availability JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -87,6 +95,8 @@ CREATE TABLE subscriptions (
   -- Razorpay fields
   razorpay_subscription_id TEXT UNIQUE,
   razorpay_plan_id TEXT,
+  razorpay_order_id TEXT,
+  razorpay_payment_id TEXT,
   razorpay_customer_id TEXT,
   amount INTEGER NOT NULL,               -- in paise (INR) or cents
   currency TEXT DEFAULT 'INR',
@@ -260,7 +270,7 @@ CREATE POLICY "Clients manage own questionnaire" ON questionnaire_responses
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, full_name, role)
+  INSERT INTO profiles (id, full_name, role, email)
   VALUES (
     NEW.id,
     COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''), NEW.email),
@@ -268,12 +278,29 @@ BEGIN
       WHEN NEW.raw_user_meta_data->>'role' IN ('client', 'therapist', 'admin')
         THEN (NEW.raw_user_meta_data->>'role')::user_role
       ELSE 'client'::user_role
-    END
+    END,
+    NEW.email
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Keep email in sync when auth.users.email is updated
+CREATE OR REPLACE FUNCTION sync_profile_email()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    UPDATE profiles SET email = NEW.email WHERE id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER on_auth_user_email_updated
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_profile_email();
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -328,3 +355,113 @@ CREATE INDEX idx_matches_therapist_id ON matches(therapist_id);
 CREATE INDEX idx_sessions_match_id ON sessions(match_id);
 CREATE INDEX idx_sessions_scheduled_at ON sessions(scheduled_at);
 CREATE INDEX idx_subscriptions_client_id ON subscriptions(client_id);
+
+-- Prevent duplicate active/pending subscriptions per client (B-11)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_one_active_per_client
+  ON subscriptions (client_id)
+  WHERE status IN ('active', 'pending');
+
+-- Prevent more than one active match per client (B-19)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_matches_one_active_per_client
+  ON matches (client_id)
+  WHERE status = 'active';
+
+-- ============================================================
+-- NOTIFICATIONS
+-- ============================================================
+
+CREATE TABLE notifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type       TEXT NOT NULL,
+  title      TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  metadata   JSONB NOT NULL DEFAULT '{}',
+  is_read    BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS notifications_user_unread
+  ON notifications(user_id, is_read, created_at DESC);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users read own notifications"
+  ON notifications FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "users update own notifications"
+  ON notifications FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Inserts only via service-role key (admin client)
+-- Run manually after deploy:
+--   ALTER PUBLICATION supabase_realtime ADD TABLE notifications;
+
+-- ============================================================
+-- THERAPIST APPLICATIONS
+-- ============================================================
+
+CREATE TABLE therapist_applications (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name        TEXT NOT NULL,
+  email            TEXT NOT NULL UNIQUE,
+  phone            TEXT,
+  city             TEXT,
+  license_number   TEXT NOT NULL,
+  license_body     TEXT,
+  years_experience INT NOT NULL DEFAULT 0,
+  education        TEXT,
+  specializations  TEXT[] NOT NULL DEFAULT '{}',
+  languages        TEXT[] NOT NULL DEFAULT '{}',
+  bio              TEXT NOT NULL,
+  why_mindcanopy     TEXT,
+  status           TEXT NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
+  admin_notes      TEXT,
+  submitted_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at      TIMESTAMPTZ
+);
+
+ALTER TABLE therapist_applications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can submit a therapist application"
+  ON therapist_applications FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+-- ============================================================
+-- THERAPIST SWITCH REQUESTS
+-- ============================================================
+
+CREATE TABLE therapist_switch_requests (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id    UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  match_id     UUID REFERENCES matches(id) ON DELETE SET NULL,
+  reason       TEXT,
+  details      TEXT,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  actioned_at  TIMESTAMPTZ,
+  actioned_by  UUID REFERENCES profiles(id) ON DELETE SET NULL
+);
+
+ALTER TABLE therapist_switch_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "clients can insert own switch requests"
+  ON therapist_switch_requests FOR INSERT TO authenticated
+  WITH CHECK (client_id = auth.uid());
+
+CREATE POLICY "clients can read own switch requests"
+  ON therapist_switch_requests FOR SELECT TO authenticated
+  USING (client_id = auth.uid());
+
+CREATE POLICY "admin full access to switch requests"
+  ON therapist_switch_requests FOR ALL TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );

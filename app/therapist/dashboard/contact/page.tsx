@@ -25,7 +25,7 @@ export default function TherapistContactPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     // Mailto fallback — wire to real backend when ready
-    const mailtoUrl = `mailto:hello@zenspace.in?subject=${encodeURIComponent(subject || 'Therapist Query')}&body=${encodeURIComponent(message)}`
+    const mailtoUrl = `mailto:hello@mindcanopy.in?subject=${encodeURIComponent(subject || 'Therapist Query')}&body=${encodeURIComponent(message)}`
     window.open(mailtoUrl, '_blank')
     setSent(true)
   }
@@ -40,7 +40,7 @@ export default function TherapistContactPage() {
               <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
             </div>
             <span className="font-black text-lg text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-              ZenSpace
+              MindCanopy
             </span>
           </Link>
           <Link href="/therapist/dashboard" className="text-sm text-[#233551]/50 hover:text-[#233551] transition-colors">
@@ -69,8 +69,8 @@ export default function TherapistContactPage() {
             <p className="font-bold text-[#233551]">Message opened in your email client.</p>
             <p className="text-sm text-[#233551]/50">
               If nothing opened, email us at{' '}
-              <a href="mailto:hello@zenspace.in" className="text-[#3D8A80] hover:underline">
-                hello@zenspace.in
+              <a href="mailto:hello@mindcanopy.in" className="text-[#3D8A80] hover:underline">
+                hello@mindcanopy.in
               </a>
             </p>
             <Link

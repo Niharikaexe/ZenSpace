@@ -23,7 +23,7 @@ export default function ResetPasswordPage() {
               className="font-black text-2xl tracking-tight text-[#233551]"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              ZenSpace
+              MindCanopy
             </span>
           </Link>
           <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>

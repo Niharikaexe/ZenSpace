@@ -3,8 +3,8 @@ import Navbar from '@/components/home/Navbar'
 import Footer from '@/components/home/Footer'
 
 export const metadata = {
-  title: 'About Us — ZenSpace',
-  description: 'We built ZenSpace because therapy in India needed to change. Here\'s the honest version of why.',
+  title: 'About Us — MindCanopy',
+  description: 'We built MindCanopy because therapy in India needed to change. Here\'s the honest version of why.',
 }
 
 export default function AboutPage() {
@@ -47,7 +47,7 @@ export default function AboutPage() {
                 Most people in India who need therapy don't go. Not because they don't know it helps. Because the version of therapy that exists here still feels designed for someone else — someone with a lot of time, a tolerant family, and no shame about any of it.
               </p>
               <p className="text-[#233551]/65 leading-relaxed">
-                We started ZenSpace to fix the parts we found most broken: the stigma, the geography, the cultural mismatch, and the waiting.
+                We started MindCanopy to fix the parts we found most broken: the stigma, the geography, the cultural mismatch, and the waiting.
               </p>
             </div>
 
@@ -77,7 +77,7 @@ export default function AboutPage() {
                 We are DPDP Act compliant. Everything you share stays between you and your therapist. We don't sell your data. We don't use it for targeting. We don't ask you to connect your social accounts.
               </p>
               <p className="text-[#233551]/65 leading-relaxed">
-                Your sessions, your messages, your notes — they exist inside ZenSpace and nowhere else. Not because we're hiding something. Because it's yours.
+                Your sessions, your messages, your notes — they exist inside MindCanopy and nowhere else. Not because we're hiding something. Because it's yours.
               </p>
             </div>
 
@@ -89,7 +89,7 @@ export default function AboutPage() {
                 What we are not.
               </h2>
               <p className="text-[#233551]/65 leading-relaxed">
-                We are not a crisis line. We are not a diagnostic service. We do not prescribe medication. ZenSpace is a talk therapy platform — which means real, structured conversations with a trained professional, conducted at a pace that works for your life.
+                We are not a crisis line. We are not a diagnostic service. We do not prescribe medication. MindCanopy is a talk therapy platform — which means real, structured conversations with a trained professional, conducted at a pace that works for your life.
               </p>
               <p className="text-[#233551]/65 leading-relaxed">
                 If you're in immediate danger, please call iCall at <span className="font-semibold text-[#233551]">9152987821</span> or Vandrevala Foundation at <span className="font-semibold text-[#233551]">1860-2662-345</span>.
@@ -104,10 +104,10 @@ export default function AboutPage() {
                 Who runs this.
               </h2>
               <p className="text-[#233551]/65 leading-relaxed">
-                ZenSpace was founded by Niharika, who spent years watching people she cared about talk themselves out of getting help. The platform is built on the conviction that access to good therapy shouldn't require a particular city, a particular income, or a particular kind of family.
+                MindCanopy was founded by Niharika, who spent years watching people she cared about talk themselves out of getting help. The platform is built on the conviction that access to good therapy shouldn't require a particular city, a particular income, or a particular kind of family.
               </p>
               <p className="text-[#233551]/65 leading-relaxed">
-                Every therapist on ZenSpace is vetted by our team personally. Every match is made by a human. We're small on purpose.
+                Every therapist on MindCanopy is vetted by our team personally. Every match is made by a human. We're small on purpose.
               </p>
             </div>
 

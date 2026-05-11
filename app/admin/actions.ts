@@ -25,6 +25,18 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   const adminUser = await assertAdmin()
   const admin = createAdminClient()
 
+  // B-19: prevent double-matching — reject if client already has an active match
+  const { data: existingMatch } = await (admin as any)
+    .from('matches')
+    .select('id')
+    .eq('client_id', clientId)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { id: string } | null; error: unknown }
+
+  if (existingMatch) {
+    throw new Error('This client already has an active match. End the current match before creating a new one.')
+  }
+
   const { error } = await (admin as any).from('matches').insert({
     client_id: clientId,
     therapist_id: therapistId,
@@ -72,7 +84,7 @@ export async function toggleTherapistVerification(therapistProfileId: string, cu
         userId: tProfile.user_id,
         type: 'profile_verified',
         title: 'Profile verified',
-        body: 'Your ZenSpace profile has been verified. You are now eligible to receive client matches.',
+        body: 'Your MindCanopy profile has been verified. You are now eligible to receive client matches.',
         metadata: {},
       }).catch(() => {})
     }
@@ -152,7 +164,7 @@ export async function approveApplication(applicationId: string, adminNotes: stri
   if (updateErr) throw new Error(updateErr.message)
 
   // Send invite email (fire-and-forget)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://zenspace.in'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
   const inviteUrl = `${siteUrl}/therapist/onboard?code=${code}`
   sendApplicationInviteEmail({
     to: application.email,
