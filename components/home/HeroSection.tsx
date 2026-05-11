@@ -4,7 +4,7 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import OwlMascot from "@/components/home/OwlMascot"
 
-/* ── Floating leaf SVG ── */
+/* ── Floating decorative SVGs (desktop only) ── */
 const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; className?: string }) => (
   <svg viewBox="0 0 36 52" fill="none" className={className}>
     <path d="M18,50 C18,50 0,36 0,18 C0,0 18,0 18,0 C18,0 36,0 36,18 C36,36 18,50 18,50 Z" fill={color} fillOpacity="0.75" />
@@ -12,80 +12,82 @@ const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; classN
   </svg>
 )
 
-/* ── Star / sparkle SVG ── */
 const StarSVG = ({ color = "#FF8C5A", className = "" }: { color?: string; className?: string }) => (
   <svg viewBox="0 0 24 24" fill={color} className={className}>
     <path d="M12 0L13.8 8.2L22 10L13.8 11.8L12 20L10.2 11.8L2 10L10.2 8.2L12 0Z" />
   </svg>
 )
 
-/* ── Category card icon SVGs ── */
-const IndividualIcon = () => (
-  <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
-    <circle cx="20" cy="14" r="7" fill="#7EC0B7" />
-    <path d="M6,36 C6,27 12,22 20,22 C28,22 34,27 34,36" stroke="#7EC0B7" strokeWidth="3" strokeLinecap="round" fill="none"/>
+/* ── Category card figure illustrations ── */
+const IndividualFigure = () => (
+  <svg viewBox="0 0 60 72" fill="none" className="w-full h-full drop-shadow-sm">
+    {/* Body */}
+    <ellipse cx="30" cy="54" rx="14" ry="10" fill="white" fillOpacity="0.18"/>
+    <rect x="22" y="38" width="16" height="20" rx="8" fill="white" fillOpacity="0.22"/>
+    {/* Head */}
+    <circle cx="30" cy="28" r="11" fill="white" fillOpacity="0.30"/>
+    {/* Leaf accent */}
+    <path d="M46 36 C52 28 60 34 54 42 C48 40 46 36 46 36Z" fill="white" fillOpacity="0.20"/>
+    <path d="M50 40 L54 32" stroke="white" strokeWidth="1" strokeOpacity="0.25" strokeLinecap="round"/>
+    {/* Small dot */}
+    <circle cx="18" cy="20" r="3" fill="white" fillOpacity="0.15"/>
   </svg>
 )
 
-const CouplesIcon = () => (
-  <svg viewBox="0 0 48 40" fill="none" className="w-full h-full">
-    <circle cx="16" cy="13" r="6" fill="#E8926A" />
-    <path d="M4,36 C4,28 9,23 16,23 C19,23 22,24 24,26" stroke="#E8926A" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-    <circle cx="32" cy="13" r="6" fill="#7EC0B7" />
-    <path d="M44,36 C44,28 39,23 32,23 C29,23 26,24 24,26" stroke="#7EC0B7" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-    <path d="M21,30 Q24,28 27,30" stroke="#233551" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.3"/>
+const CouplesFigure = () => (
+  <svg viewBox="0 0 72 72" fill="none" className="w-full h-full drop-shadow-sm">
+    {/* Left person */}
+    <circle cx="22" cy="26" r="9" fill="white" fillOpacity="0.28"/>
+    <ellipse cx="22" cy="50" rx="10" ry="8" fill="white" fillOpacity="0.18"/>
+    <rect x="14" y="34" width="16" height="18" rx="8" fill="white" fillOpacity="0.20"/>
+    {/* Right person */}
+    <circle cx="50" cy="26" r="9" fill="white" fillOpacity="0.28"/>
+    <ellipse cx="50" cy="50" rx="10" ry="8" fill="white" fillOpacity="0.18"/>
+    <rect x="42" y="34" width="16" height="18" rx="8" fill="white" fillOpacity="0.20"/>
+    {/* Connection heart */}
+    <path d="M36 40 C36 37 33 34 30 36 C28 37 28 40 30 42 L36 48 L42 42 C44 40 44 37 42 36 C39 34 36 37 36 40Z" fill="white" fillOpacity="0.30"/>
   </svg>
 )
 
-const TeenIcon = () => (
-  <svg viewBox="0 0 40 44" fill="none" className="w-full h-full">
-    <circle cx="20" cy="13" r="7" fill="#F97B5A" />
-    <path d="M8,38 C8,29 13,24 20,24 C27,24 32,29 32,38" stroke="#F97B5A" strokeWidth="3" strokeLinecap="round" fill="none"/>
-    <path d="M30,8 L32,4 L34,8" stroke="#7EC0B7" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-    <circle cx="36" cy="6" r="2" fill="#7EC0B7" opacity="0.7"/>
-    <circle cx="28" cy="3" r="1.5" fill="#E8926A" opacity="0.8"/>
+const TeenFigure = () => (
+  <svg viewBox="0 0 60 72" fill="none" className="w-full h-full drop-shadow-sm">
+    {/* Body */}
+    <rect x="21" y="37" width="18" height="22" rx="9" fill="white" fillOpacity="0.22"/>
+    {/* Head */}
+    <circle cx="30" cy="26" r="11" fill="white" fillOpacity="0.30"/>
+    {/* Hair accent */}
+    <path d="M20 22 C20 14 28 10 36 13 C38 14 40 16 40 22" fill="white" fillOpacity="0.15"/>
+    {/* Sparkle stars */}
+    <path d="M48 18 L49.2 22.2 L53 23 L49.2 23.8 L48 28 L46.8 23.8 L43 23 L46.8 22.2 Z" fill="white" fillOpacity="0.35"/>
+    <path d="M14 14 L14.8 16.8 L17 17 L14.8 17.2 L14 20 L13.2 17.2 L11 17 L13.2 16.8 Z" fill="white" fillOpacity="0.30"/>
+    <circle cx="52" cy="34" r="2.5" fill="white" fillOpacity="0.20"/>
   </svg>
 )
 
 const therapyTypes = [
   {
     label: "Individual",
-    tagline: "A habit for your head. Just you and a person who listens.",
-    href: "/for/individuals",
-    Icon: IndividualIcon,
-    accent: "#7EC0B7",
-    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
-    border: "border-[#7EC0B7]/25",
-    hoverBorder: "hover:border-[#7EC0B7]/60",
-    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
-    iconBg: "bg-[#7EC0B7]/15",
-    dot: "bg-[#7EC0B7]",
+    sub: "For myself",
+    tagline: "Just you and a person who listens.",
+    href: "/questionnaire/individual",
+    bg: "#233551",
+    Figure: IndividualFigure,
   },
   {
     label: "Couples",
-    tagline: "Finding the rhythm again. A space for both of you.",
-    href: "/for/couples",
-    Icon: CouplesIcon,
-    accent: "#E8926A",
-    bg: "from-[#E8926A]/10 to-[#E8926A]/5",
-    border: "border-[#E8926A]/25",
-    hoverBorder: "hover:border-[#E8926A]/60",
-    hoverBg: "hover:from-[#E8926A]/18 hover:to-[#E8926A]/10",
-    iconBg: "bg-[#E8926A]/15",
-    dot: "bg-[#E8926A]",
+    sub: "For me and my partner",
+    tagline: "Finding the rhythm again.",
+    href: "/questionnaire/couples",
+    bg: "#E8926A",
+    Figure: CouplesFigure,
   },
   {
     label: "Teen",
-    tagline: "A room of your own. For when the world feels too loud.",
-    href: "/for/adolescents",
-    Icon: TeenIcon,
-    accent: "#3D8A80",
-    bg: "from-[#7EC0B7]/10 to-[#7EC0B7]/5",
-    border: "border-[#7EC0B7]/25",
-    hoverBorder: "hover:border-[#7EC0B7]/60",
-    hoverBg: "hover:from-[#7EC0B7]/18 hover:to-[#7EC0B7]/10",
-    iconBg: "bg-[#7EC0B7]/15",
-    dot: "bg-[#3D8A80]",
+    sub: "For my child",
+    tagline: "A room of your own.",
+    href: "/questionnaire/teen",
+    bg: "#3D8A80",
+    Figure: TeenFigure,
   },
 ]
 
@@ -93,8 +95,8 @@ const HeroSection = () => {
   return (
     <section className="bg-white relative overflow-hidden min-h-[90vh] flex items-center">
 
-      {/* ── Background wavy peach blob — mc-anim-bg shrinks opacity on mobile ── */}
-      <div className="mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
+      {/* Background peach blob — desktop only */}
+      <div className="hidden lg:block mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
         <svg viewBox="0 0 640 780" fill="none" preserveAspectRatio="xMaxYMid slice" className="w-full h-full">
           <path
             d="M120,10 C260,-15 520,40 600,180 C680,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
@@ -108,16 +110,12 @@ const HeroSection = () => {
         </svg>
       </div>
 
-      {/* ── Mobile-only background owl ── */}
-      <div className="lg:hidden absolute right-0 top-1/2 -translate-y-1/2 w-56 h-56 opacity-[0.10] pointer-events-none z-0 rounded-full overflow-hidden">
-        <OwlMascot className="w-full h-full float-slow" />
-      </div>
-
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 w-full relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
-          {/* ── LEFT: Text content ── */}
-          <div className="mc-content flex-1 space-y-7">
+          {/* ── LEFT: Text + category cards ── */}
+          <div className="mc-content flex-1 space-y-7 w-full">
+
             {/* Eyebrow badge */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -138,8 +136,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Peace isn’t a milestone<br />
-              it’s a practice
+              Peace isn't a milestone<br />
+              it's a practice
             </motion.h1>
 
             {/* Subtitle */}
@@ -149,49 +147,50 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-               Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
+              Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
             </motion.p>
 
-            {/* Therapy type category cards */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-3">
+            {/* Category cards — stacked, full-width */}
+            <div className="flex flex-col gap-2.5 pt-1 max-w-lg">
               {therapyTypes.map((t, i) => (
                 <motion.div
                   key={t.label}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 + i * 0.1 }}
-                  className="flex-1"
                 >
                   <Link
                     href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
+                    className="group relative flex items-center justify-between px-6 py-4 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+                    style={{ backgroundColor: t.bg }}
                   >
-                    {/* Subtle corner glow on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
+                    {/* Subtle shine on hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+                      style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%)' }}
+                    />
 
-                    {/* Icon */}
-                    <div className={`w-10 h-10 ${t.iconBg} rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
-                      <t.Icon />
-                    </div>
-
-                    {/* Label + tagline */}
-                    <div>
-                      <p className="text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                    {/* Left: label + subtitle */}
+                    <div className="relative z-10">
+                      <p className="text-white text-xl font-black leading-none" style={{ fontFamily: 'var(--font-lato)' }}>
                         {t.label}
                       </p>
-                      <p className="text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
+                      <p className="text-white/65 text-sm mt-1 font-medium">{t.sub}</p>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-white/50 text-xs">{t.tagline}</span>
+                      </div>
                     </div>
 
-                    {/* Arrow */}
-                    <div className="flex items-center gap-1 mt-auto">
-                      <span className="text-xs font-semibold" style={{ color: t.accent }}>Learn more</span>
-                      <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" style={{ color: t.accent }}>
-                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                    {/* Right: figure + arrow */}
+                    <div className="flex items-center gap-3 flex-shrink-0 relative z-10">
+                      <div className="w-14 h-14 md:w-16 md:h-16 opacity-90 group-hover:opacity-100 transition-all duration-300 group-hover:scale-105">
+                        <t.Figure />
+                      </div>
+                      <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0">
+                        <svg className="w-4 h-4 text-white transition-transform duration-300 group-hover:translate-x-0.5" fill="none" viewBox="0 0 16 16">
+                          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
                     </div>
-
-                    {/* Active dot */}
-                    <span className={`absolute top-3 right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
                   </Link>
                 </motion.div>
               ))}
@@ -201,7 +200,6 @@ const HeroSection = () => {
           {/* ── RIGHT: Owl Mascot — desktop only ── */}
           <div className="hidden lg:block flex-shrink-0 relative w-[380px] h-[380px] xl:w-[440px] xl:h-[440px]">
 
-            {/* Owl */}
             <motion.div
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -211,7 +209,7 @@ const HeroSection = () => {
               <OwlMascot className="w-full h-full" />
             </motion.div>
 
-            {/* Floating decorative elements — desktop only */}
+            {/* Floating decorative elements */}
             <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.8 }} className="absolute -top-4 -right-4 float-medium float-delay-1">
               <StarSVG color="#FF8C5A" className="w-8 h-8" />
             </motion.div>
@@ -228,10 +226,11 @@ const HeroSection = () => {
               <LeafSVG color="#7EC0B7" className="w-5 h-7 -rotate-12" />
             </motion.div>
           </div>
+
         </div>
       </div>
 
-      {/* ── Bottom organic wave → peach section ── */}
+      {/* Bottom organic wave */}
       <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
         <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20">
           <path

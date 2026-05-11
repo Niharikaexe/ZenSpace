@@ -63,6 +63,8 @@ const TherapistCards = () => {
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    // Skip continuous scroll on mobile — let users swipe naturally
+    if (window.innerWidth < 768) return
     let frame: number
     let paused = false
 
@@ -116,7 +118,7 @@ const TherapistCards = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="flex-shrink-0 w-52 h-64 md:w-64 md:h-80 relative"
           >
-            <div className="float-slow w-full h-full">
+            <div className="md:float-slow w-full h-full">
               <WomanIllustration />
             </div>
           </motion.div>
