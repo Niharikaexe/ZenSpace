@@ -128,17 +128,17 @@ export function TherapistNav({
               <div className="absolute right-0 top-full mt-1.5 w-44 bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-50">
                 <Link
                   href="/therapist/dashboard/faq"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
+                  className="block px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
                   onClick={() => setHelpOpen(false)}
                 >
-                  <span className="text-base">💬</span> FAQ
+                  FAQ
                 </Link>
                 <Link
                   href="/therapist/dashboard/contact"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
+                  className="block px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
                   onClick={() => setHelpOpen(false)}
                 >
-                  <span className="text-base">✉️</span> Contact Us
+                  Contact Us
                 </Link>
               </div>
             )}
@@ -171,25 +171,25 @@ export function TherapistNav({
                 </div>
                 <Link
                   href="/therapist/dashboard/account"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
+                  className="block px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
                   onClick={() => setAccountOpen(false)}
                 >
-                  <span className="text-base">👤</span> My Account
+                  My Account
                 </Link>
                 <Link
                   href="/therapist/dashboard/payment"
-                  className="flex items-center gap-2.5 px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
+                  className="block px-4 py-2 text-sm text-[#233551]/75 hover:bg-slate-50 hover:text-[#233551] transition-colors"
                   onClick={() => setAccountOpen(false)}
                 >
-                  <span className="text-base">💰</span> Payment Dashboard
+                  Payment Dashboard
                 </Link>
                 <div className="border-t border-slate-50 mt-1 pt-1">
                   <form action={signOut}>
                     <button
                       type="submit"
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                      className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
                     >
-                      <span className="text-base">🚪</span> Sign Out
+                      Sign Out
                     </button>
                   </form>
                 </div>
@@ -207,7 +207,7 @@ export function TherapistNav({
             key={link.href}
             href={link.href}
             className={cn(
-              'relative flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
+              'relative flex-shrink-0 px-3 min-h-[44px] flex items-center rounded-lg text-xs font-medium transition-colors whitespace-nowrap',
               isActive(link.href)
                 ? 'bg-[#233551] text-white'
                 : 'text-[#233551]/55 hover:bg-slate-100',

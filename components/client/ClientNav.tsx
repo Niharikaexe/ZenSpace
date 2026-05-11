@@ -42,8 +42,8 @@ export default function ClientNav({ userName }: Props) {
           </span>
         </Link>
 
-        {/* Center nav tabs */}
-        <nav className="flex items-center gap-1">
+        {/* Center nav tabs — desktop only */}
+        <nav className="hidden md:flex items-center gap-1">
           <Link
             href="/dashboard/chat"
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -170,6 +170,27 @@ export default function ClientNav({ userName }: Props) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mobile nav strip */}
+      <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
+        {[
+          { href: '/dashboard/chat',     label: 'Chat' },
+          { href: '/dashboard/sessions', label: 'Sessions' },
+          { href: '/dashboard/notes',    label: 'Notes' },
+        ].map(link => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold min-h-[44px] flex items-center transition-colors whitespace-nowrap ${
+              pathname === link.href
+                ? 'bg-[#233551] text-white'
+                : 'text-[#233551]/55 hover:bg-slate-100'
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
     </header>
   )

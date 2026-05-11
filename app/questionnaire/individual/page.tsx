@@ -54,7 +54,7 @@ function OptionButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-xl text-sm font-medium border-2 transition-all px-4 py-3 text-left',
+        'rounded-xl text-sm font-medium border-2 transition-all px-4 py-3 min-h-[48px] text-left',
         selected
           ? 'bg-[#233551] text-white border-[#233551]'
           : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5',
@@ -163,7 +163,7 @@ export default function IndividualQuestionnairePage() {
           </span>
         </div>
 
-        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
 
           {/* Q1 */}
           {current === 1 && (

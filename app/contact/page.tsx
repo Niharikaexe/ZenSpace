@@ -18,7 +18,7 @@ export default function ContactPage() {
 
       <main>
         <section className="bg-white pt-20 pb-16 md:pt-28 md:pb-24">
-          <div className="max-w-5xl mx-auto px-6">
+          <div className="max-w-5xl mx-auto px-4 md:px-6">
 
             {/* Header */}
             <div className="max-w-xl mb-14">

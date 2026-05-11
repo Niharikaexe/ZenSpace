@@ -184,7 +184,7 @@ export default function CouplesQuestionnairePage() {
             </Link>
             <p className="text-sm text-[#3D8A80] mt-1">Couples therapy assessment</p>
           </div>
-          <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+          <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
             <h2 className="text-2xl font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
               Before we start
             </h2>
@@ -278,7 +278,7 @@ export default function CouplesQuestionnairePage() {
           )}
         </div>
 
-        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
 
           {/* Section A */}
           {phase === 'shared-a' && current === 1 && (

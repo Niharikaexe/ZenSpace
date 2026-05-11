@@ -217,7 +217,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -237,12 +237,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
           {/* Tab bar */}
-          <div className="border-b border-slate-200 px-6 flex">
+          <div className="border-b border-slate-200 px-2 md:px-6 flex overflow-x-auto">
             {tabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`px-4 py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors -mb-px ${
+                className={`flex-shrink-0 whitespace-nowrap px-4 py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors -mb-px ${
                   tab === t.key
                     ? 'border-emerald-500 text-emerald-700'
                     : 'border-transparent text-slate-500 hover:text-slate-700'

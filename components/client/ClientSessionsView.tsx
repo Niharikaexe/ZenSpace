@@ -144,13 +144,13 @@ function BookingDropdown({
   return (
     <div
       ref={ref}
-      className="absolute z-30 top-full mt-2 left-0 w-64 bg-white rounded-2xl border border-slate-200 shadow-xl p-4"
+      className="absolute z-30 top-full mt-2 left-0 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-4"
     >
       {/* Slot info */}
       <div className="mb-3">
         <p className="text-xs font-black text-[#233551]/35 uppercase tracking-widest mb-0.5">Booking</p>
         <p className="text-sm font-bold text-[#233551]">{dayLabel}</p>
-        <p className="text-xs text-[#233551]/50">{slot.label12} IST</p>
+        <p className="text-xs text-[#233551]/50">{slot.label12} IST · 50 min session</p>
       </div>
 
       {/* Session type */}
@@ -343,9 +343,12 @@ export default function ClientSessionsView({
               {/* ── Time slots for selected day ──────────────────────────── */}
               {selectedDayEntry && (
                 <div className="mt-4">
-                  <p className="text-xs text-[#233551]/40 font-semibold mb-2">
-                    {selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                  </p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-[#233551]/40 font-semibold">
+                      {selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                    </p>
+                    <p className="text-[11px] text-[#233551]/40 font-semibold">Each session 50 min</p>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedDayEntry.slots.map(slot => {
                       const isOpen = openSlot?.time === slot.time && openSlot?.date === slot.date

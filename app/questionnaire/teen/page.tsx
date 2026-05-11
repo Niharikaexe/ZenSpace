@@ -160,7 +160,7 @@ export default function TeenQuestionnairePage() {
           )}
         </div>
 
-        <div className="bg-white border border-slate-100 rounded-3xl p-8 shadow-sm">
+        <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
 
           {/* Q1 */}
           {current === 1 && (
