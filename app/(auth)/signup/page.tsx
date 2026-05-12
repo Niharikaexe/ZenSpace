@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { signUp } from '@/app/actions/auth'
+import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -84,12 +85,7 @@ export default function SignupPage() {
 
         {/* Testimonial */}
         <div className="mt-10">
-          <div className="bg-[#E8926A]/15 border border-[#E8926A]/25 rounded-2xl px-5 py-4">
-            <p className="text-white/90 text-sm leading-relaxed italic">
-              "Changed how I handle anxiety at work."
-            </p>
-            <p className="text-[#E8926A] text-xs font-semibold mt-2">— Priya, 28, Mumbai</p>
-          </div>
+          <RotatingTestimonial />
         </div>
 
         {/* Bottom sign-in link */}
