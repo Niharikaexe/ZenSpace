@@ -7,6 +7,7 @@ import MultiScheduleForm from '@/components/therapist/MultiScheduleForm'
 import NoteEditor from '@/components/shared/NoteEditor'
 import { updateSessionStatus } from '@/app/actions/sessions'
 import { getNotifications } from '@/app/actions/notifications'
+import CompleteSessionButton from '@/components/therapist/CompleteSessionButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -172,17 +173,7 @@ export default async function TherapistSessionsPage() {
 
                   {s.status === 'scheduled' && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
-                      <form action={async () => {
-                        'use server'
-                        await updateSessionStatus(s.id, 'completed')
-                      }}>
-                        <button
-                          type="submit"
-                          className="text-xs px-3 py-1.5 rounded-lg border border-[#7EC0B7]/50 text-[#3D8A80] hover:bg-[#7EC0B7]/10 transition-colors font-medium"
-                        >
-                          Mark completed
-                        </button>
-                      </form>
+                      <CompleteSessionButton sessionId={s.id} clientName={s.clientName} />
                       <form action={async () => {
                         'use server'
                         await updateSessionStatus(s.id, 'cancelled')
