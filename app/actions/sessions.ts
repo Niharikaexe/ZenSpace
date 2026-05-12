@@ -152,7 +152,8 @@ export async function scheduleSession(
   if (sessionType === 'video' && process.env.DAILY_API_KEY) {
     try {
       const roomName = `mindcanopy-${matchId.slice(0, 8)}-${Date.now()}`
-      const exp = Math.floor(new Date(scheduledAt).getTime() / 1000) + 7200
+      const sessionStart = new Date(scheduledAt).getTime()
+      const exp = Math.floor(Math.max(sessionStart, Date.now()) / 1000) + 7200
 
       const res = await fetch('https://api.daily.co/v1/rooms', {
         method: 'POST',
