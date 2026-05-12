@@ -285,6 +285,24 @@ export async function updateSessionStatus(
   const { error } = await (admin as any).from('sessions').update(updates).eq('id', sessionId)
   if (error) return { error: error.message }
 
+  // On cancellation, delete the Daily.co room so it can't be joined
+  if (status === 'cancelled') {
+    try {
+      const { data: s } = await (admin as any)
+        .from('sessions')
+        .select('daily_room_name')
+        .eq('id', sessionId)
+        .single() as { data: { daily_room_name: string | null } | null; error: unknown }
+
+      if (s?.daily_room_name && process.env.DAILY_API_KEY) {
+        await fetch(`https://api.daily.co/v1/rooms/${s.daily_room_name}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${process.env.DAILY_API_KEY}` },
+        })
+      }
+    } catch { /* room deletion failure is non-fatal */ }
+  }
+
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/sessions')
   return {}

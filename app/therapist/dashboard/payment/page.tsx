@@ -183,7 +183,7 @@ export default async function TherapistPaymentPage() {
                   <div>
                     <p className="text-sm font-medium text-[#233551]">{s.client_name}</p>
                     <p className="text-xs text-[#233551]/40 mt-0.5">
-                      {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDate(s.scheduled_at)}
+                      {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDate(s.scheduled_at)}
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-[#3D8A80]">

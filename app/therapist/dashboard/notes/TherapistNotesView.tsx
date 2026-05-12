@@ -47,7 +47,7 @@ function NoteEditor({ session, onSaved }: { session: Session; onSaved: (id: stri
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/70 transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-base flex-shrink-0">{session.session_type === 'video' ? '📹' : '💬'}</span>
+          <span className="text-[10px] font-bold text-[#233551]/40 flex-shrink-0">{session.session_type === 'video' ? 'VID' : 'CHT'}</span>
           <div className="min-w-0">
             <p className="text-sm font-medium text-[#233551] truncate">{formatDT(session.scheduled_at)}</p>
             <p className="text-xs text-[#233551]/40 mt-0.5 capitalize">{session.status}</p>

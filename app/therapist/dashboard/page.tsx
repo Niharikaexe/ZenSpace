@@ -263,8 +263,8 @@ export default async function TherapistDashboard() {
                   {upcomingSessions.slice(0, 6).map(s => (
                     <div key={s.sessionId} className="flex items-center justify-between px-5 py-3.5 gap-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-[#233551]/5 flex items-center justify-center text-base flex-shrink-0">
-                          {s.sessionType === 'video' ? '📹' : '💬'}
+                        <div className="w-9 h-9 rounded-xl bg-[#233551]/5 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-[#233551]/50">{s.sessionType === 'video' ? 'VID' : 'CHT'}</span>
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#233551] truncate">{s.clientName}</p>

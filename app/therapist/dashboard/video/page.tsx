@@ -139,7 +139,7 @@ export default async function TherapistSessionsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} with {s.clientName}
+                          {s.session_type === 'video' ? 'Video' : 'Chat'} with {s.clientName}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           s.status === 'scheduled' ? 'bg-[#233551]/8 text-[#233551]' :
@@ -215,7 +215,7 @@ export default async function TherapistSessionsPage() {
                     <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? '📹 Video Session' : '💬 Chat Session'}
+                          {s.session_type === 'video' ? 'Video Session' : 'Chat Session'}
                         </p>
                         <p className="text-xs text-[#233551]/40 mt-0.5">{formatDateTime(s.scheduled_at)}</p>
                       </div>

@@ -128,7 +128,7 @@ function InlineScheduleForm({
                 : 'border-slate-200 text-[#233551]/55 hover:border-slate-300'
             }`}
           >
-            {type === 'video' ? '📹 Video' : '💬 Chat'}
+            {type === 'video' ? 'Video' : 'Chat'}
           </button>
         ))}
       </div>

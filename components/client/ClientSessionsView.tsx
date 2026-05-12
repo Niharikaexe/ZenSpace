@@ -406,7 +406,7 @@ export default function ClientSessionsView({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-semibold text-[#233551]">
-                            {s.session_type === 'video' ? '📹 Video session' : '💬 Chat session'}
+                            {s.session_type === 'video' ? 'Video session' : 'Chat session'}
                           </span>
                           <StatusBadge status={s.status} />
                         </div>
@@ -436,7 +436,7 @@ export default function ClientSessionsView({
                     <div key={s.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                       <div className="px-5 py-4 flex items-center justify-between gap-4">
                         <p className="text-sm font-semibold text-[#233551] min-w-0 truncate">
-                          {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDT(s.scheduled_at, timezone)}
+                          {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDT(s.scheduled_at, timezone)}
                         </p>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <StatusBadge status={s.status} />

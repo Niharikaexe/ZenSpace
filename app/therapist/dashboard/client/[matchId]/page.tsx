@@ -145,7 +145,7 @@ export default async function TherapistClientDetailPage({
                   <span className="text-[10px] font-black text-[#7EC0B7] bg-[#7EC0B7]/15 px-2 py-0.5 rounded-full uppercase tracking-wide">New</span>
                 )}
                 {sub?.status === 'active' && (
-                  <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/10 px-2 py-0.5 rounded-full capitalize">{sub.plan}</span>
+                  <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/10 px-2 py-0.5 rounded-full">Subscribed</span>
                 )}
               </div>
               <p className="text-sm text-[#233551]/45 mt-0.5">{client?.email}</p>
@@ -158,7 +158,7 @@ export default async function TherapistClientDetailPage({
               href="/therapist/dashboard/chat"
               className="relative flex items-center gap-1.5 px-4 py-2 bg-[#7EC0B7]/10 text-[#3D8A80] text-xs font-semibold rounded-xl hover:bg-[#7EC0B7]/20 transition-colors"
             >
-              💬 Chat
+              Chat
               {unread > 0 && (
                 <span className="ml-1 text-[#E8926A] font-bold">{unread} unread</span>
               )}
@@ -167,7 +167,7 @@ export default async function TherapistClientDetailPage({
               href="/therapist/dashboard/video"
               className="flex items-center gap-1.5 px-4 py-2 bg-[#233551]/5 text-[#233551] text-xs font-semibold rounded-xl hover:bg-[#233551]/10 transition-colors"
             >
-              📹 Sessions
+              Sessions
             </Link>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default async function TherapistClientDetailPage({
           {sub ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#233551] capitalize">{sub.plan} plan</p>
+                <p className="text-sm font-semibold text-[#233551]">Active subscription</p>
                 {sub.current_period_end && (
                   <p className="text-xs text-[#233551]/40 mt-0.5">
                     {sub.status === 'active' ? 'Renews' : 'Expired'} {formatDate(sub.current_period_end)}
@@ -250,7 +250,7 @@ export default async function TherapistClientDetailPage({
                 <div key={s.id} className="px-5 py-3.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-[#233551]">
-                      {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDateTime(s.scheduled_at)}
+                      {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDateTime(s.scheduled_at)}
                     </p>
                     <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${
                       s.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :

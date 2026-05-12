@@ -9,13 +9,13 @@ import {
   type Notification,
 } from '@/app/actions/notifications'
 
-const TYPE_META: Record<string, { icon: string; color: string }> = {
-  client_matched:    { icon: '🤝', color: '#7EC0B7' },
-  client_unmatched:  { icon: '👋', color: '#E8926A' },
-  client_message:    { icon: '💬', color: '#7EC0B7' },
-  profile_verified:  { icon: '✅', color: '#3D8A80' },
-  session_scheduled: { icon: '📅', color: '#233551' },
-  session_reminder:  { icon: '⏰', color: '#E8926A' },
+const TYPE_META: Record<string, { label: string; color: string }> = {
+  client_matched:    { label: 'New',  color: '#7EC0B7' },
+  client_unmatched:  { label: 'Info', color: '#E8926A' },
+  client_message:    { label: 'Msg',  color: '#7EC0B7' },
+  profile_verified:  { label: 'OK',   color: '#3D8A80' },
+  session_scheduled: { label: 'Ses',  color: '#233551' },
+  session_reminder:  { label: 'Rem',  color: '#E8926A' },
 }
 
 function timeAgo(iso: string) {
@@ -138,13 +138,12 @@ export function NotificationBell({ userId, initialNotifications }: Props) {
           {/* List */}
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-2xl mb-2">🔔</p>
               <p className="text-sm text-[#233551]/40">You&apos;re all caught up.</p>
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
               {notifications.map(n => {
-                const meta = TYPE_META[n.type] ?? { icon: '🔔', color: '#233551' }
+                const meta = TYPE_META[n.type] ?? { label: '!', color: '#233551' }
                 return (
                   <button
                     key={n.id}
@@ -155,10 +154,10 @@ export function NotificationBell({ userId, initialNotifications }: Props) {
                     )}
                   >
                     <span
-                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-base mt-0.5"
-                      style={{ background: `${meta.color}18` }}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5"
+                      style={{ background: `${meta.color}18`, color: meta.color }}
                     >
-                      {meta.icon}
+                      {meta.label}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
