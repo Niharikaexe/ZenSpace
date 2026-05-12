@@ -162,7 +162,7 @@ export async function scheduleSession(
         },
         body: JSON.stringify({
           name: roomName,
-          privacy: 'private',
+          privacy: 'public',
           properties: { exp, max_participants: 2 },
         }),
       })
