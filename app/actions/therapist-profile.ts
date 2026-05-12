@@ -21,6 +21,18 @@ export async function updateTherapistProfile(
   const specializationsRaw = formData.get('specializations') as string | null
   const languagesRaw = formData.get('languages') as string | null
   const acceptsNewClients = formData.get('acceptsNewClients') === 'true'
+  const paypalEmail = (formData.get('paypalEmail') as string | null)?.trim() ?? ''
+  const bankAccountName = (formData.get('bankAccountName') as string | null)?.trim() ?? ''
+  const bankAccountNumber = (formData.get('bankAccountNumber') as string | null)?.trim() ?? ''
+  const bankIfsc = (formData.get('bankIfsc') as string | null)?.trim().toUpperCase() ?? ''
+
+  // Lightweight payment-field validation — empty values are allowed
+  if (paypalEmail && !/^\S+@\S+\.\S+$/.test(paypalEmail)) {
+    return { error: 'Please enter a valid PayPal email.' }
+  }
+  if (bankIfsc && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankIfsc)) {
+    return { error: 'IFSC code must be 11 characters (e.g. HDFC0001234).' }
+  }
 
   if (!fullName || fullName.length < 2) return { error: 'Name is required.' }
   if (!bio || bio.length < 10) return { error: 'Bio must be at least 10 characters.' }
@@ -64,6 +76,10 @@ export async function updateTherapistProfile(
       specializations,
       languages,
       accepts_new_clients: acceptsNewClients,
+      paypal_email: paypalEmail || null,
+      bank_account_name: bankAccountName || null,
+      bank_account_number: bankAccountNumber || null,
+      bank_ifsc: bankIfsc || null,
     })
     .eq('user_id', user.id)
 

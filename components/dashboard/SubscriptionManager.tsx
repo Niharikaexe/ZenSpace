@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { DashboardNav } from './DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 import { cancelSubscription } from '@/app/actions/subscription'
 
 function formatDate(iso: string) {
@@ -59,7 +59,7 @@ export function SubscriptionManager({ userName, isMatched, subscription }: Props
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={userName} isMatched={isMatched} />
+      <ClientNav userName={userName} isMatched={isMatched} />
 
       <main className="max-w-2xl mx-auto px-4 py-10">
         <button

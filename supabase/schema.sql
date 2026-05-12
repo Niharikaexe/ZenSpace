@@ -56,6 +56,15 @@ CREATE TABLE client_profiles (
   preferred_session_type session_type DEFAULT 'chat',
   emergency_contact_name TEXT,
   emergency_contact_phone TEXT,
+  -- Billing details (used to populate Razorpay invoice / GST receipt)
+  billing_name TEXT,
+  billing_phone TEXT,
+  billing_address_line1 TEXT,
+  billing_address_line2 TEXT,
+  billing_city TEXT,
+  billing_state TEXT,
+  billing_pincode TEXT,
+  billing_gstin TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -79,6 +88,11 @@ CREATE TABLE therapist_profiles (
   is_verified BOOLEAN DEFAULT FALSE,      -- admin verifies credentials
   weekly_capacity INTEGER DEFAULT 10,     -- max clients per week
   weekly_availability JSONB NOT NULL DEFAULT '{}'::jsonb,
+  -- Payout info (off-platform; stored for admin reference)
+  paypal_email TEXT,
+  bank_account_name TEXT,
+  bank_account_number TEXT,
+  bank_ifsc TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

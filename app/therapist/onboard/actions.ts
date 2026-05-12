@@ -4,6 +4,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 const onboardSchema = z.object({
   inviteCode: z.string().min(1),
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
@@ -26,7 +29,24 @@ export async function submitTherapistOnboarding(
   _: OnboardState,
   formData: FormData
 ): Promise<OnboardState> {
-  const parsed = onboardSchema.safeParse(Object.fromEntries(formData))
+  // Pull profile photo first (a File entry — not part of the Zod schema)
+  const profilePhoto = formData.get('profilePhoto')
+
+  if (!(profilePhoto instanceof File) || profilePhoto.size === 0) {
+    return { error: 'Profile photo is required.' }
+  }
+  if (profilePhoto.size > MAX_PHOTO_BYTES) {
+    return { error: 'Profile photo must be under 5 MB.' }
+  }
+  if (!ALLOWED_PHOTO_TYPES.includes(profilePhoto.type)) {
+    return { error: 'Profile photo must be a JPG, PNG, or WebP image.' }
+  }
+
+  // Strip the file before schema parsing so Zod doesn't see it
+  const fields = Object.fromEntries(formData)
+  delete (fields as Record<string, unknown>).profilePhoto
+
+  const parsed = onboardSchema.safeParse(fields)
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message }
@@ -106,6 +126,29 @@ export async function submitTherapistOnboarding(
     await admin.auth.admin.deleteUser(userId)
     return { error: 'Failed to save profile. Please try again.' }
   }
+
+  // Upload profile photo to the avatars bucket and save the public URL
+  const ext = profilePhoto.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const photoPath = `therapists/${userId}/avatar-${Date.now()}.${ext}`
+
+  const { error: uploadError } = await admin.storage
+    .from('avatars')
+    .upload(photoPath, profilePhoto, {
+      contentType: profilePhoto.type,
+      upsert: true,
+    })
+
+  if (uploadError) {
+    await admin.auth.admin.deleteUser(userId)
+    return { error: 'Failed to upload profile photo. Please try again.' }
+  }
+
+  const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(photoPath)
+
+  await (admin as any)
+    .from('profiles')
+    .update({ avatar_url: publicUrlData.publicUrl })
+    .eq('id', userId)
 
   // Mark invite code as used (skip for test code)
   if (!isTestCode && invite) {

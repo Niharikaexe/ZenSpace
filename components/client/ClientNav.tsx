@@ -7,9 +7,10 @@ import { signOut } from '@/app/actions/auth'
 
 interface Props {
   userName: string
+  isMatched?: boolean
 }
 
-export default function ClientNav({ userName }: Props) {
+export default function ClientNav({ userName, isMatched = true }: Props) {
   const pathname = usePathname()
   const [helpOpen, setHelpOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -42,7 +43,8 @@ export default function ClientNav({ userName }: Props) {
           </span>
         </Link>
 
-        {/* Center nav tabs — desktop only */}
+        {/* Center nav tabs — desktop only; only when matched */}
+        {isMatched && (
         <nav className="hidden md:flex items-center gap-1">
           <Link
             href="/dashboard/chat"
@@ -84,6 +86,7 @@ export default function ClientNav({ userName }: Props) {
             Notes
           </Link>
         </nav>
+        )}
 
         {/* Right: Help + Account dropdowns */}
         <div className="flex items-center gap-1">
@@ -172,7 +175,8 @@ export default function ClientNav({ userName }: Props) {
         </div>
       </div>
 
-      {/* Mobile nav strip */}
+      {/* Mobile nav strip — only when matched */}
+      {isMatched && (
       <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
         {[
           { href: '/dashboard/chat',     label: 'Chat' },
@@ -192,6 +196,7 @@ export default function ClientNav({ userName }: Props) {
           </Link>
         ))}
       </div>
+      )}
     </header>
   )
 }

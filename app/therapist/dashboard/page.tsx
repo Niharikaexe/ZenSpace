@@ -216,6 +216,11 @@ export default async function TherapistDashboard() {
           </div>
         </div>
 
+        {/* Weekly availability — moved above clients */}
+        <WeeklyAvailabilityEditor
+          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+        />
+
         {isMatched ? (
           <>
             {/* Stats row */}
@@ -443,10 +448,6 @@ export default async function TherapistDashboard() {
             )}
           </div>
         )}
-        {/* Weekly availability — always visible */}
-        <WeeklyAvailabilityEditor
-          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
-        />
 
       </main>
     </div>

@@ -130,14 +130,19 @@ export async function scheduleSession(
 
   const admin = createAdminClient()
 
-  // B-04: verify caller is the client of this match
+  // B-04: verify caller is the therapist or client of this match
+  // Sessions are typically scheduled by therapists, but client-initiated
+  // requests are also allowed for the same match.
   const { data: matchOwnership } = await (admin as any)
     .from('matches')
-    .select('client_id')
+    .select('client_id, therapist_id')
     .eq('id', matchId)
-    .single() as { data: { client_id: string } | null; error: unknown }
+    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
 
-  if (!matchOwnership || matchOwnership.client_id !== user.id) {
+  if (
+    !matchOwnership ||
+    (matchOwnership.client_id !== user.id && matchOwnership.therapist_id !== user.id)
+  ) {
     return { error: 'Not authorized to schedule this session' }
   }
 
@@ -183,28 +188,22 @@ export async function scheduleSession(
 
   if (error) return { error: error.message }
 
-  // Notify the client about the scheduled session
+  // Notify the OTHER party about the scheduled session
   try {
-    const admin = createAdminClient()
-    const { data: match } = await (admin as any)
-      .from('matches')
-      .select('client_id')
-      .eq('id', matchId)
-      .single()
+    const recipientId =
+      user.id === matchOwnership.therapist_id ? matchOwnership.client_id : matchOwnership.therapist_id
 
-    if (match?.client_id) {
-      const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
-        weekday: 'short', day: 'numeric', month: 'short',
-        hour: '2-digit', minute: '2-digit', hour12: true,
-      })
-      createNotification({
-        userId: match.client_id,
-        type: 'session_scheduled',
-        title: 'Session scheduled',
-        body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
-        metadata: { matchId, scheduledAt, sessionType, dateStr },
-      }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
-    }
+    const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    })
+    createNotification({
+      userId: recipientId,
+      type: 'session_scheduled',
+      title: 'Session scheduled',
+      body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
+      metadata: { matchId, scheduledAt, sessionType, dateStr },
+    }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
   } catch { /* non-fatal */ }
 
   revalidatePath('/therapist/dashboard/video')

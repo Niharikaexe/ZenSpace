@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useRef, useEffect, useActionState } from 'react'
 import { submitTherapistOnboarding, type OnboardState } from './actions'
 import { Button } from '@/components/ui/button'
 
@@ -18,7 +18,7 @@ const LANGUAGES = [
   'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
 ]
 
-const STEPS = ['Invite Code', 'Your Account', 'Credentials', 'Your Profile']
+const STEPS = ['Invite Code', 'Your Account', 'Credentials', 'Photo', 'Your Profile']
 
 // ─── Step components ──────────────────────────────────────────────────────────
 
@@ -160,6 +160,64 @@ function StepCredentials({
   )
 }
 
+function StepPhoto({
+  previewUrl, fileName, error, onClickUpload, onClear,
+}: {
+  previewUrl: string | null
+  fileName: string | null
+  error: string | null
+  onClickUpload: () => void
+  onClear: () => void
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-2">
+        <h2 className="text-xl font-semibold text-slate-900">Profile photo</h2>
+        <p className="text-sm text-slate-500 mt-1">
+          Clients see this before they choose to work with you. JPG, PNG, or WebP — max 5 MB.
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-slate-200 bg-slate-50 flex items-center justify-center">
+          {previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt="Profile preview" className="w-full h-full object-cover" />
+          ) : (
+            <svg className="w-12 h-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClickUpload}
+          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors"
+        >
+          {previewUrl ? 'Replace photo' : 'Upload photo'}
+        </button>
+
+        {fileName && (
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="truncate max-w-[200px]">{fileName}</span>
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-red-500 hover:text-red-600 font-medium"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    </div>
+  )
+}
+
 function StepProfile({
   values, onChange, toggleSpecialization, toggleLanguage,
 }: {
@@ -291,6 +349,54 @@ export default function TherapistOnboardPage() {
     languages: ['English'] as string[],
   })
 
+  // Profile photo — file stays in the input ref; previewUrl drives the UI
+  const photoRef = useRef<HTMLInputElement>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoFileName, setPhotoFileName] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+
+  // Revoke object URL when it changes / unmounts
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    }
+  }, [photoPreview])
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setPhotoPreview(null)
+      setPhotoFileName(null)
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('Photo must be under 5 MB.')
+      if (photoRef.current) photoRef.current.value = ''
+      setPhotoPreview(null)
+      setPhotoFileName(null)
+      return
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('Photo must be JPG, PNG, or WebP.')
+      if (photoRef.current) photoRef.current.value = ''
+      setPhotoPreview(null)
+      setPhotoFileName(null)
+      return
+    }
+    setPhotoError(null)
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoPreview(URL.createObjectURL(file))
+    setPhotoFileName(file.name)
+  }
+
+  function clearPhoto() {
+    if (photoRef.current) photoRef.current.value = ''
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoPreview(null)
+    setPhotoFileName(null)
+    setPhotoError(null)
+  }
+
   const updateAccount = (key: string, value: string) => setAccount(prev => ({ ...prev, [key]: value }))
   const updateCreds = (key: string, value: string) => setCreds(prev => ({ ...prev, [key]: value }))
   const updateProfile = (key: string, value: string) => setProfile(prev => ({ ...prev, [key]: value }))
@@ -323,7 +429,8 @@ export default function TherapistOnboardPage() {
       )
     }
     if (step === 2) return creds.licenseNumber.trim().length > 0 && creds.yearsExperience !== ''
-    if (step === 3) return profile.bio.trim().length >= 10 && profile.specializations.length > 0 && profile.languages.length > 0
+    if (step === 3) return !!photoPreview
+    if (step === 4) return profile.bio.trim().length >= 10 && profile.specializations.length > 0 && profile.languages.length > 0
     return false
   }
 
@@ -378,12 +485,32 @@ export default function TherapistOnboardPage() {
             <input type="hidden" name="languages" value={JSON.stringify(profile.languages)} />
             <input type="hidden" name="weeklyCapacity" value={profile.weeklyCapacity} />
 
+            {/* Persistent file input — stays mounted across step changes
+                so the chosen file isn't lost when navigating between steps */}
+            <input
+              ref={photoRef}
+              type="file"
+              name="profilePhoto"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+
             {/* Step content */}
             <div className="px-6 py-6">
               {step === 0 && <StepInviteCode value={inviteCode} onChange={setInviteCode} />}
               {step === 1 && <StepAccount values={account} onChange={updateAccount} />}
               {step === 2 && <StepCredentials values={creds} onChange={updateCreds} />}
               {step === 3 && (
+                <StepPhoto
+                  previewUrl={photoPreview}
+                  fileName={photoFileName}
+                  error={photoError}
+                  onClickUpload={() => photoRef.current?.click()}
+                  onClear={clearPhoto}
+                />
+              )}
+              {step === 4 && (
                 <StepProfile
                   values={profile}
                   onChange={updateProfile}

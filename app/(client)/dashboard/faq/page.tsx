@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 
 const FAQS = [
   {
@@ -60,7 +60,7 @@ export default async function FAQPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={profile.full_name} isMatched={!!match} />
+      <ClientNav userName={profile.full_name} isMatched={!!match} />
 
       <main className="max-w-2xl mx-auto px-4 py-10">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-[#233551]/45 hover:text-[#233551] transition-colors mb-6">

@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -144,7 +144,7 @@ export default async function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={profile.full_name} isMatched={false} />
+      <ClientNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <PendingDashboard

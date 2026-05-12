@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +36,7 @@ export default async function MyTherapistPage() {
   if (!match) {
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
-        <DashboardNav userName={profile.full_name} isMatched={false} />
+        <ClientNav userName={profile.full_name} isMatched={false} />
         <main className="max-w-2xl mx-auto px-4 py-16 text-center">
           <div className="w-16 h-16 rounded-full bg-[#7EC0B7]/15 flex items-center justify-center mx-auto mb-4">
             <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7 text-[#3D8A80]">
@@ -67,7 +67,7 @@ export default async function MyTherapistPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={profile.full_name} isMatched={true} />
+      <ClientNav userName={profile.full_name} isMatched={true} />
 
       <main className="max-w-2xl mx-auto px-4 py-10">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-[#233551]/45 hover:text-[#233551] transition-colors mb-6">
