@@ -84,9 +84,6 @@ export default function BlogPage() {
                     href={`/blog/${post.slug}`}
                     className="group block border border-slate-100 rounded-2xl p-6 hover:border-[#7EC0B7]/40 hover:shadow-md hover:shadow-[#7EC0B7]/10 transition-all duration-200"
                   >
-                    <span className="text-xs font-bold text-[#3D8A80] uppercase tracking-wide">
-                      {post.categoryLabel}
-                    </span>
                     <h3
                       className="mt-3 text-base font-bold text-[#233551] leading-snug group-hover:text-[#3D8A80] transition-colors"
                       style={{ fontFamily: "var(--font-lato)" }}
