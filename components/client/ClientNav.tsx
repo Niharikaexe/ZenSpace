@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 
 interface Props {
   userName: string
@@ -34,14 +35,7 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
       <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/dashboard/chat">
-          <span
-            className="font-black text-xl tracking-tight text-[#233551]"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo href="/dashboard/chat" />
 
         {/* Center nav tabs — desktop only; only when matched */}
         {isMatched && (

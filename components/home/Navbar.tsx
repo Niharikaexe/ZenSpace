@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
-import { OwlLogo } from "@/components/home/OwlLogo"
+import { BrandLogo } from "@/components/shared/BrandLogo"
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -13,12 +13,7 @@ const Navbar = () => {
       <div className="max-w-6xl mx-auto flex items-center justify-between h-16 px-6">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <OwlLogo size={34} />
-          <span className="font-black text-xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo owlSize={34} />
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">

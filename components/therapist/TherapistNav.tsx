@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { signOut } from '@/app/actions/auth'
 import { NotificationBell } from '@/components/therapist/NotificationBell'
 import type { Notification } from '@/app/actions/notifications'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 
 interface TherapistNavProps {
   therapistName: string
@@ -54,17 +55,7 @@ export function TherapistNav({
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/therapist/dashboard" className="flex items-center gap-2 flex-shrink-0">
-          <div className="w-7 h-7 rounded-full border-2 border-[#7EC0B7] flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
-          </div>
-          <span
-            className="font-black text-lg text-[#233551] tracking-tight hidden sm:block"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo href="/therapist/dashboard" className="flex-shrink-0" />
 
         {/* Nav links */}
         <nav className="hidden md:flex items-center gap-1">

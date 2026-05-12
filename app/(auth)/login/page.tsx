@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { signIn } from '@/app/actions/auth'
 import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
+import { OwlLogo } from '@/components/home/OwlLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -89,9 +90,10 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="md:hidden w-full max-w-md mb-8 text-center">
-            <Link href="/">
+            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+              <OwlLogo size={28} />
               <span
-                className="font-black text-2xl tracking-tight text-[#233551]"
+                className="font-black text-2xl tracking-tight text-[#3D8A80]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
                 MindCanopy
