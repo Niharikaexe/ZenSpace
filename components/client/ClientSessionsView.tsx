@@ -414,7 +414,7 @@ export default function ClientSessionsView({
                       </div>
                       <div className="flex-shrink-0">
                         {s.session_type === 'video' ? (
-                          <JoinButton scheduledAt={s.scheduled_at} roomUrl={s.daily_room_url} sessionType={s.session_type} />
+                          <JoinButton sessionId={s.id} scheduledAt={s.scheduled_at} roomUrl={s.daily_room_url} sessionType={s.session_type} />
                         ) : (
                           <Link href="/dashboard/chat" className="text-sm text-[#3D8A80] hover:text-[#233551] font-semibold transition-colors">
                             Open chat →

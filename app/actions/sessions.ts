@@ -163,7 +163,7 @@ export async function scheduleSession(
         },
         body: JSON.stringify({
           name: roomName,
-          privacy: 'public',
+          privacy: 'private',
           properties: { exp, max_participants: 2 },
         }),
       })
@@ -288,4 +288,58 @@ export async function updateSessionStatus(
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/sessions')
   return {}
+}
+
+// ─── Video Join URL ───────────────────────────────────────────────────────────
+
+export async function getSessionJoinUrl(sessionId: string): Promise<{ url?: string; error?: string }> {
+  const { user } = await getAuthUser()
+  const admin = createAdminClient()
+
+  const { data: session } = await (admin as any)
+    .from('sessions')
+    .select('daily_room_url, daily_room_name, match_id, scheduled_at')
+    .eq('id', sessionId)
+    .single() as { data: { daily_room_url: string | null; daily_room_name: string | null; match_id: string; scheduled_at: string } | null; error: unknown }
+
+  if (!session?.daily_room_name || !session?.daily_room_url) return { error: 'No room configured for this session' }
+
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('client_id, therapist_id')
+    .eq('id', session.match_id)
+    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
+
+  const isTherapist = match?.therapist_id === user.id
+  const isClient = match?.client_id === user.id
+  if (!isTherapist && !isClient) return { error: 'Not authorized to join this session' }
+
+  const apiKey = process.env.DAILY_API_KEY
+  if (!apiKey) return { error: 'Video calling is not configured' }
+
+  const exp = Math.floor(Math.max(new Date(session.scheduled_at).getTime(), Date.now()) / 1000) + 7200
+
+  try {
+    const res = await fetch('https://api.daily.co/v1/meeting-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        properties: {
+          room_name: session.daily_room_name,
+          is_owner: isTherapist,
+          exp,
+          user_name: isTherapist ? 'Therapist' : 'Client',
+        },
+      }),
+    })
+
+    if (!res.ok) return { error: 'Failed to generate join link' }
+    const { token } = await res.json()
+    return { url: `${session.daily_room_url}?t=${token}` }
+  } catch {
+    return { error: 'Failed to reach video service' }
+  }
 }

@@ -154,6 +154,7 @@ export default async function TherapistSessionsPage() {
                     <div className="flex-shrink-0">
                       {s.session_type === 'video' ? (
                         <JoinButton
+                          sessionId={s.id}
                           scheduledAt={s.scheduled_at}
                           roomUrl={s.daily_room_url}
                           sessionType={s.session_type}
