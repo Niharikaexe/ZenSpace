@@ -144,11 +144,12 @@ export async function approveApplication(applicationId: string, adminNotes: stri
   if (fetchErr || !application) throw new Error('Application not found')
   if (application.status === 'invited') throw new Error('Already approved')
 
-  // Generate invite code
+  // Generate invite code, linked back to this application for prefill on onboard
   const code = makeInviteCode()
   const { error: inviteErr } = await (admin as any).from('therapist_invites').insert({
     code,
     created_by: adminUser.id,
+    application_id: applicationId,
   })
   if (inviteErr) throw new Error(inviteErr.message)
 

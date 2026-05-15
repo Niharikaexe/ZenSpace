@@ -16,16 +16,22 @@ export async function submitTherapistApplication(
   const email = (formData.get('email') as string | null)?.trim() ?? ''
   const phone = (formData.get('phone') as string | null)?.trim() ?? ''
   const city = (formData.get('city') as string | null)?.trim() ?? ''
-  const licenseNumber = (formData.get('licenseNumber') as string | null)?.trim() ?? ''
-  const licenseBody = (formData.get('licenseBody') as string | null)?.trim() ?? ''
+  const state = (formData.get('state') as string | null)?.trim() ?? ''
+  const country = (formData.get('country') as string | null)?.trim() ?? ''
+  const dateOfBirth = (formData.get('dateOfBirth') as string | null)?.trim() ?? ''
+  const gender = (formData.get('gender') as string | null)?.trim() ?? ''
+  const ethnicity = (formData.get('ethnicity') as string | null)?.trim() ?? ''
+  const linkedinUrl = (formData.get('linkedinUrl') as string | null)?.trim() ?? ''
   const yearsExperience = parseInt(formData.get('yearsExperience') as string, 10) || 0
   const education = (formData.get('education') as string | null)?.trim() ?? ''
   const specializationsRaw = formData.get('specializations') as string | null
+  const specializationOther = (formData.get('specializationOther') as string | null)?.trim() ?? ''
   const languagesRaw = formData.get('languages') as string | null
-  const bio = (formData.get('bio') as string | null)?.trim() ?? ''
   const whyMindcanopy = (formData.get('whyMindcanopy') as string | null)?.trim() ?? ''
+  const cvUrl = (formData.get('cvUrl') as string | null)?.trim() ?? ''
+  const certificateUrlsRaw = formData.get('certificateUrls') as string | null
 
-  if (!fullName || !email || !licenseNumber || !bio) {
+  if (!fullName || !email || !phone || !city || !state || !country || !dateOfBirth || !gender || !ethnicity) {
     return { error: 'Please fill in all required fields.' }
   }
   if (!email.includes('@')) {
@@ -34,14 +40,16 @@ export async function submitTherapistApplication(
 
   let specializations: string[] = []
   let languages: string[] = []
+  let certificateUrls: string[] = []
   try {
     specializations = specializationsRaw ? JSON.parse(specializationsRaw) : []
     languages = languagesRaw ? JSON.parse(languagesRaw) : []
+    certificateUrls = certificateUrlsRaw ? JSON.parse(certificateUrlsRaw) : []
   } catch {
     return { error: 'Invalid form data. Please try again.' }
   }
 
-  if (specializations.length === 0) {
+  if (specializations.length === 0 && !specializationOther) {
     return { error: 'Please select at least one area of specialisation.' }
   }
 
@@ -52,22 +60,27 @@ export async function submitTherapistApplication(
     .insert({
       full_name: fullName,
       email,
-      phone: phone || null,
-      city: city || null,
-      license_number: licenseNumber,
-      license_body: licenseBody || null,
+      phone,
+      city,
+      state,
+      country,
+      date_of_birth: dateOfBirth,
+      gender,
+      ethnicity,
+      linkedin_url: linkedinUrl || null,
       years_experience: yearsExperience,
       education: education || null,
       specializations,
+      specialization_other: specializationOther || null,
       languages,
-      bio,
       why_mindcanopy: whyMindcanopy || null,
+      cv_url: cvUrl || null,
+      certificate_urls: certificateUrls,
       status: 'pending',
     })
 
   if (error) {
     logger.error('therapist/apply', 'Failed to save application', error, { email })
-    // Duplicate application
     if (error.code === '23505') {
       return { error: 'An application with this email already exists. We\'ll be in touch soon.' }
     }

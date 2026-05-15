@@ -76,18 +76,36 @@ CREATE TABLE client_profiles (
 CREATE TABLE therapist_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID UNIQUE NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  license_number TEXT NOT NULL,
+  license_number TEXT,
   license_state TEXT,
+  license_country TEXT,
+  pronouns TEXT,
+  gender TEXT,
+  ethnicity TEXT,
+  date_of_birth DATE,
+  linkedin_url TEXT,
+  timezone TEXT,
   specializations TEXT[] DEFAULT '{}',   -- e.g., ["anxiety", "depression", "PTSD"]
   bio TEXT,
+  tagline TEXT,                           -- one-line philosophy shown on profile cards
+  session_expectations TEXT,              -- "What clients can expect from your sessions"
   years_experience INTEGER DEFAULT 0,
   education TEXT,
   approach TEXT,                          -- therapeutic approach description
+  previous_experience TEXT,               -- e.g. "5 years working with adolescents..."
   languages TEXT[] DEFAULT '{"English"}',
   accepts_new_clients BOOLEAN DEFAULT TRUE,
   is_verified BOOLEAN DEFAULT FALSE,      -- admin verifies credentials
   weekly_capacity INTEGER DEFAULT 10,     -- max clients per week
   weekly_availability JSONB NOT NULL DEFAULT '{}'::jsonb,
+  -- Verification + address
+  id_document_url TEXT,                   -- proof of identification (uploaded file)
+  address_line1 TEXT,
+  address_line2 TEXT,
+  address_city TEXT,
+  address_state TEXT,
+  address_postal_code TEXT,
+  address_country TEXT,
   -- Payout info (off-platform; stored for admin reference)
   paypal_email TEXT,
   bank_account_name TEXT,
@@ -349,6 +367,7 @@ CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
 CREATE TABLE therapist_invites (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   code TEXT UNIQUE NOT NULL,
+  application_id UUID REFERENCES therapist_applications(id) ON DELETE SET NULL,
   created_by UUID NOT NULL REFERENCES profiles(id),
   used_by UUID REFERENCES profiles(id),
   used_at TIMESTAMPTZ,
@@ -418,24 +437,33 @@ CREATE POLICY "users update own notifications"
 -- ============================================================
 
 CREATE TABLE therapist_applications (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  full_name        TEXT NOT NULL,
-  email            TEXT NOT NULL UNIQUE,
-  phone            TEXT,
-  city             TEXT,
-  license_number   TEXT NOT NULL,
-  license_body     TEXT,
-  years_experience INT NOT NULL DEFAULT 0,
-  education        TEXT,
-  specializations  TEXT[] NOT NULL DEFAULT '{}',
-  languages        TEXT[] NOT NULL DEFAULT '{}',
-  bio              TEXT NOT NULL,
-  why_mindcanopy     TEXT,
-  status           TEXT NOT NULL DEFAULT 'pending'
-                   CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
-  admin_notes      TEXT,
-  submitted_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  reviewed_at      TIMESTAMPTZ
+  id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name             TEXT NOT NULL,
+  email                 TEXT NOT NULL UNIQUE,
+  phone                 TEXT,
+  city                  TEXT,
+  state                 TEXT,
+  country               TEXT,
+  gender                TEXT,
+  ethnicity             TEXT,
+  date_of_birth         DATE,
+  linkedin_url          TEXT,
+  license_number        TEXT,
+  license_body          TEXT,
+  years_experience      INT NOT NULL DEFAULT 0,
+  education             TEXT,
+  specializations       TEXT[] NOT NULL DEFAULT '{}',
+  specialization_other  TEXT,
+  languages             TEXT[] NOT NULL DEFAULT '{}',
+  bio                   TEXT,
+  why_mindcanopy        TEXT,
+  cv_url                TEXT,
+  certificate_urls      TEXT[] NOT NULL DEFAULT '{}',
+  status                TEXT NOT NULL DEFAULT 'pending'
+                        CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
+  admin_notes           TEXT,
+  submitted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  reviewed_at           TIMESTAMPTZ
 );
 
 ALTER TABLE therapist_applications ENABLE ROW LEVEL SECURITY;

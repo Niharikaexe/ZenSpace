@@ -25,46 +25,46 @@ function deriveClientProfileFields(data: QuestionnaireData): Record<string, unkn
   const { type, answers } = data
 
   if (type === 'individual') {
-    // q1: what's been going on (multi-select) → primary_concern
-    // q4: spoken to anyone before → previous_therapy
-    // q7: anything for therapist to know → therapy_goals (free text)
-    // q8: therapist gender preference
-    // q10: successful therapy looks like → therapy_goals (structured)
-    // q11: video call comfort → preferred_session_type
-    const therapyGoals = typeof answers.q10 === 'string' && answers.q10
-      ? answers.q10
-      : (typeof answers.q7 === 'string' ? answers.q7 : null)
+    // q1: what's bringing you here (single)
+    // q2: main themes (multi) → primary_concern
+    // q3: support type (single) → therapy_goals
+    // q12: past therapy Y/N → previous_therapy
+    // q13: gender preference
+    const therapyGoals = typeof answers.q3 === 'string' && answers.q3
+      ? answers.q3
+      : (typeof answers.q1 === 'string' ? answers.q1 : null)
 
     return {
-      primary_concern: joinArray(answers.q1),
+      primary_concern: joinArray(answers.q2),
       therapy_goals: therapyGoals || null,
-      previous_therapy: typeof answers.q4 === 'string' && answers.q4.startsWith('Yes — a therapist'),
-      preferred_therapist_gender: typeof answers.q8 === 'string' ? answers.q8 : null,
-      preferred_session_type: answers.q11 === 'Completely comfortable' ? 'video' : 'chat',
+      previous_therapy: answers.q12 === 'Yes',
+      preferred_therapist_gender: typeof answers.q13 === 'string' ? answers.q13 : null,
     }
   }
 
   if (type === 'couples') {
-    // q3: what brought you here (multi-select) → primary_concern
-    // q9: therapist gender preference
-    // q10: prior therapy
-    // q11: success definition → therapy_goals
+    // Couples data shape: { type, attendingAlone, common, partner1, partner2? }
+    // common.c6: areas of conflict (multi) → primary_concern
+    // common.c9: goals (multi) → therapy_goals
+    // common.c10: past couples counseling → previous_therapy (anything other than "No")
+    // common.c11: gender preference
+    const common = (data as unknown as { common?: Record<string, unknown> }).common ?? {}
     return {
-      primary_concern: joinArray(answers.q3),
-      therapy_goals: typeof answers.q11 === 'string' ? answers.q11 : null,
-      previous_therapy: typeof answers.q10 === 'string' && answers.q10.toLowerCase().includes('yes'),
-      preferred_therapist_gender: typeof answers.q9 === 'string' ? answers.q9 : null,
+      primary_concern: joinArray(common.c6),
+      therapy_goals: joinArray(common.c9),
+      previous_therapy: typeof common.c10 === 'string' && common.c10 !== 'No' && common.c10 !== '',
+      preferred_therapist_gender: typeof common.c11 === 'string' ? common.c11 : null,
     }
   }
 
   if (type === 'teen') {
-    // q1: what made you decide to try this (multi-select) → primary_concern
-    // q6: talked to anyone before → previous_therapy
-    // q7: what to know before meeting (multi-select) → therapy_goals
+    // q15: main themes (multi) → primary_concern
+    // q17: past therapy Y/N → previous_therapy
+    // q18: anything else (text) → therapy_goals
     return {
-      primary_concern: joinArray(answers.q1),
-      therapy_goals: joinArray(answers.q7),
-      previous_therapy: typeof answers.q6 === 'string' && answers.q6.includes('been to therapy'),
+      primary_concern: joinArray(answers.q15),
+      therapy_goals: typeof answers.q18 === 'string' && answers.q18 ? answers.q18 : null,
+      previous_therapy: answers.q17 === 'Yes',
     }
   }
 
