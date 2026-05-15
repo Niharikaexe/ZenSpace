@@ -98,6 +98,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/help') ||
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
     pathname === '/therapist/apply' ||          // public application form (no account yet)
+    pathname === '/therapist/join' ||           // public landing for prospective therapists
     pathname.startsWith('/for') ||              // audience landing pages (public marketing)
     pathname === '/about' ||                    // public about page
     pathname === '/contact' ||                  // public contact page
