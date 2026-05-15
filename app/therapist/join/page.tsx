@@ -108,11 +108,8 @@ export default function TherapistJoinPage() {
           <div className="max-w-3xl mx-auto px-4 md:px-6">
             <Eyebrow>Your role</Eyebrow>
             <SectionHeading>What you actually do.</SectionHeading>
-            <p className="text-[#233551]/65 text-base mt-4 mb-8 leading-relaxed">
-              A few things are flexible. A few aren&apos;t. Read both lists before applying.
-            </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
               <PointCard
                 title="You set when you're available."
                 body={
@@ -133,7 +130,7 @@ export default function TherapistJoinPage() {
                 title="Active chat presence (within 48 hours)."
                 body={
                   <>
-                    Between sessions, your subscribed clients can message you on the platform. You&apos;re <span className="font-semibold text-[#233551]">contractually required to respond within 48 hours</span>. This is a core promise we make to clients and one of the few things you don&apos;t get to opt out of.
+                    Between sessions, your subscribed clients can message you on the platform. You&apos;re <span className="font-semibold text-[#233551]">required to respond within 48 hours</span>. This is a core promise we make to clients.
                   </>
                 }
               />
@@ -220,6 +217,14 @@ export default function TherapistJoinPage() {
         {/* ── Platform conduct ─────────────────────────────────────────────── */}
         <section className="bg-white py-16 md:py-20">
           <div className="max-w-3xl mx-auto px-4 md:px-6">
+            <div className="bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-2xl px-6 py-5 flex items-start gap-4 mb-10">
+              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#3D8A80] flex-shrink-0 mt-0.5">
+                <path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+              </svg>
+              <p className="text-sm text-[#233551] leading-relaxed">
+                <span className="font-semibold">A note on confidentiality.</span> You&apos;ll be bound to strict client confidentiality in perpetuity — including compliance with India&apos;s DPDP Act 2023. Exceptions apply only where mandatory reporting law requires disclosure. The full clause sits in the agreement you&apos;ll sign at onboarding.
+              </p>
+            </div>
             <Eyebrow>Where we draw the line</Eyebrow>
             <SectionHeading>What you can&apos;t do.</SectionHeading>
             <p className="text-[#233551]/65 mt-4 mb-8 leading-relaxed">
@@ -227,12 +232,12 @@ export default function TherapistJoinPage() {
             </p>
             <ul className="space-y-3">
               {[
+                'Provide a psychiatric diagnosis, prescribe medication, or offer medical advice outside your scope of qualification.',
                 'Share personal contact details (phone, personal email, social media) with any client.',
                 'Solicit clients to move sessions off-platform, or continue a therapeutic relationship with a MindCanopy client outside the platform.',
                 'Record or capture any session without the prior written consent of the client AND MindCanopy.',
                 'Discuss or disclose client information with any third party, except where mandatory reporting law applies.',
                 'Engage in any romantic, sexual, or inappropriate personal relationship with a client.',
-                'Provide a psychiatric diagnosis, prescribe medication, or offer medical advice outside your scope of qualification.',
               ].map(rule => (
                 <li
                   key={rule}
@@ -253,30 +258,15 @@ export default function TherapistJoinPage() {
         <section className="bg-[#FFF5F2] py-16 md:py-20">
           <div className="max-w-3xl mx-auto px-4 md:px-6">
             <Eyebrow>Term &amp; termination</Eyebrow>
-            <SectionHeading>30 days either way.</SectionHeading>
             <div className="mt-6 space-y-5 text-[#233551]/65 leading-relaxed">
               <p>
                 Our agreement starts when your profile goes live, and continues until either side ends it.
               </p>
               <p>
-                <span className="font-semibold text-[#233551]">You can leave anytime with 30 days&apos; written notice</span> to partners@mindcanopy.com. During the notice period, please honour your existing client sessions and provide reasonable transition support — abandoning a client mid-care isn&apos;t something we&apos;d ever ask you to do, and we don&apos;t allow it either.
+                <span className="font-semibold text-[#233551]">You can leave anytime with 30 days&apos; written notice</span> to admin@mindcanopy.in. During the notice period, please honour your existing client sessions and provide reasonable transition support — abandoning a client mid-care isn&apos;t something we&apos;d ever ask you to do, and we don&apos;t allow it either.
               </p>
               <p>
                 <span className="font-semibold text-[#233551]">We can end the agreement with 30 days&apos; notice</span> without cause, or immediately in cases of: breach of the conduct rules above, misrepresentation of credentials, an upheld complaint involving serious professional misconduct, or revocation of your professional licence.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Confidentiality note ────────────────────────────────────────── */}
-        <section className="bg-white py-12 md:py-16">
-          <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <div className="bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-2xl px-6 py-5 flex items-start gap-4">
-              <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-[#3D8A80] flex-shrink-0 mt-0.5">
-                <path d="M12 2L4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-              </svg>
-              <p className="text-sm text-[#233551] leading-relaxed">
-                <span className="font-semibold">A note on confidentiality.</span> You&apos;ll be bound to strict client confidentiality in perpetuity — including compliance with India&apos;s DPDP Act 2023. Exceptions apply only where mandatory reporting law requires disclosure. The full clause sits in the agreement you&apos;ll sign at onboarding.
               </p>
             </div>
           </div>
@@ -302,9 +292,6 @@ export default function TherapistJoinPage() {
               >
                 Apply now →
               </Link>
-              <p className="text-xs text-white/40 mt-6">
-                By submitting an application, you agree that the full Therapist Agreement — including the clauses summarised above — will be reviewed and signed during onboarding before your profile goes live.
-              </p>
             </div>
           </div>
         </section>

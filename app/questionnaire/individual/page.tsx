@@ -493,7 +493,7 @@ export default function IndividualQuestionnairePage() {
                 ))}
               </div>
               <p className="text-xs text-[#233551]/40 pt-2">
-                Your answers are only seen by your matched therapist.
+                Your answers will help us match you with our best therapist.
               </p>
             </div>
           )}
