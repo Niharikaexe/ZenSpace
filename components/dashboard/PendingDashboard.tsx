@@ -442,7 +442,7 @@ export function PendingDashboard({
         <div className="grid grid-cols-2 gap-3 mb-4">
           {(planCategory === 'couples'
             ? [
-                { tier: 'Essentials', weekly: PLANS.couples_basic_weekly, monthly: PLANS.couples_basic_monthly, note: '1 couples session (60 min) + unlimited chat for both partners' },
+                { tier: 'Essentials', weekly: PLANS.couples_basic_weekly, monthly: PLANS.couples_basic_monthly, note: '1 couples session (50 min) + unlimited chat for both partners' },
                 { tier: 'Premium', weekly: PLANS.couples_premium_weekly, monthly: PLANS.couples_premium_monthly, note: '1 session + priority chat + international therapist access' },
               ]
             : [

@@ -1,19 +1,33 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
 export const dynamic = 'force-dynamic'
 
-// Therapist share per session (~60% of plan price). Keys match canonical plan names.
+// Therapist commission share of each session.
+// Derived from canonical plan prices in lib/plans.ts so this stays in sync
+// whenever pricing changes. Adjust THERAPIST_SHARE_RATE to flip the split.
+const THERAPIST_SHARE_RATE = 0.75 // 75% to therapist, 25% to platform
+
+function sessionShare(planKey: PlanKey): number {
+  const plan = PLANS[planKey]
+  // amountPaise is the total period charge; weekly plans are 1 session,
+  // monthly plans are 4 sessions, so per-session value is amount / sessions.
+  const sessionsInPeriod = plan.cadence === 'monthly' ? 4 : 1
+  const perSessionRupees = (plan.amountPaise / 100) / sessionsInPeriod
+  return Math.round(perSessionRupees * THERAPIST_SHARE_RATE)
+}
+
 const THERAPIST_SHARE: Record<string, number> = {
-  basic_weekly:           1079,  // ₹1,799 × 60%
-  basic_monthly:           975,  // ₹6,499 ÷ 4 × 60%
-  premium_weekly:         2699,  // ₹4,499 × 60%
-  premium_monthly:        2475,  // ₹16,499 ÷ 4 × 60%
-  couples_basic_weekly:   1920,  // ₹3,200 × 60%
-  couples_basic_monthly:  1755,  // ₹11,699 ÷ 4 × 60%
-  couples_premium_weekly: 4499,  // ₹7,499 × 60%
-  couples_premium_monthly:3750,  // ₹25,000 ÷ 4 × 60%
+  basic_weekly:           sessionShare('basic_weekly'),
+  basic_monthly:          sessionShare('basic_monthly'),
+  premium_weekly:         sessionShare('premium_weekly'),
+  premium_monthly:        sessionShare('premium_monthly'),
+  couples_basic_weekly:   sessionShare('couples_basic_weekly'),
+  couples_basic_monthly:  sessionShare('couples_basic_monthly'),
+  couples_premium_weekly: sessionShare('couples_premium_weekly'),
+  couples_premium_monthly:sessionShare('couples_premium_monthly'),
 }
 
 function formatINR(amount: number) {

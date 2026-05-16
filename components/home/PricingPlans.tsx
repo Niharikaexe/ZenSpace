@@ -3,16 +3,17 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Check } from "lucide-react"
+import { PLANS } from "@/lib/plans"
 
 const plans = [
   {
     name: "Essentials",
-    price: "₹2,999",
-    period: "/week",
+    price: PLANS.basic_weekly.price,
+    period: `/${PLANS.basic_weekly.per}`,
     tagline: "Everything you need to begin.",
     features: [
       "1 video session per week (50 min)",
-      "Unlimited async text messaging",
+      "Unlimited chat with your therapist",
       "Free intro chat",
       "Switch therapist anytime",
     ],
@@ -23,14 +24,13 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "₹4,499",
-    period: "/week",
+    price: PLANS.premium_weekly.price,
+    period: `/${PLANS.premium_weekly.per}`,
     tagline: "More access. Global expertise.",
     features: [
       "1 video session per week (50 min)",
-      "Priority text — faster responses",
-      "Foreign-trained therapist access",
-      "Session notes (read-only)",
+      "Priority chat — faster responses",
+      "International therapist access",
       "Free intro chat",
       "Switch therapist anytime",
     ],
@@ -41,15 +41,14 @@ const plans = [
   },
   {
     name: "Monthly",
-    price: "₹9,999",
-    period: "/month",
+    price: PLANS.basic_monthly.price,
+    period: `/${PLANS.basic_monthly.per}`,
     tagline: "Commit to the process. Save in it.",
     features: [
-      "4 video sessions per month (50 min)",
-      "Unlimited async text messaging",
+      "4 video sessions per month (50 min each)",
+      "Unlimited chat with your therapist",
       "Free intro chat",
       "Switch therapist anytime",
-      "~17% savings vs weekly",
     ],
     cta: "Choose monthly",
     href: "/questionnaire",
@@ -203,7 +202,7 @@ const PricingPlans = () => {
           <p className="text-xs text-[#233551]/30">
             Looking for couples therapy?{" "}
             <Link href="/questionnaire?type=couples" className="text-[#3D8A80] font-semibold hover:underline">
-              ₹5,999/week — one session for both partners →
+              {PLANS.couples_basic_weekly.price}/{PLANS.couples_basic_weekly.per} — one session for both partners →
             </Link>
           </p>
         </motion.div>
