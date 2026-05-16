@@ -36,8 +36,39 @@ const usps = [
   },
 ]
 
+// Client-side debug wrapper around the server action so we can see in
+// browser DevTools exactly what FormData is sent and what came back.
+async function signUpWithLogging(prev: typeof initialState, fd: FormData): Promise<typeof initialState> {
+  // eslint-disable-next-line no-console
+  console.log('[signup] submit →', {
+    fullName: fd.get('fullName'),
+    email: fd.get('email'),
+    password: typeof fd.get('password') === 'string' ? `(${(fd.get('password') as string).length} chars)` : null,
+    role: fd.get('role'),
+    hasQuestionnaire: !!fd.get('questionnaireData'),
+  })
+  try {
+    const result = await signUp(prev, fd)
+    // eslint-disable-next-line no-console
+    console.log('[signup] action returned →', result)
+    return result
+  } catch (err) {
+    // Server-side redirect() throws a NEXT_REDIRECT — that's expected,
+    // it's how Next.js short-circuits out of a server action. We re-throw
+    // so the redirect actually happens.
+    if (err && typeof err === 'object' && 'digest' in err && String((err as { digest?: string }).digest).startsWith('NEXT_REDIRECT')) {
+      // eslint-disable-next-line no-console
+      console.log('[signup] action ended in redirect (success)')
+      throw err
+    }
+    // eslint-disable-next-line no-console
+    console.error('[signup] action threw unexpectedly →', err)
+    return { error: err instanceof Error ? err.message : 'Unexpected error (see DevTools console).' }
+  }
+}
+
 export default function SignupPage() {
-  const [state, action, isPending] = useActionState(signUp, initialState)
+  const [state, action, isPending] = useActionState(signUpWithLogging, initialState)
   const [questionnaireData, setQuestionnaireData] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [password, setPassword] = useState('')
@@ -48,6 +79,11 @@ export default function SignupPage() {
     const stored = sessionStorage.getItem('mindcanopy_questionnaire')
     if (stored) setQuestionnaireData(stored)
   }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[signup] state changed →', state)
+  }, [state])
 
   useEffect(() => {
     if (state.success) {

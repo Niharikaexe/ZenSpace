@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { signIn } from '@/app/actions/auth'
@@ -36,9 +36,39 @@ const usps = [
   },
 ]
 
+// Client-side debug wrapper around the server action — logs every submit
+// and response so we can see auth flow end-to-end in browser DevTools.
+async function signInWithLogging(prev: typeof initialState, fd: FormData): Promise<typeof initialState> {
+  // eslint-disable-next-line no-console
+  console.log('[login] submit →', {
+    email: fd.get('email'),
+    password: typeof fd.get('password') === 'string' ? `(${(fd.get('password') as string).length} chars)` : null,
+  })
+  try {
+    const result = await signIn(prev, fd)
+    // eslint-disable-next-line no-console
+    console.log('[login] action returned →', result)
+    return result
+  } catch (err) {
+    if (err && typeof err === 'object' && 'digest' in err && String((err as { digest?: string }).digest).startsWith('NEXT_REDIRECT')) {
+      // eslint-disable-next-line no-console
+      console.log('[login] action ended in redirect (success)')
+      throw err
+    }
+    // eslint-disable-next-line no-console
+    console.error('[login] action threw unexpectedly →', err)
+    return { error: err instanceof Error ? err.message : 'Unexpected error (see DevTools console).' }
+  }
+}
+
 export default function LoginPage() {
-  const [state, action, isPending] = useActionState(signIn, initialState)
+  const [state, action, isPending] = useActionState(signInWithLogging, initialState)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[login] state changed →', state)
+  }, [state])
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex">
