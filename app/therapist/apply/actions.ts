@@ -81,10 +81,33 @@ export async function submitTherapistApplication(
 
   if (error) {
     logger.error('therapist/apply', 'Failed to save application', error, { email })
-    if (error.code === '23505') {
+    // eslint-disable-next-line no-console
+    console.error('[therapist/apply] insert failed', {
+      code: (error as any).code,
+      message: (error as any).message,
+      details: (error as any).details,
+      hint: (error as any).hint,
+      payloadKeys: {
+        fullName: !!fullName,
+        email: !!email,
+        phone: !!phone,
+        city: !!city,
+        state: !!state,
+        country: !!country,
+        date_of_birth: dateOfBirth,
+        gender,
+        ethnicity,
+        specializations,
+        languages,
+        certificateUrls,
+        cvUrl,
+      },
+    })
+    if ((error as any).code === '23505') {
       return { error: 'An application with this email already exists. We\'ll be in touch soon.' }
     }
-    return { error: 'Something went wrong. Please try again or email us directly.' }
+    const msg = (error as any).message || 'unknown error'
+    return { error: `Submission failed: ${msg}. Please try again or email us at admin@mindcanopy.in.` }
   }
 
   logger.info('therapist/apply', 'Therapist application submitted', { email })
