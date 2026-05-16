@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PaymentGateModal } from './PaymentGateModal'
+import type { PlanCategory } from '@/lib/plans'
 
 interface TherapistInfo {
   fullName: string
@@ -264,6 +265,7 @@ export function MatchedDashboard({ userName, userEmail, therapist, matchedSince,
         onClose={() => setGateOpen(false)}
         userName={userName}
         userEmail={userEmail}
+        category={(subscription?.plan?.startsWith('couples_') ? 'couples' : 'individual') as PlanCategory}
         action={gateAction}
       />
     </div>

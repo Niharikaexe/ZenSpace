@@ -2,16 +2,18 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { SubscriptionPlans } from './SubscriptionPlans'
+import type { PlanCategory } from '@/lib/plans'
 
 interface Props {
   open: boolean
   onClose: () => void
   userName: string
   userEmail: string
+  category?: PlanCategory
   action?: string // e.g. "send a message" | "schedule a video session"
 }
 
-export function PaymentGateModal({ open, onClose, userName, userEmail, action }: Props) {
+export function PaymentGateModal({ open, onClose, userName, userEmail, category, action }: Props) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -29,6 +31,7 @@ export function PaymentGateModal({ open, onClose, userName, userEmail, action }:
           <SubscriptionPlans
             userName={userName}
             userEmail={userEmail}
+            category={category}
             onSuccess={onClose}
           />
         </div>

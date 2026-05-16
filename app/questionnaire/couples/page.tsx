@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { saveQuestionnaire } from '@/app/actions/questionnaire'
 import Footer from '@/components/home/Footer'
+import { OptionButton } from '@/components/shared/OptionButton'
 
 type CommonStepId =
   | 'c1' | 'c2' | 'c3'
@@ -22,9 +23,11 @@ type CommonAnswers = {
   c4: string     // Relationship status (single)
   c5: string     // Duration of difficulties (single)
   c6: string[]   // Areas of conflict (multi)
+  c6Other: string // Areas of conflict — free-text "other"
   c7: number     // Communication satisfaction 1-10 (0 = unset)
   c8: string     // Trust level (single)
   c9: string[]   // Goals (multi)
+  c9Other: string // Goals — free-text "other"
   c10: string    // Past couples counseling (single)
   c10a: string   // Style preference (single, conditional on c10)
   c11: string    // Gender preference (single)
@@ -42,9 +45,9 @@ type PartnerAnswers = {
 
 const initialCommon: CommonAnswers = {
   c1: '', c2: '', c3: '',
-  c4: '', c5: '', c6: [],
+  c4: '', c5: '', c6: [], c6Other: '',
   c7: 0, c8: '',
-  c9: [], c10: '', c10a: '',
+  c9: [], c9Other: '', c10: '', c10a: '',
   c11: '', c12: [],
 }
 
@@ -52,13 +55,16 @@ const initialPartner: PartnerAnswers = {
   p1: '', p2: '', p3: '', p4: '', p5: '', p6: '',
 }
 
-type Phase = 'common' | 'partner1-private' | 'handover' | 'partner2-private'
+type Phase = 'common' | 'partner1-private' | 'handover' | 'partner2-private' | 'common-final'
 const PRIVATE_STEPS: (keyof PartnerAnswers)[] = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
 
-function buildCommonSteps(a: CommonAnswers): CommonStepId[] {
-  const steps: CommonStepId[] = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10']
+function buildCommonSteps(): CommonStepId[] {
+  return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12']
+}
+
+function buildFinalSteps(a: CommonAnswers): CommonStepId[] {
+  const steps: CommonStepId[] = ['c10']
   if (a.c10 && a.c10 !== 'No') steps.push('c10a')
-  steps.push('c11', 'c12')
   return steps
 }
 
@@ -66,28 +72,9 @@ function commonSectionLabel(step: CommonStepId): string {
   if (step === 'c1' || step === 'c2' || step === 'c3') return 'Section A — Where the relationship is right now'
   if (step === 'c4' || step === 'c5' || step === 'c6') return 'Section B — The basics'
   if (step === 'c7' || step === 'c8') return "Section C — How it's working"
-  if (step === 'c9' || step === 'c10' || step === 'c10a') return 'Section D — Goals & past therapy'
-  return 'Section E — Your therapist'
-}
-
-function OptionButton({
-  selected, onClick, children, className,
-}: { selected: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-xl text-sm font-medium border-2 transition-all px-4 py-3 min-h-[48px] text-left',
-        selected
-          ? 'bg-[#233551] text-white border-[#233551]'
-          : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5',
-        className
-      )}
-    >
-      {children}
-    </button>
-  )
+  if (step === 'c9') return 'Section D — Goals'
+  if (step === 'c11' || step === 'c12') return 'Section E — Your therapist'
+  return 'Section F — Past therapy'
 }
 
 export default function CouplesQuestionnairePage() {
@@ -111,8 +98,10 @@ export default function CouplesQuestionnairePage() {
     })
   }, [])
 
-  const commonSteps = useMemo(() => buildCommonSteps(common), [common])
-  const commonStep = commonSteps[commonStepIndex]
+  const commonSteps = useMemo(() => buildCommonSteps(), [])
+  const finalSteps = useMemo(() => buildFinalSteps(common), [common])
+  const activeCommonSteps = phase === 'common-final' ? finalSteps : commonSteps
+  const commonStep = activeCommonSteps[commonStepIndex]
   const privateStep = PRIVATE_STEPS[privateStepIndex]
   const partnerAnswers = currentPartner === 1 ? partner1 : partner2
   const isPrivate = phase === 'partner1-private' || phase === 'partner2-private'
@@ -137,17 +126,17 @@ export default function CouplesQuestionnairePage() {
   }
 
   function canProceed(): boolean {
-    if (phase === 'common') {
+    if (phase === 'common' || phase === 'common-final') {
       switch (commonStep) {
         case 'c1': return !!common.c1
         case 'c2': return !!common.c2
         case 'c3': return !!common.c3
         case 'c4': return !!common.c4
         case 'c5': return !!common.c5
-        case 'c6': return common.c6.length > 0
+        case 'c6': return common.c6.length > 0 || common.c6Other.trim().length > 0
         case 'c7': return common.c7 > 0
         case 'c8': return !!common.c8
-        case 'c9': return common.c9.length > 0
+        case 'c9': return common.c9.length > 0 || common.c9Other.trim().length > 0
         case 'c10': return !!common.c10
         case 'c10a': return !!common.c10a
         case 'c11': return !!common.c11
@@ -206,13 +195,24 @@ export default function CouplesQuestionnairePage() {
       }
       if (phase === 'partner1-private') {
         if (attendingAlone) {
-          await submitAll()
+          // Solo flow → final common questions (past therapy)
+          setPhase('common-final')
+          setCommonStepIndex(0)
           return
         }
         setPhase('handover')
         return
       }
-      // partner2-private done → submit
+      // partner2-private done → final common questions (past therapy)
+      setPhase('common-final')
+      setCommonStepIndex(0)
+      return
+    }
+    if (phase === 'common-final') {
+      if (commonStepIndex < finalSteps.length - 1) {
+        setCommonStepIndex(i => i + 1)
+        return
+      }
       await submitAll()
       return
     }
@@ -233,18 +233,36 @@ export default function CouplesQuestionnairePage() {
         setCommonStepIndex(commonSteps.length - 1)
       }
     }
+    if (phase === 'common-final') {
+      if (commonStepIndex > 0) {
+        setCommonStepIndex(i => i - 1)
+        return
+      }
+      // Back to the last private step of the last private phase
+      if (attendingAlone) {
+        setPhase('partner1-private')
+      } else {
+        setPhase('partner2-private')
+      }
+      setPrivateStepIndex(PRIVATE_STEPS.length - 1)
+    }
   }
 
   function progressPercent(): number {
     const commonLen = commonSteps.length
+    const finalLen = finalSteps.length
     const total = attendingAlone
-      ? commonLen + PRIVATE_STEPS.length
-      : commonLen + PRIVATE_STEPS.length * 2 + 1 // +1 for handover
+      ? commonLen + PRIVATE_STEPS.length + finalLen
+      : commonLen + PRIVATE_STEPS.length * 2 + 1 + finalLen // +1 for handover
     let done = 0
     if (phase === 'common') done = commonStepIndex
     else if (phase === 'partner1-private') done = commonLen + privateStepIndex
     else if (phase === 'handover') done = commonLen + PRIVATE_STEPS.length
     else if (phase === 'partner2-private') done = commonLen + PRIVATE_STEPS.length + 1 + privateStepIndex
+    else if (phase === 'common-final') {
+      const privateTotal = attendingAlone ? PRIVATE_STEPS.length : PRIVATE_STEPS.length * 2 + 1
+      done = commonLen + privateTotal + commonStepIndex
+    }
     return Math.round((done / total) * 100)
   }
 
@@ -307,7 +325,7 @@ export default function CouplesQuestionnairePage() {
             Partner 1 is done.
           </h2>
           <p className="text-sm text-[#233551]/60 leading-relaxed mb-8 max-w-sm mx-auto">
-            Hand the device to Partner 2. Their answers are private — Partner 1 won&apos;t see them. Only your therapist reads both.
+            Hand the device to Partner 2. Their answers are private — Partner 1 shouldn&apos;t see them. Only your therapist reads both.
           </p>
           <button
             onClick={() => {
@@ -444,7 +462,7 @@ export default function CouplesQuestionnairePage() {
                 How long have the current difficulties been a serious problem?
               </h2>
               <div className="grid grid-cols-1 gap-2">
-                {['Less than 3 months', '3–12 months', '1–3 years', 'More than 3 years'].map(opt => (
+                {['Less than a year', '1 year', '1–3 years', 'More than 3 years'].map(opt => (
                   <OptionButton key={opt} selected={common.c5 === opt} onClick={() => setCommonField('c5', opt)}>{opt}</OptionButton>
                 ))}
               </div>
@@ -462,15 +480,24 @@ export default function CouplesQuestionnairePage() {
                   'Communication or feeling unheard',
                   'Trust, jealousy, or infidelity',
                   'Parenting or step-families',
-                  'Sex and intimacy',
+                  'Intimacy',
                   'Money or finances',
                   'Household responsibilities',
                   'Extended family or in-laws',
                   'Life goals, values, or cultural differences',
-                  'Something else',
                 ].map(opt => (
                   <OptionButton key={opt} selected={common.c6.includes(opt)} onClick={() => toggleCommonMulti('c6', opt)}>{opt}</OptionButton>
                 ))}
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-[#233551]/70 font-medium">Something else? (optional)</label>
+                <input
+                  type="text"
+                  value={common.c6Other}
+                  onChange={(e) => setCommonField('c6Other', e.target.value)}
+                  placeholder="Tell us in a few words"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-[#233551] placeholder:text-[#233551]/30 focus:border-[#7EC0B7] focus:outline-none focus:ring-2 focus:ring-[#7EC0B7]/20"
+                />
               </div>
             </div>
           )}
@@ -509,7 +536,7 @@ export default function CouplesQuestionnairePage() {
                 How would you describe the level of trust in the relationship right now?
               </h2>
               <div className="grid grid-cols-1 gap-2">
-                {['Strong', 'Mixed', 'Seriously damaged', 'Hard to trust at all'].map(opt => (
+                {['Strong', 'Mixed', 'Difficult'].map(opt => (
                   <OptionButton key={opt} selected={common.c8 === opt} onClick={() => setCommonField('c8', opt)}>{opt}</OptionButton>
                 ))}
               </div>
@@ -532,15 +559,24 @@ export default function CouplesQuestionnairePage() {
                   'Improve sexual intimacy',
                   'Decide whether to stay together or separate',
                   'Learn to co-parent more effectively',
-                  'Something else',
                 ].map(opt => (
                   <OptionButton key={opt} selected={common.c9.includes(opt)} onClick={() => toggleCommonMulti('c9', opt)}>{opt}</OptionButton>
                 ))}
               </div>
+              <div className="space-y-2">
+                <label className="text-sm text-[#233551]/70 font-medium">Something else? (optional)</label>
+                <input
+                  type="text"
+                  value={common.c9Other}
+                  onChange={(e) => setCommonField('c9Other', e.target.value)}
+                  placeholder="Tell us in a few words"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-[#233551] placeholder:text-[#233551]/30 focus:border-[#7EC0B7] focus:outline-none focus:ring-2 focus:ring-[#7EC0B7]/20"
+                />
+              </div>
             </div>
           )}
 
-          {phase === 'common' && commonStep === 'c10' && (
+          {phase === 'common-final' && commonStep === 'c10' && (
             <div className="space-y-5">
               <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
                 Have you and your partner had couples counseling before?
@@ -553,7 +589,7 @@ export default function CouplesQuestionnairePage() {
             </div>
           )}
 
-          {phase === 'common' && commonStep === 'c10a' && (
+          {phase === 'common-final' && commonStep === 'c10a' && (
             <div className="space-y-5">
               <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
                 Thinking about what worked or didn&apos;t in past therapy, what kind of therapist style suits you both best now?
@@ -600,11 +636,11 @@ export default function CouplesQuestionnairePage() {
               <div className="grid grid-cols-1 gap-2">
                 {[
                   'Infidelity or affair recovery',
-                  'Sexless or low-desire relationships',
+                  'Low-intimacy relationships',
                   'Non-monogamy, polyamory, or open relationships',
                   'Intercultural or interreligious couples',
                   'LGBTQ+ affirming',
-                  'Same-sex / queer relationships',
+                  'Queer relationships',
                   'Trauma (within or outside the relationship)',
                   'Addiction or substance use in the relationship',
                   'Neurodiversity (ADHD or autism in one or both partners)',
@@ -691,7 +727,7 @@ export default function CouplesQuestionnairePage() {
             <div className="space-y-5">
               <p className="text-xs font-bold text-[#E8926A] uppercase tracking-wider">Only you and your therapist see this</p>
               <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-                How would you describe your satisfaction with physical and sexual intimacy in this relationship?
+                How would you describe your satisfaction with physical intimacy in this relationship?
               </h2>
               <div className="grid grid-cols-1 gap-2">
                 {[

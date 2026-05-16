@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { SubscriptionPlans } from './SubscriptionPlans'
+import { PLANS, type PlanCategory } from '@/lib/plans'
 
 const SAMPLE_THERAPISTS = [
   {
@@ -262,6 +263,7 @@ export function PendingDashboard({
 }: Props) {
   const [showCategoryPopup, setShowCategoryPopup] = useState(false)
   const firstName = userName.split(' ')[0]
+  const planCategory: PlanCategory = questionnairePrefs?.type === 'couples' ? 'couples' : 'individual'
 
   function buildPreferencesList(): string[] {
     if (!questionnairePrefs) return []
@@ -426,38 +428,32 @@ export function PendingDashboard({
         </p>
       </section>
 
-      {/* What if I don't like my therapist */}
-      <section className="mb-8">
-        <h2 className="text-lg font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
-          What if the therapist isn&apos;t the right fit?
-        </h2>
-        <p className="text-sm text-[#233551]/60 leading-relaxed">
-          You can ask to be matched with a different therapist. No explanation needed — if it&apos;s not working, we&apos;ll find someone else. Just reach out to us from the{' '}
-          <Link href="/dashboard/change-therapist" className="text-[#3D8A80] hover:underline">
-            Change Therapist
-          </Link>{' '}
-          page.
-        </p>
-      </section>
-
       {/* How much does it cost */}
       <section className="mb-8">
         <h2 className="text-lg font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
           How much does it cost?
         </h2>
         <p className="text-sm text-[#233551]/60 mb-5 leading-relaxed">
-          MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.
+          {planCategory === 'couples'
+            ? 'MindCanopy offers two couples plans — Essentials and Premium — available weekly or monthly.'
+            : 'MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.'}
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {[
-            { tier: 'Essentials', weekly: '₹2,999/week', monthly: '₹9,999/month', note: '1 video session (50 min) + unlimited async text' },
-            { tier: 'Premium', weekly: '₹4,499/week', monthly: '₹14,999/month', note: '1 session + priority text + foreign therapist access' },
-          ].map(plan => (
+          {(planCategory === 'couples'
+            ? [
+                { tier: 'Essentials', weekly: PLANS.couples_basic_weekly, monthly: PLANS.couples_basic_monthly, note: '1 couples session (60 min) + unlimited chat for both partners' },
+                { tier: 'Premium', weekly: PLANS.couples_premium_weekly, monthly: PLANS.couples_premium_monthly, note: '1 session + priority chat + international therapist access' },
+              ]
+            : [
+                { tier: 'Essentials', weekly: PLANS.basic_weekly, monthly: PLANS.basic_monthly, note: '1 video session (50 min) + unlimited chat' },
+                { tier: 'Premium', weekly: PLANS.premium_weekly, monthly: PLANS.premium_monthly, note: '1 session + priority chat + international therapist access' },
+              ]
+          ).map(plan => (
             <div key={plan.tier} className="bg-white border border-slate-200 rounded-2xl p-4">
               <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-wider mb-1">{plan.tier}</p>
-              <p className="text-base font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.weekly}</p>
-              <p className="text-xs text-[#233551]/40 mb-1">or {plan.monthly}</p>
+              <p className="text-base font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.weekly.price}/week</p>
+              <p className="text-xs text-[#233551]/40 mb-1">or {plan.monthly.price}/month</p>
               <p className="text-xs text-[#233551]/55 leading-relaxed">{plan.note}</p>
             </div>
           ))}
@@ -523,7 +519,7 @@ export function PendingDashboard({
           <p className="text-sm text-[#233551]/55 mb-5">
             Subscribe now so you&apos;re ready the moment you&apos;re matched.
           </p>
-          <SubscriptionPlans userName={userName} userEmail={userEmail} />
+          <SubscriptionPlans userName={userName} userEmail={userEmail} category={planCategory} />
         </section>
       )}
 

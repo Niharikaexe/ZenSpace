@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { saveQuestionnaire } from '@/app/actions/questionnaire'
 import Footer from '@/components/home/Footer'
+import { OptionButton } from '@/components/shared/OptionButton'
 
 type StepId =
   | 'q1' | 'q2' | 'q3'
@@ -57,31 +58,6 @@ function sectionLabel(step: StepId): string {
   if (step === 'q4' || step === 'q5' || step === 'q6' || step === 'q7' || step === 'q8' || step === 'q9' || step === 'q10' || step === 'q11' || step === 'q11a') return "Section B — How you've been"
   if (step === 'q12' || step === 'q12a' || step === 'q12b') return 'Your therapy history'
   return 'Section C — Your therapist'
-}
-
-function OptionButton({
-  selected, onClick, children, className,
-}: {
-  selected: boolean
-  onClick: () => void
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-xl text-sm font-medium border-2 transition-all px-4 py-3 min-h-[48px] text-left',
-        selected
-          ? 'bg-[#233551] text-white border-[#233551]'
-          : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5',
-        className
-      )}
-    >
-      {children}
-    </button>
-  )
 }
 
 export default function IndividualQuestionnairePage() {
