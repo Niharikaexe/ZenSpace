@@ -2,8 +2,9 @@
 // Set RESEND_API_KEY in .env.local to enable emails.
 // Without it, emails are silently skipped (non-fatal).
 
-const FROM = 'MindCanopy <notifications@mindcanopy.in>'
+const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@mindcanopy.in'
 
 // ── Template helpers ─────────────────────────────────────────────────────────
 
@@ -183,6 +184,45 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
   </table>
 </body>
 </html>`
+}
+
+// ── New application — admin notification ────────────────────────────────────
+
+function tplNewApplication(fullName: string) {
+  return base(`
+    ${tag('New Application', '#E8926A')}
+    <br/><br/>
+    ${h1(`${fullName} applied to join MindCanopy.`)}
+    ${p('Head to your admin dashboard to review the application.')}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+export async function sendNewApplicationAdminEmail(fullName: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: FROM,
+        to: ADMIN_EMAIL,
+        subject: `New therapist application — ${fullName}`,
+        html: tplNewApplication(fullName),
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      // eslint-disable-next-line no-console
+      console.error('[email/new-application] Resend rejected', { status: res.status, body })
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[email/new-application] send failed', err)
+  }
 }
 
 export async function sendApplicationInviteEmail({

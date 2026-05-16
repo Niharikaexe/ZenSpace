@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { sendNewApplicationAdminEmail } from '@/lib/email'
 
 export type ApplyState = {
   success?: boolean
@@ -111,5 +112,9 @@ export async function submitTherapistApplication(
   }
 
   logger.info('therapist/apply', 'Therapist application submitted', { email })
+
+  // Notify admin — non-blocking, best-effort
+  await sendNewApplicationAdminEmail(fullName)
+
   return { success: true }
 }
