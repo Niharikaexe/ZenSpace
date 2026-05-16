@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { OwlLogo } from "./OwlLogo"
 
 /* Social icon SVGs */
 const LinkedIn = () => (
@@ -13,9 +14,9 @@ const Twitter = () => (
   </svg>
 )
 
-const YouTube = () => (
+const Instagram = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 1.366.062 2.633.336 3.608 1.311.975.975 1.249 2.242 1.311 3.608.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.062 1.366-.336 2.633-1.311 3.608-.975.975-2.242 1.249-3.608 1.311-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.366-.062-2.633-.336-3.608-1.311-.975-.975-1.249-2.242-1.311-3.608-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.062-1.366.336-2.633 1.311-3.608.975-.975 2.242-1.249 3.608-1.311 1.266-.058 1.646-.07 4.85-.07zm0-2.163C8.741 0 8.332.013 7.052.072 5.773.131 4.815.353 3.96.677c-.93.353-1.722.825-2.51 1.613C.663 3.078.191 3.87-.162 4.8c-.324.855-.546 1.813-.605 3.092C-.826 9.172-.839 9.581-.839 12.84s.013 3.668.072 4.948c.059 1.279.281 2.237.605 3.092.353.93.825 1.722 1.613 2.51.788.788 1.58 1.26 2.51 1.613.855.324 1.813.546 3.092.605C8.332 23.987 8.741 24 12 24s3.668-.013 4.948-.072c1.279-.059 2.237-.281 3.092-.605.93-.353 1.722-.825 2.51-1.613.788-.788 1.26-1.58 1.613-2.51.324-.855.546-1.813.605-3.092.059-1.28.072-1.689.072-4.948s-.013-3.668-.072-4.948c-.059-1.279-.281-2.237-.605-3.092-.353-.93-.825-1.722-1.613-2.51C20.078.663 19.286.191 18.356-.162c-.855-.324-1.813-.546-3.092-.605C13.668-.826 13.259-.839 12-.839zM12 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zm0 10.162a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
   </svg>
 )
 
@@ -28,14 +29,14 @@ const Footer = () => {
 
           {/* Brand column — wider */}
           <div className="md:col-span-2 space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full border-2 border-[#7EC0B7] flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
-              </div>
+            <Link href="/" className="flex items-center gap-2.5 w-fit">
+              <span className="w-9 h-9 rounded-lg bg-[#FFF5F2] flex items-center justify-center flex-shrink-0">
+                <OwlLogo size={26} />
+              </span>
               <span className="font-black text-lg text-white tracking-tight" style={{ fontFamily: 'var(--font-lato)' }}>
                 MindCanopy
               </span>
-            </div>
+            </Link>
             <p className="text-sm text-white/45 leading-relaxed max-w-xs">
               Making professional therapy accessible, affordable, and convenient for everyone across India.
             </p>
@@ -44,7 +45,7 @@ const Footer = () => {
               {[
                 { icon: LinkedIn, label: "LinkedIn", href: "https://linkedin.com/company/mindcanopy-in" },
                 { icon: Twitter, label: "Twitter", href: "#" },
-                { icon: YouTube, label: "YouTube", href: "#" },
+                { icon: Instagram, label: "Instagram", href: "https://instagram.com/mindcanopy.in" },
               ].map(({ icon: Icon, label, href }) => (
                 <Link
                   key={label}

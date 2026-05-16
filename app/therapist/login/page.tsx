@@ -3,6 +3,7 @@
 import { useActionState } from "react"
 import { signIn, type AuthState } from "@/app/actions/auth"
 import Link from "next/link"
+import { BrandLogo } from "@/components/shared/BrandLogo"
 
 const initialState: AuthState = {}
 
@@ -13,14 +14,7 @@ export default function TherapistLoginPage() {
     <div className="min-h-screen bg-[#FFF5F2] flex flex-col">
       {/* Top nav strip */}
       <div className="flex items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full border-2 border-[#7EC0B7] flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-[#7EC0B7]" />
-          </div>
-          <span className="font-black text-base text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo variant="teal" owlSize={22} />
         <Link href="/" className="text-sm text-[#233551]/50 hover:text-[#233551] transition-colors">
           ← Back to home
         </Link>

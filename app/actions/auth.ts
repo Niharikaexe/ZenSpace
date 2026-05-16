@@ -55,12 +55,33 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   })
 
   if (error) {
-    logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role })
-    // Surface a clearer message for the most common config issue
-    const message = error.message.toLowerCase().includes('confirmation email')
-      ? 'Account creation is temporarily unavailable. Please try again later.'
-      : error.message
-    return { error: message }
+    // Pull every diagnostic field Supabase attaches so server logs never end up
+    // with an empty {} for AuthError instances (whose props are non-enumerable).
+    const err = error as unknown as Record<string, unknown>
+    const diag = {
+      message: error.message,
+      code: err.code,
+      status: err.status ?? err.statusCode,
+      __isAuthError: err.__isAuthError,
+    }
+    logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role, ...diag })
+    // eslint-disable-next-line no-console
+    console.error('[auth/signUp] raw error fields', diag)
+
+    const raw = error.message || ''
+    const lower = raw.toLowerCase()
+    let surfaced = raw
+    if (lower.includes('confirmation email') || lower.includes('error sending confirmation')) {
+      surfaced = 'We couldn\'t send a confirmation email right now (likely a Supabase email-rate-limit). Try again in an hour, or contact admin@mindcanopy.in.'
+    } else if (lower.includes('rate limit')) {
+      surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
+    } else if (lower.includes('already registered') || lower.includes('user already') || lower.includes('already exists')) {
+      surfaced = 'An account with this email already exists. Try signing in instead.'
+    } else if (!raw) {
+      // Empty message — surface diagnostics so user (and us) can see something
+      surfaced = `Sign-up failed (${(err.code as string) ?? (err.status as string) ?? 'unknown'}). Please contact admin@mindcanopy.in.`
+    }
+    return { error: surfaced }
   }
 
   logger.info('auth/signUp', 'Account created', { userId: signUpData?.user?.id, email, role })
@@ -138,8 +159,26 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    logger.warn('auth/signIn', 'Sign in failed', { email, reason: error.message })
-    return { error: error.message }
+    const err = error as unknown as Record<string, unknown>
+    const diag = {
+      message: error.message,
+      code: err.code,
+      status: err.status ?? err.statusCode,
+    }
+    logger.warn('auth/signIn', 'Sign in failed', { email, ...diag })
+    // eslint-disable-next-line no-console
+    console.error('[auth/signIn] raw error fields', diag)
+
+    const lower = (error.message || '').toLowerCase()
+    let surfaced = error.message
+    if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
+      surfaced = "We've sent you a confirmation email — please click the link in it before signing in. Check spam, or contact admin@mindcanopy.in if it never arrived."
+    } else if (lower.includes('invalid login')) {
+      surfaced = 'Email or password is incorrect.'
+    } else if (!error.message) {
+      surfaced = `Sign-in failed (${(err.code as string) ?? (err.status as string) ?? 'unknown'}). Please contact admin@mindcanopy.in.`
+    }
+    return { error: surfaced }
   }
 
   const { data: { user } } = await supabase.auth.getUser()
