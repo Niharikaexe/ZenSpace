@@ -81,7 +81,9 @@ export type TherapistApplication = {
   bio: string | null
   why_mindcanopy: string | null
   cv_signed_url: string | null
+  cv_download_url: string | null
   certificate_signed_urls: string[]
+  certificate_download_urls: string[]
   status: string
   submitted_at: string
 }
@@ -370,35 +372,60 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Documents</p>
                         <div className="flex flex-wrap gap-2 mb-5">
                           {app.cv_signed_url ? (
-                            <a
-                              href={app.cv_signed_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
-                            >
-                              <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              View CV
-                              <span className="text-xs text-slate-400">↗</span>
-                            </a>
+                            <>
+                              <a
+                                href={app.cv_signed_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
+                              >
+                                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                View CV
+                                <span className="text-xs text-slate-400">↗</span>
+                              </a>
+                              {app.cv_download_url && (
+                                <a
+                                  href={app.cv_download_url}
+                                  className="inline-flex items-center gap-2 px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                  Download CV
+                                </a>
+                              )}
+                            </>
                           ) : (
                             <span className="text-xs text-slate-400 italic">No CV uploaded</span>
                           )}
                           {app.certificate_signed_urls.map((url, i) => (
-                            <a
-                              key={url}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
-                            >
-                              <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                              </svg>
-                              Certificate {i + 1}
-                              <span className="text-xs text-slate-400">↗</span>
-                            </a>
+                            <span key={url} className="inline-flex items-center gap-1">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
+                              >
+                                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Cert {i + 1}
+                                <span className="text-xs text-slate-400">↗</span>
+                              </a>
+                              {app.certificate_download_urls[i] && (
+                                <a
+                                  href={app.certificate_download_urls[i]}
+                                  className="inline-flex items-center justify-center w-8 h-8 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors"
+                                  title={`Download certificate ${i + 1}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                </a>
+                              )}
+                            </span>
                           ))}
                           {app.certificate_signed_urls.length === 0 && !app.cv_signed_url && null}
                           {app.certificate_signed_urls.length === 0 && app.cv_signed_url && (

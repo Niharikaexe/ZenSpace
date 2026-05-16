@@ -148,22 +148,42 @@ export default async function AdminPage() {
 
   // Generate signed URLs for CVs + certificates so admin can view private files.
   // 1-hour expiry — admin re-fetches the page if links go stale.
+  // Two URLs per file: view (inline) and download (Content-Disposition: attachment).
   const SIGNED_URL_TTL = 60 * 60
-  async function signDoc(path: string | null | undefined): Promise<string | null> {
+  async function signDoc(
+    path: string | null | undefined,
+    downloadAs?: string,
+  ): Promise<string | null> {
     if (!path) return null
+    const options = downloadAs ? { download: downloadAs } : undefined
     const { data, error } = await admin.storage
       .from('therapist-documents')
-      .createSignedUrl(path, SIGNED_URL_TTL)
+      .createSignedUrl(path, SIGNED_URL_TTL, options)
     if (error || !data?.signedUrl) return null
     return data.signedUrl
   }
 
+  function safeName(name: string) {
+    return name.replace(/[^a-zA-Z0-9._-]+/g, '_')
+  }
+
   const applications: TherapistApplication[] = await Promise.all(
     (rawApplications ?? []).map(async (a: any) => {
+      const nameSlug = safeName(a.full_name ?? 'applicant')
+      const cvExt = (a.cv_url as string | null)?.split('.').pop() ?? 'pdf'
       const cvSignedUrl = await signDoc(a.cv_url)
-      const certificateSignedUrls = (
-        await Promise.all((a.certificate_urls ?? []).map((p: string) => signDoc(p)))
-      ).filter((u): u is string => !!u)
+      const cvDownloadUrl = await signDoc(a.cv_url, `${nameSlug}_CV.${cvExt}`)
+
+      const certificateSignedUrls: string[] = []
+      const certificateDownloadUrls: string[] = []
+      for (let i = 0; i < (a.certificate_urls ?? []).length; i++) {
+        const path = (a.certificate_urls as string[])[i]
+        const ext = path.split('.').pop() ?? 'pdf'
+        const view = await signDoc(path)
+        const download = await signDoc(path, `${nameSlug}_Certificate_${i + 1}.${ext}`)
+        if (view) certificateSignedUrls.push(view)
+        if (download) certificateDownloadUrls.push(download)
+      }
 
       return {
         id: a.id,
@@ -187,7 +207,9 @@ export default async function AdminPage() {
         bio: a.bio ?? null,
         why_mindcanopy: a.why_mindcanopy ?? null,
         cv_signed_url: cvSignedUrl,
+        cv_download_url: cvDownloadUrl,
         certificate_signed_urls: certificateSignedUrls,
+        certificate_download_urls: certificateDownloadUrls,
         status: a.status,
         submitted_at: a.submitted_at,
       }
