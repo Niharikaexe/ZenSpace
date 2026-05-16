@@ -170,6 +170,7 @@ export async function approveApplication(applicationId: string, adminNotes: stri
   sendApplicationInviteEmail({
     to: application.email,
     name: application.full_name,
+    inviteCode: code,
     inviteUrl,
     adminNotes: adminNotes || '',
   }).catch(() => {})

@@ -3,10 +3,29 @@
 // Without it, emails are silently skipped (non-fatal).
 
 const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
+const FROM_ADMIN = process.env.RESEND_FROM_ADMIN ?? 'MindCanopy Admin <admin@mindcanopy.in>'
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@mindcanopy.in'
 
 // ── Template helpers ─────────────────────────────────────────────────────────
+
+const LOGO_URL = `${SITE}/icon.svg`
+
+function brandHeader() {
+  // Owl mark + wordmark in the navy header bar.
+  // Email clients that strip SVG (some Outlook variants) fall back to the
+  // alt text "MindCanopy".
+  return `<td style="background:#233551;padding:20px 32px;">
+    <table cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="padding-right:12px;vertical-align:middle;">
+        <img src="${LOGO_URL}" width="32" height="32" alt="MindCanopy" style="display:block;border-radius:6px;background:#FFF5F2;" />
+      </td>
+      <td style="vertical-align:middle;">
+        <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
+      </td>
+    </tr></table>
+  </td>`
+}
 
 function base(content: string) {
   return `<!DOCTYPE html>
@@ -22,9 +41,7 @@ function base(content: string) {
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
         <!-- Header -->
         <tr>
-          <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
-          </td>
+          ${brandHeader()}
         </tr>
         <!-- Body -->
         <tr><td style="padding:32px;">${content}</td></tr>
@@ -141,7 +158,7 @@ function tplSwitchRequest(adminName: string, clientName: string, reason: string)
 
 // ── Application invite template ──────────────────────────────────────────────
 
-function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: string) {
+function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: string, adminNotes: string) {
   const notesBlock = adminNotes
     ? `<div style="margin-top:20px;padding:16px;background:#f0faf9;border-left:3px solid #7EC0B7;border-radius:4px;">
         <p style="margin:0;font-size:13px;color:#4a5568;font-style:italic;">${adminNotes}</p>
@@ -159,9 +176,7 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
         <tr>
-          <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
-          </td>
+          ${brandHeader()}
         </tr>
         <tr><td style="padding:32px;">
           <span style="display:inline-block;padding:4px 12px;border-radius:100px;background:#7EC0B722;color:#7EC0B7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Application Approved</span>
@@ -170,12 +185,17 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
           <p style="margin:8px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your application has been reviewed and approved. Use the link below to complete your onboarding and set up your therapist profile.</p>
           ${notesBlock}
           <a href="${inviteUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Complete Onboarding →</a>
-          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This link contains a one-time invite code. Don't share it.</p>
+          <div style="margin-top:24px;padding:14px 16px;background:#f8f9fa;border:1px dashed #cbd5e0;border-radius:8px;">
+            <p style="margin:0;font-size:12px;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Your invite code</p>
+            <p style="margin:6px 0 0;font-size:18px;color:#233551;font-weight:900;letter-spacing:0.1em;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${inviteCode}</p>
+            <p style="margin:8px 0 0;font-size:12px;color:#9aa3ad;line-height:1.5;">If the button above doesn't work, go to <a href="${SITE}/therapist/onboard" style="color:#3D8A80;">${SITE}/therapist/onboard</a> and paste this code on the first step.</p>
+          </div>
+          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This code is one-time use. Don't share it.</p>
         </td></tr>
         <tr>
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
-              Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
+              Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a>
             </p>
           </td>
         </tr>
@@ -228,31 +248,39 @@ export async function sendNewApplicationAdminEmail(fullName: string): Promise<vo
 export async function sendApplicationInviteEmail({
   to,
   name,
+  inviteCode,
   inviteUrl,
   adminNotes = '',
 }: {
   to: string
   name: string
+  inviteCode: string
   inviteUrl: string
   adminNotes?: string
 }): Promise<void> {
   if (!process.env.RESEND_API_KEY) return
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: FROM,
+        from: FROM_ADMIN,
         to,
         subject: 'Your MindCanopy therapist application has been approved',
-        html: tplApplicationApproved(name, inviteUrl, adminNotes),
+        html: tplApplicationApproved(name, inviteUrl, inviteCode, adminNotes),
       }),
     })
-  } catch {
-    // best-effort
+    if (!res.ok) {
+      const body = await res.text()
+      // eslint-disable-next-line no-console
+      console.error('[email/application-invite] Resend rejected', { status: res.status, body })
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[email/application-invite] send failed', err)
   }
 }
 
