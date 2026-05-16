@@ -146,23 +146,53 @@ export default async function AdminPage() {
     used_by: inv.used_by ?? null,
   }))
 
-  const applications: TherapistApplication[] = (rawApplications ?? []).map((a: any) => ({
-    id: a.id,
-    full_name: a.full_name,
-    email: a.email,
-    phone: a.phone ?? null,
-    city: a.city ?? null,
-    license_number: a.license_number,
-    license_body: a.license_body ?? null,
-    years_experience: a.years_experience ?? 0,
-    education: a.education ?? null,
-    specializations: a.specializations ?? [],
-    languages: a.languages ?? [],
-    bio: a.bio,
-    why_mindcanopy: a.why_mindcanopy ?? null,
-    status: a.status,
-    submitted_at: a.submitted_at,
-  }))
+  // Generate signed URLs for CVs + certificates so admin can view private files.
+  // 1-hour expiry — admin re-fetches the page if links go stale.
+  const SIGNED_URL_TTL = 60 * 60
+  async function signDoc(path: string | null | undefined): Promise<string | null> {
+    if (!path) return null
+    const { data, error } = await admin.storage
+      .from('therapist-documents')
+      .createSignedUrl(path, SIGNED_URL_TTL)
+    if (error || !data?.signedUrl) return null
+    return data.signedUrl
+  }
+
+  const applications: TherapistApplication[] = await Promise.all(
+    (rawApplications ?? []).map(async (a: any) => {
+      const cvSignedUrl = await signDoc(a.cv_url)
+      const certificateSignedUrls = (
+        await Promise.all((a.certificate_urls ?? []).map((p: string) => signDoc(p)))
+      ).filter((u): u is string => !!u)
+
+      return {
+        id: a.id,
+        full_name: a.full_name,
+        email: a.email,
+        phone: a.phone ?? null,
+        city: a.city ?? null,
+        state: a.state ?? null,
+        country: a.country ?? null,
+        gender: a.gender ?? null,
+        ethnicity: a.ethnicity ?? null,
+        date_of_birth: a.date_of_birth ?? null,
+        linkedin_url: a.linkedin_url ?? null,
+        license_number: a.license_number ?? null,
+        license_body: a.license_body ?? null,
+        years_experience: a.years_experience ?? 0,
+        education: a.education ?? null,
+        specializations: a.specializations ?? [],
+        specialization_other: a.specialization_other ?? null,
+        languages: a.languages ?? [],
+        bio: a.bio ?? null,
+        why_mindcanopy: a.why_mindcanopy ?? null,
+        cv_signed_url: cvSignedUrl,
+        certificate_signed_urls: certificateSignedUrls,
+        status: a.status,
+        submitted_at: a.submitted_at,
+      }
+    })
+  )
 
   // ── Build switch requests with client + therapist names ──────────────────────
   const switchRequestClientIds: string[] = (rawSwitchRequests ?? []).map((r: any) => r.client_id)
