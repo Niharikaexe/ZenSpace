@@ -26,7 +26,6 @@ export default function ForgotPasswordPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         <div className="flex-1 flex flex-col justify-center">
@@ -68,7 +67,6 @@ export default function ForgotPasswordPage() {
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">

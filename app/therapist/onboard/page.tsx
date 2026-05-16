@@ -113,7 +113,7 @@ function StepAccount({
           type="text"
           value={values.fullName}
           onChange={e => onChange('fullName', e.target.value)}
-          placeholder="Dr. Priya Sharma"
+          placeholder="xxxx"
           className={inputCls}
         />
       </Field>
@@ -122,7 +122,7 @@ function StepAccount({
           type="email"
           value={values.email}
           onChange={e => onChange('email', e.target.value)}
-          placeholder="priya@example.com"
+          placeholder="abc@example.com"
           className={inputCls}
         />
       </Field>
@@ -181,7 +181,7 @@ function StepCredentials({
             type="text"
             value={values.licenseState}
             onChange={e => onChange('licenseState', e.target.value)}
-            placeholder="e.g. Maharashtra"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
@@ -352,7 +352,7 @@ function StepVerification({
                 type="text"
                 value={values.addressCity}
                 onChange={e => onChange('addressCity', e.target.value)}
-                placeholder="Mumbai"
+                placeholder="xxxx"
                 className={inputCls}
               />
             </Field>
@@ -361,7 +361,7 @@ function StepVerification({
                 type="text"
                 value={values.addressState}
                 onChange={e => onChange('addressState', e.target.value)}
-                placeholder="Maharashtra"
+                placeholder="xxxx"
                 className={inputCls}
               />
             </Field>
@@ -372,7 +372,7 @@ function StepVerification({
                 type="text"
                 value={values.addressPostalCode}
                 onChange={e => onChange('addressPostalCode', e.target.value)}
-                placeholder="400001"
+                placeholder="xxxxxx"
                 className={inputCls}
               />
             </Field>
@@ -381,7 +381,7 @@ function StepVerification({
                 type="text"
                 value={values.addressCountry}
                 onChange={e => onChange('addressCountry', e.target.value)}
-                placeholder="India"
+                placeholder="xxxx"
                 className={inputCls}
               />
             </Field>
@@ -401,7 +401,7 @@ function StepVerification({
               type="text"
               value={values.bankAccountName}
               onChange={e => onChange('bankAccountName', e.target.value)}
-              placeholder="Dr. Priya Sharma"
+              placeholder="xxxx"
               className={inputCls}
             />
           </Field>
@@ -411,7 +411,7 @@ function StepVerification({
                 type="text"
                 value={values.bankAccountNumber}
                 onChange={e => onChange('bankAccountNumber', e.target.value)}
-                placeholder="123456789012"
+                placeholder="xxxxxxxxxxxx"
                 className={inputCls}
               />
             </Field>
@@ -420,7 +420,7 @@ function StepVerification({
                 type="text"
                 value={values.bankIfsc}
                 onChange={e => onChange('bankIfsc', e.target.value.toUpperCase())}
-                placeholder="HDFC0001234"
+                placeholder="xxxx"
                 className={inputCls}
               />
             </Field>
@@ -430,7 +430,7 @@ function StepVerification({
               type="email"
               value={values.paypalEmail}
               onChange={e => onChange('paypalEmail', e.target.value)}
-              placeholder="priya@example.com"
+              placeholder="abc@example.com"
               className={inputCls}
             />
           </Field>

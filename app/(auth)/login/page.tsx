@@ -53,7 +53,6 @@ export default function LoginPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         <div className="space-y-6 flex-1">
@@ -99,7 +98,6 @@ export default function LoginPage() {
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">

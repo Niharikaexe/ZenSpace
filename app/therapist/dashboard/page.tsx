@@ -135,15 +135,17 @@ export default async function TherapistDashboard() {
           try {
             const r = qRow.responses as Record<string, unknown>
             const qType = r.type as string
+            const toArr = (v: unknown): string[] =>
+              Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
             if (qType === 'individual') {
               const a = r.answers as Record<string, unknown>
-              concerns = (a?.q1 as string[] | undefined) ?? []
+              concerns = toArr(a?.q2)
             } else if (qType === 'couples') {
-              const s = r.shared as Record<string, unknown> | undefined
-              concerns = (s?.q3 as string[] | undefined) ?? []
+              const s = r.common as Record<string, unknown> | undefined
+              concerns = toArr(s?.c6)
             } else if (qType === 'teen') {
               const a = r.answers as Record<string, unknown>
-              concerns = (a?.q1 as string[] | undefined) ?? []
+              concerns = toArr(a?.q15)
             }
           } catch { /* ignore */ }
         }

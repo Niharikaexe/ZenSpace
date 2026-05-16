@@ -40,6 +40,9 @@ export default function SignupPage() {
   const [state, action, isPending] = useActionState(signUp, initialState)
   const [questionnaireData, setQuestionnaireData] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword
 
   useEffect(() => {
     const stored = sessionStorage.getItem('mindcanopy_questionnaire')
@@ -66,7 +69,6 @@ export default function SignupPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         {/* USPs */}
@@ -115,7 +117,6 @@ export default function SignupPage() {
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">
@@ -160,7 +161,15 @@ export default function SignupPage() {
                   </Alert>
                 )}
 
-                <form action={action} className="space-y-4">
+                <form
+                  action={action}
+                  onSubmit={(e) => {
+                    if (password !== confirmPassword) {
+                      e.preventDefault()
+                    }
+                  }}
+                  className="space-y-4"
+                >
                   <input type="hidden" name="role" value="client" />
                   <input type="hidden" name="questionnaireData" value={questionnaireData} />
 
@@ -206,6 +215,8 @@ export default function SignupPage() {
                         placeholder="Min. 8 characters"
                         required
                         autoComplete="new-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11 pr-10"
                       />
                       <button
@@ -219,10 +230,34 @@ export default function SignupPage() {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirmPassword" className="text-[#233551] font-medium text-sm">
+                      Confirm password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Re-enter your password"
+                      required
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        passwordMismatch
+                          ? 'border-red-300 focus:border-red-400'
+                          : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
+                    />
+                    {passwordMismatch && (
+                      <p className="text-xs text-red-500">Passwords don't match.</p>
+                    )}
+                  </div>
+
                   <Button
                     type="submit"
-                    className="w-full h-11 rounded-full bg-[#7EC0B7] hover:bg-[#3D8A80] text-white font-bold text-sm transition-colors mt-2"
-                    disabled={isPending}
+                    className="w-full h-11 rounded-full bg-[#7EC0B7] hover:bg-[#3D8A80] text-white font-bold text-sm transition-colors mt-2 disabled:opacity-60"
+                    disabled={isPending || passwordMismatch || password.length === 0}
                   >
                     {isPending ? 'Creating account...' : 'Create account'}
                   </Button>

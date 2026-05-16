@@ -90,19 +90,25 @@ export default async function TherapistClientDetailPage({
     try {
       const r = qRow.responses as Record<string, unknown>
       qType = r.type as string ?? ''
+      const toArr = (v: unknown): string[] =>
+        Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
       if (qType === 'individual') {
         const a = r.answers as Record<string, unknown> ?? {}
-        concerns = (a.q1 as string[]) ?? []
-        goals = (a.q2 as string) ?? ''
-        previousTherapy = (a.q3 as string) ?? ''
-        therapistGenderPref = (a.q5 as string) ?? ''
+        concerns = toArr(a.q2)
+        goals = (a.q3 as string) ?? ''
+        previousTherapy = (a.q12 as string) ?? ''
+        therapistGenderPref = (a.q13 as string) ?? ''
       } else if (qType === 'couples') {
-        const s = r.shared as Record<string, unknown> ?? {}
-        concerns = (s.q3 as string[]) ?? []
+        const s = r.common as Record<string, unknown> ?? {}
+        concerns = toArr(s.c6)
+        goals = Array.isArray(s.c9) ? (s.c9 as string[]).join(', ') : ''
+        previousTherapy = (s.c10 as string) ?? ''
+        therapistGenderPref = (s.c11 as string) ?? ''
       } else if (qType === 'teen') {
         const a = r.answers as Record<string, unknown> ?? {}
-        concerns = (a.q1 as string[]) ?? []
-        goals = (a.q2 as string) ?? ''
+        concerns = toArr(a.q15)
+        goals = (a.q18 as string) ?? ''
+        previousTherapy = (a.q17 as string) ?? ''
       }
     } catch { /* ignore */ }
   }

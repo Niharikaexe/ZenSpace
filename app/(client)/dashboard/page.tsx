@@ -99,25 +99,27 @@ export default async function ClientDashboard() {
     try {
       const data = questionnaireRow.responses as Record<string, unknown>
       const type = data.type as string
+      const toArray = (v: unknown): string[] =>
+        Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
       if (type === 'individual') {
         const answers = data.answers as Record<string, unknown>
         questionnairePrefs = {
           type: 'individual',
-          concerns: (answers?.q1 as string[] | undefined) ?? [],
-          therapistGender: (answers?.q8 as string | undefined) ?? null,
+          concerns: toArray(answers?.q2),
+          therapistGender: (answers?.q13 as string | undefined) ?? null,
         }
       } else if (type === 'couples') {
-        const shared = data.shared as Record<string, unknown> | undefined
+        const common = data.common as Record<string, unknown> | undefined
         questionnairePrefs = {
           type: 'couples',
-          concerns: (shared?.q3 as string[] | undefined) ?? [],
-          therapistGender: (shared?.q9 as string | undefined) ?? null,
+          concerns: toArray(common?.c6),
+          therapistGender: (common?.c11 as string | undefined) ?? null,
         }
       } else if (type === 'teen') {
         const answers = data.answers as Record<string, unknown>
         questionnairePrefs = {
           type: 'teen',
-          concerns: (answers?.q1 as string[] | undefined) ?? [],
+          concerns: toArray(answers?.q15),
           therapistGender: null,
         }
       }

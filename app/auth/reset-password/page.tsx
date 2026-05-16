@@ -26,7 +26,6 @@ export default function ResetPasswordPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-8">

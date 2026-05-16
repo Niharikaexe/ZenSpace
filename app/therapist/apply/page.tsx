@@ -150,7 +150,7 @@ function StepPersonal({
           type="text"
           value={values.fullName}
           onChange={e => onChange('fullName', e.target.value)}
-          placeholder="Dr. Priya Sharma"
+          placeholder="xxxx"
           className={inputCls}
         />
       </Field>
@@ -160,7 +160,7 @@ function StepPersonal({
             type="email"
             value={values.email}
             onChange={e => onChange('email', e.target.value)}
-            placeholder="priya@example.com"
+            placeholder="abc@example.com"
             className={inputCls}
           />
         </Field>
@@ -169,7 +169,7 @@ function StepPersonal({
             type="tel"
             value={values.phone}
             onChange={e => onChange('phone', e.target.value)}
-            placeholder="+91 98765 43210"
+            placeholder="+91 xxxxxxxxxx"
             className={inputCls}
           />
         </Field>
@@ -180,7 +180,7 @@ function StepPersonal({
             type="text"
             value={values.city}
             onChange={e => onChange('city', e.target.value)}
-            placeholder="Mumbai"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
@@ -189,7 +189,7 @@ function StepPersonal({
             type="text"
             value={values.state}
             onChange={e => onChange('state', e.target.value)}
-            placeholder="Maharashtra"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
@@ -198,7 +198,7 @@ function StepPersonal({
             type="text"
             value={values.country}
             onChange={e => onChange('country', e.target.value)}
-            placeholder="India"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
@@ -350,7 +350,7 @@ function StepCredentials({
             type="text"
             value={values.education}
             onChange={e => onChange('education', e.target.value)}
-            placeholder="M.Phil Clinical Psychology"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
@@ -361,7 +361,7 @@ function StepCredentials({
           type="url"
           value={values.linkedinUrl}
           onChange={e => onChange('linkedinUrl', e.target.value)}
-          placeholder="https://linkedin.com/in/yourprofile"
+          placeholder="https://linkedin.com/in/xxxx"
           className={inputCls}
         />
       </Field>

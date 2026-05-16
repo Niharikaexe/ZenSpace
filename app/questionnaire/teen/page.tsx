@@ -175,8 +175,6 @@ export default function TeenQuestionnairePage() {
   }
 
   const isLast = stepIndex === totalSteps - 1
-  // Section A questions are validating/sensitive — show "private" reassurance badge
-  const isValidating = step === 'q1' || step === 'q2' || step === 'q3' || step === 'q4'
 
   return (
     <div className="min-h-screen bg-white">
@@ -200,11 +198,6 @@ export default function TeenQuestionnairePage() {
           <span className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest">
             {sectionLabel(step)}
           </span>
-          {isValidating && (
-            <span className="text-xs font-bold text-white bg-[#E8926A] px-3 py-1 rounded-full">
-              Private — your parents don&apos;t see this
-            </span>
-          )}
         </div>
 
         <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
