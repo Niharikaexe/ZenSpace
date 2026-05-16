@@ -47,14 +47,16 @@ const WomanIllustration = () => (
 )
 
 const therapists = [
-  { name: " Sarah Mitchell", specialty: "Anxiety & Depression",   bio: "Specialises in cognitive behavioural approaches for chronic anxiety and low mood.", rating: 4.9, reviews: 328, available: true,  initials: "SM" },
-  { name: " James Chen",     specialty: "Couples & Family",       bio: "Works with partners navigating communication breakdown and long-term conflict cycles.", rating: 4.8, reviews: 256, available: true,  initials: "JC" },
-  { name: " Amara Williams", specialty: "Trauma & PTSD",          bio: "Trauma-focused therapy for survivors of complex, relational and developmental trauma.", rating: 5.0, reviews: 412, available: false, initials: "AW" },
-  { name: " David Okafor",   specialty: "Teen & Adolescent",      bio: "Helps teenagers navigate academic pressure, identity questions and family stress.", rating: 4.9, reviews: 189, available: true,  initials: "DO" },
-  { name: " Emily Park",     specialty: "Stress Management",      bio: "Evidence-informed work for burnout, high-performance anxiety and boundary-setting.", rating: 4.7, reviews: 203, available: true,  initials: "EP" },
-  { name: " Maria Santos",   specialty: "Self-Esteem & Identity", bio: "Psychodynamic work focused on self-worth, inner critic patterns and life transitions.", rating: 4.8, reviews: 175, available: true,  initials: "MS" },
-  { name: " Robert Kim",     specialty: "Grief & Loss",           bio: "Compassionate support through bereavement, estrangement and unexpected life changes.", rating: 4.9, reviews: 291, available: false, initials: "RK" },
-  { name: " Lisa Thompson",  specialty: "Work-Life Balance",      bio: "Helps clients redesign their relationship with work without compromising wellbeing.", rating: 4.6, reviews: 144, available: true,  initials: "LT" },
+  { name: "Priya Menon",     specialty: "Anxiety & Depression",   bio: "London-trained, based in Bengaluru. CBT for chronic anxiety and low mood.",            rating: 4.9, reviews: 312, available: true,  initials: "PM" },
+  { name: "Sarah Mitchell",  specialty: "Couples & Family",       bio: "UK-licensed couples therapist. Communication breakdown and long-term conflict.",        rating: 4.8, reviews: 256, available: true,  initials: "SM" },
+  { name: "Arjun Kapoor",    specialty: "Trauma & PTSD",          bio: "EMDR-trained, based in Delhi. Complex, relational and developmental trauma.",          rating: 5.0, reviews: 287, available: false, initials: "AK" },
+  { name: "Amara Williams",  specialty: "Teen & Adolescent",      bio: "NYU-trained. Works with teens navigating academic pressure and identity.",             rating: 4.9, reviews: 189, available: true,  initials: "AW" },
+  { name: "Neha Iyer",       specialty: "Burnout & Work Stress",  bio: "Pune-based, ex-corporate. Specialises in high-performance burnout and boundaries.",   rating: 4.7, reviews: 221, available: true,  initials: "NI" },
+  { name: "David Okafor",    specialty: "Self-Esteem & Identity", bio: "Toronto-based psychodynamic therapist. Inner critic and life transitions.",            rating: 4.8, reviews: 175, available: true,  initials: "DO" },
+  { name: "Karan Sharma",    specialty: "Grief & Loss",           bio: "Delhi-based, trained at Tavistock. Bereavement, estrangement and unexpected loss.",   rating: 4.9, reviews: 198, available: false, initials: "KS" },
+  { name: "Emily Park",      specialty: "Work-Life Balance",      bio: "Singapore-based. Helps clients redesign their relationship with work.",                rating: 4.6, reviews: 144, available: true,  initials: "EP" },
+  { name: "Meera Joshi",     specialty: "Couples & Relationships",bio: "Mumbai-based, Gottman-method certified. Long-term and pre-marital couples work.",     rating: 4.9, reviews: 232, available: true,  initials: "MJ" },
+  { name: "James Chen",      specialty: "Anxiety & OCD",          bio: "Toronto-trained. ERP and CBT for OCD, panic and generalised anxiety.",                rating: 4.8, reviews: 167, available: true,  initials: "JC" },
 ]
 
 const TherapistCards = () => {
