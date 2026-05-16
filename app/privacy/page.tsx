@@ -57,7 +57,7 @@ const sections = [
   },
   {
     title: '13. Contact Us',
-    body: `If you have questions about this Privacy Policy or how we handle your data, please contact us at hello@mindcanopy.in. For data-related requests, please include "Privacy Request" in the subject line.`,
+    body: `If you have questions about this Privacy Policy or how we handle your data, please contact us at admin@mindcanopy.in. For data-related requests, please include "Privacy Request" in the subject line.`,
   },
 ]
 

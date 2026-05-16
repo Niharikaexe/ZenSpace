@@ -65,11 +65,11 @@ export async function sendContactEmail(
     if (!res.ok) {
       const body = await res.text()
       logger.error('contact', 'Resend API error', new Error(body))
-      return { error: 'Failed to send message. Please email us directly at hello@mindcanopy.in.' }
+      return { error: 'Failed to send message. Please email us directly at admin@mindcanopy.in.' }
     }
   } catch (err) {
     logger.error('contact', 'Failed to send contact email', err)
-    return { error: 'Failed to send message. Please email us directly at hello@mindcanopy.in.' }
+    return { error: 'Failed to send message. Please email us directly at admin@mindcanopy.in.' }
   }
 
   logger.info('contact', 'Contact email sent', { name, email })

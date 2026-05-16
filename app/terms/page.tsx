@@ -61,7 +61,7 @@ const sections = [
   },
   {
     title: '14. Contact',
-    body: `If you have questions about these terms, please contact us at hello@mindcanopy.in.`,
+    body: `If you have questions about these terms, please contact us at admin@mindcanopy.in.`,
   },
 ]
 

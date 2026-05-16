@@ -19,7 +19,7 @@ export function TherapistContactForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const mailtoUrl = `mailto:hello@mindcanopy.in?subject=${encodeURIComponent(subject || 'Therapist Query')}&body=${encodeURIComponent(message)}`
+    const mailtoUrl = `mailto:admin@mindcanopy.in?subject=${encodeURIComponent(subject || 'Therapist Query')}&body=${encodeURIComponent(message)}`
     window.open(mailtoUrl, '_blank')
     setSent(true)
   }
@@ -45,8 +45,8 @@ export function TherapistContactForm() {
           <p className="font-bold text-[#233551]">Message opened in your email client.</p>
           <p className="text-sm text-[#233551]/50">
             If nothing opened, email us at{' '}
-            <a href="mailto:hello@mindcanopy.in" className="text-[#3D8A80] hover:underline">
-              hello@mindcanopy.in
+            <a href="mailto:admin@mindcanopy.in" className="text-[#3D8A80] hover:underline">
+              admin@mindcanopy.in
             </a>
           </p>
           <Link

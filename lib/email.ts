@@ -50,7 +50,7 @@ function base(content: string) {
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
               You&rsquo;re receiving this because you&rsquo;re a verified therapist on MindCanopy.
-              <br/>Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
+              <br/>Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a>
             </p>
           </td>
         </tr>

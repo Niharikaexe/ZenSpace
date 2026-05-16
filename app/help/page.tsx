@@ -77,10 +77,10 @@ export default function HelpPage() {
             Write to us. We respond — usually within a few hours.
           </p>
           <a
-            href="mailto:hello@mindcanopy.in"
+            href="mailto:admin@mindcanopy.in"
             className="inline-block bg-[#233551] text-white text-sm font-bold px-8 py-3.5 rounded-full hover:bg-[#2d4568] transition-colors"
           >
-            hello@mindcanopy.in
+            admin@mindcanopy.in
           </a>
         </div>
       </main>
