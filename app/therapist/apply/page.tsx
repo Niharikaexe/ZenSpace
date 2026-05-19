@@ -452,9 +452,10 @@ function StepPractice({
     specializations: string[]
     specializationOther: string
     languages: string[]
+    languageOther: string
     whyMindcanopy: string
   }
-  onChange: (key: 'specializationOther' | 'whyMindcanopy', value: string) => void
+  onChange: (key: 'specializationOther' | 'languageOther' | 'whyMindcanopy', value: string) => void
   toggleSpecialization: (s: string) => void
   toggleLanguage: (l: string) => void
 }) {
@@ -522,6 +523,18 @@ function StepPractice({
             </button>
           ))}
         </div>
+        <div className="mt-3">
+          <input
+            type="text"
+            value={values.languageOther}
+            onChange={e => onChange('languageOther', e.target.value)}
+            placeholder="Other language (please specify)"
+            className={inputCls}
+          />
+        </div>
+        {values.languages.length === 0 && !values.languageOther && (
+          <p className="text-xs text-[#233551]/40 mt-2">Select at least one language or write one in &ldquo;Other&rdquo;.</p>
+        )}
       </Field>
 
       <Field label="Why do you want to join MindCanopy?" hint="optional">
@@ -610,12 +623,13 @@ export default function TherapistApplyPage() {
     specializations: [] as string[],
     specializationOther: '',
     languages: ['English'] as string[],
+    languageOther: '',
     whyMindcanopy: '',
   })
 
   const updatePersonal = (key: keyof PersonalValues, value: string) => setPersonal(prev => ({ ...prev, [key]: value }))
   const updateCreds = (key: 'yearsExperience' | 'education' | 'linkedinUrl', value: string) => setCreds(prev => ({ ...prev, [key]: value }))
-  const updatePractice = (key: 'specializationOther' | 'whyMindcanopy', value: string) =>
+  const updatePractice = (key: 'specializationOther' | 'languageOther' | 'whyMindcanopy', value: string) =>
     setPractice(prev => ({ ...prev, [key]: value }))
 
   const onCvUploaded = (url: string, filename: string) =>
@@ -666,7 +680,7 @@ export default function TherapistApplyPage() {
     if (step === 2) {
       return (
         (practice.specializations.length > 0 || practice.specializationOther.trim().length > 0) &&
-        practice.languages.length > 0
+        (practice.languages.length > 0 || practice.languageOther.trim().length > 0)
       )
     }
     return false
@@ -745,6 +759,7 @@ export default function TherapistApplyPage() {
             <input type="hidden" name="specializations" value={JSON.stringify(practice.specializations)} />
             <input type="hidden" name="specializationOther" value={practice.specializationOther} />
             <input type="hidden" name="languages" value={JSON.stringify(practice.languages)} />
+            <input type="hidden" name="languageOther" value={practice.languageOther} />
             <input type="hidden" name="whyMindcanopy" value={practice.whyMindcanopy} />
 
             {/* Step content */}
@@ -767,6 +782,7 @@ export default function TherapistApplyPage() {
                 toggleLanguage={toggleLanguage}
               />
             )}
+
 
             {/* Server error */}
             {state?.error && isLastStep && (

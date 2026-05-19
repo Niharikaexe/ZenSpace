@@ -121,7 +121,8 @@ export default function SignupPage() {
       <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-hidden p-10 xl:p-12">
         {/* Logo */}
         <div className="mb-10">
-          <Link href="/">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <OwlLogo size={28} variant="light" />
             <span
               className="font-black text-2xl tracking-tight text-white"
               style={{ fontFamily: 'var(--font-lato)' }}
