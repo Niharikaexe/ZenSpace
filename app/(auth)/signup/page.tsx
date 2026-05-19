@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { signUp } from '@/app/actions/auth'
+import { signUp, type AuthState } from '@/app/actions/auth'
 import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import { Button } from '@/components/ui/button'
@@ -38,7 +38,7 @@ const usps = [
 
 // Client-side debug wrapper around the server action so we can see in
 // browser DevTools exactly what FormData is sent and what came back.
-async function signUpWithLogging(prev: typeof initialState, fd: FormData): Promise<typeof initialState> {
+async function signUpWithLogging(prev: AuthState, fd: FormData): Promise<AuthState> {
   // eslint-disable-next-line no-console
   console.log('[signup] submit →', {
     fullName: fd.get('fullName'),
