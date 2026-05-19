@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { signOut } from '@/app/actions/auth'
 import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
+import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -214,9 +215,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-sm">
-              <span className="text-white text-sm font-bold">Z</span>
-            </div>
+            <OwlLogo size={30} />
             <div>
               <p className="text-sm font-semibold text-slate-900">MindCanopy Admin</p>
               <p className="text-xs text-slate-400">Welcome back, {adminName.split(' ')[0]}</p>

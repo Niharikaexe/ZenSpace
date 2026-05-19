@@ -10,15 +10,47 @@ import {
 import { signOut } from '@/app/actions/auth'
 
 const SPECIALIZATIONS = [
-  'Anxiety', 'Depression', 'Stress', 'Relationships', 'Grief', 'Trauma',
-  'Self-esteem', 'Life transitions', 'PTSD', 'Burnout', 'OCD', 'Addiction',
-  'Family therapy', 'Adolescents', 'LGBTQ+', 'Career', 'Anger management',
-  'Eating disorders', 'Sleep issues', 'Chronic illness', 'Others',
+  'CBT (Cognitive Behavioral Therapy)',
+  'DBT (Dialectical Behavior Therapy)',
+  'ACT (Acceptance & Commitment Therapy)',
+  'EMDR',
+  'Psychodynamic therapy',
+  'Person-centered / Humanistic',
+  'Mindfulness-based / MBCT',
+  'Solution-focused brief therapy',
+  'Schema therapy',
+  'Internal Family Systems (IFS)',
+  'Narrative therapy',
+  'Gottman method (couples)',
+  'Emotionally Focused Therapy (EFT)',
+  'Trauma-focused CBT',
+  'Anxiety',
+  'Depression',
+  'Stress & burnout',
+  'Trauma / PTSD',
+  'Grief & loss',
+  'Relationships',
+  'Couples therapy',
+  'Family conflicts',
+  'Self-esteem & identity',
+  'Life transitions',
+  'OCD',
+  'Addiction / substance use',
+  'Adolescents & teens',
+  'LGBTQ+ identity',
+  'Anger management',
+  'Eating disorders',
+  'Sleep issues',
+  'Postpartum / Perinatal',
+  'ADHD / Neurodivergence',
+  'Bipolar disorder',
+  'Chronic illness',
+  'Career counselling',
 ]
 
 const LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia', 'Others',
+  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
 ]
 
 const inputCls =
@@ -70,8 +102,21 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [approach, setApproach] = useState(initialData.approach)
   const [yearsExp, setYearsExp] = useState(String(initialData.yearsExperience))
   const [capacity, setCapacity] = useState(String(initialData.weeklyCapacity))
-  const [specializations, setSpecializations] = useState<string[]>(initialData.specializations)
-  const [languages, setLanguages] = useState<string[]>(initialData.languages)
+  // Strip any "free text" values not in the predefined list back into the Other field
+  const knownSpecs = new Set(SPECIALIZATIONS)
+  const knownLangs = new Set(LANGUAGES)
+  const [specializations, setSpecializations] = useState<string[]>(
+    initialData.specializations.filter(s => knownSpecs.has(s))
+  )
+  const [specializationOther, setSpecializationOther] = useState(
+    initialData.specializations.filter(s => !knownSpecs.has(s)).join(', ')
+  )
+  const [languages, setLanguages] = useState<string[]>(
+    initialData.languages.filter(l => knownLangs.has(l))
+  )
+  const [languageOther, setLanguageOther] = useState(
+    initialData.languages.filter(l => !knownLangs.has(l)).join(', ')
+  )
   const [acceptsNew, setAcceptsNew] = useState(initialData.acceptsNewClients)
 
   // Payment info — two tabs (PayPal + Bank)
@@ -110,7 +155,9 @@ export function TherapistAccountForm({ initialData }: Props) {
     <form action={formAction} className="space-y-8">
       {/* Hidden computed fields */}
       <input type="hidden" name="specializations" value={JSON.stringify(specializations)} />
+      <input type="hidden" name="specializationOther" value={specializationOther} />
       <input type="hidden" name="languages" value={JSON.stringify(languages)} />
+      <input type="hidden" name="languageOther" value={languageOther} />
       <input type="hidden" name="acceptsNewClients" value={String(acceptsNew)} />
 
       {/* Section: Identity */}
@@ -244,8 +291,15 @@ export function TherapistAccountForm({ initialData }: Props) {
             </button>
           ))}
         </div>
-        {specializations.length === 0 && (
-          <p className="text-xs text-[#E8926A]">Select at least one area.</p>
+        <input
+          type="text"
+          value={specializationOther}
+          onChange={e => setSpecializationOther(e.target.value)}
+          placeholder="Other (please specify)"
+          className={inputCls}
+        />
+        {specializations.length === 0 && !specializationOther.trim() && (
+          <p className="text-xs text-[#E8926A]">Select at least one area or specify in &ldquo;Other&rdquo;.</p>
         )}
       </section>
 
@@ -269,6 +323,13 @@ export function TherapistAccountForm({ initialData }: Props) {
             </button>
           ))}
         </div>
+        <input
+          type="text"
+          value={languageOther}
+          onChange={e => setLanguageOther(e.target.value)}
+          placeholder="Other language (please specify)"
+          className={inputCls}
+        />
       </section>
 
       {/* Section: Payment info */}

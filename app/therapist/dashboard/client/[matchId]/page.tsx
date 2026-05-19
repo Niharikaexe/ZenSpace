@@ -19,8 +19,10 @@ function formatDateTime(iso: string) {
 export default async function TherapistClientDetailPage({
   params,
 }: {
-  params: { matchId: string }
+  params: Promise<{ matchId: string }>
 }) {
+  const { matchId } = await params
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -39,7 +41,7 @@ export default async function TherapistClientDetailPage({
   const { data: match } = await (admin as any)
     .from('matches')
     .select('id, client_id, created_at, status')
-    .eq('id', params.matchId)
+    .eq('id', matchId)
     .eq('therapist_id', user.id)
     .single() as { data: { id: string; client_id: string; created_at: string; status: string } | null; error: unknown }
 

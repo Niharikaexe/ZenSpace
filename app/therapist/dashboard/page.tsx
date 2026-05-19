@@ -12,10 +12,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function formatDateTime(iso: string) {
+function formatDateTime(iso: string, tz?: string | null) {
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit', hour12: true,
+    ...(tz ? { timeZone: tz } : {}),
   })
 }
 
@@ -75,7 +76,7 @@ export default async function TherapistDashboard() {
       .eq('status', 'active'),
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability')
+      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability, timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
   ])
@@ -221,6 +222,7 @@ export default async function TherapistDashboard() {
         {/* Weekly availability — moved above clients */}
         <WeeklyAvailabilityEditor
           initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+          therapistTimezone={(tProfile?.timezone as string | null) ?? null}
         />
 
         {isMatched ? (
@@ -270,7 +272,7 @@ export default async function TherapistDashboard() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#233551] truncate">{s.clientName}</p>
-                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt)}</p>
+                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt, tProfile?.timezone as string | null)}</p>
                         </div>
                       </div>
                       {s.roomUrl ? (
@@ -322,15 +324,13 @@ export default async function TherapistDashboard() {
                           <p className="text-xs text-[#233551]/40 truncate">{c.email}</p>
                         </div>
                       </div>
-                      {c.subscriptionPlan && (
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 capitalize ${
-                          c.subscriptionStatus === 'active'
-                            ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
-                            : 'bg-amber-50 text-amber-600'
-                        }`}>
-                          {c.subscriptionPlan}
-                        </span>
-                      )}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
+                        c.subscriptionStatus === 'active'
+                          ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
+                          : 'bg-slate-100 text-[#233551]/40'
+                      }`}>
+                        {c.subscriptionStatus === 'active' ? 'Subscribed' : 'No subscription'}
+                      </span>
                     </div>
                     </Link>
 

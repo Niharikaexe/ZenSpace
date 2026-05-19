@@ -25,6 +25,7 @@ interface Props {
   clientName: string
   therapist: TherapistPanelData
   timezone: string | null
+  therapistTimezone: string
   isSubscribed: boolean
   sessionsThisWeek: number
   sessionsPerWeek: number
@@ -37,7 +38,27 @@ interface Props {
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
 
-function buildWeek(weeklyAvailability: Record<string, { hour: number; minute: number }[]>): DayEntry[] {
+/**
+ * Converts a wall-clock time (hour, minute) in the therapist's timezone on a given
+ * calendar date to a UTC Date. Uses the Intl trick: interpret the naive UTC guess in
+ * the target timezone to derive the actual offset, then apply the correction.
+ */
+function localTimeToUTC(year: number, month: number, day: number, hour: number, minute: number, tz: string): Date {
+  const naive = new Date(Date.UTC(year, month, day, hour, minute, 0))
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: 'numeric', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  }).formatToParts(naive)
+  const g = Object.fromEntries(parts.filter(p => p.type !== 'literal').map(p => [p.type, parseInt(p.value)]))
+  const tzUTC = Date.UTC(g.year, g.month - 1, g.day, g.hour === 24 ? 0 : g.hour, g.minute, 0)
+  return new Date(naive.getTime() * 2 - tzUTC)
+}
+
+function buildWeek(
+  weeklyAvailability: Record<string, { hour: number; minute: number }[]>,
+  therapistTimezone: string,
+): DayEntry[] {
   const now = new Date()
   const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
   const days: DayEntry[] = []
@@ -49,14 +70,15 @@ function buildWeek(weeklyAvailability: Record<string, { hour: number; minute: nu
 
     const slots: TimeSlot[] = (weeklyAvailability[String(d.getDay())] ?? [])
       .map(({ hour, minute }) => {
-        const slotDate = new Date(d)
-        slotDate.setHours(hour, minute, 0, 0)
+        // Convert the therapist's local hour:minute on this calendar date → UTC
+        const slotDate = localTimeToUTC(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, therapistTimezone)
         if (slotDate <= cutoff) return null
-        const label12 = slotDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+        // Display time in client's browser timezone (IST for most users)
+        const label12 = slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })
         return {
           time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
           label12,
-          date: slotDate.toISOString().split('T')[0],
+          date: d.toLocaleDateString('en-CA'), // YYYY-MM-DD in client's locale
           iso: slotDate.toISOString(),
         }
       })
@@ -64,8 +86,8 @@ function buildWeek(weeklyAvailability: Record<string, { hour: number; minute: nu
 
     days.push({
       date: d,
-      dateStr: d.toISOString().split('T')[0],
-      dayName: d.toLocaleDateString('en-IN', { weekday: 'short' }),
+      dateStr: d.toLocaleDateString('en-CA'),
+      dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
       dayNum: String(d.getDate()),
       slots,
     })
@@ -150,7 +172,7 @@ function BookingDropdown({
       <div className="mb-3">
         <p className="text-xs font-black text-[#233551]/35 uppercase tracking-widest mb-0.5">Booking</p>
         <p className="text-sm font-bold text-[#233551]">{dayLabel}</p>
-        <p className="text-xs text-[#233551]/50">{slot.label12} IST · 50 min session</p>
+        <p className="text-xs text-[#233551]/50">{slot.label12} · 50 min session</p>
       </div>
 
       {/* Session type */}
@@ -208,6 +230,7 @@ export default function ClientSessionsView({
   clientName,
   therapist,
   timezone,
+  therapistTimezone,
   isSubscribed,
   sessionsThisWeek,
   sessionsPerWeek,
@@ -223,7 +246,7 @@ export default function ClientSessionsView({
   const [expandedNotes, setExpandedNotes]   = useState<string | null>(null)
 
   const weeklyLimitReached = sessionsThisWeek >= sessionsPerWeek
-  const week = buildWeek(weeklyAvailability)
+  const week = buildWeek(weeklyAvailability, therapistTimezone)
 
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
 

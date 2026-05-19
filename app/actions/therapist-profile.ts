@@ -19,7 +19,9 @@ export async function updateTherapistProfile(
   const yearsExperience = parseInt(formData.get('yearsExperience') as string, 10) || 0
   const weeklyCapacity = parseInt(formData.get('weeklyCapacity') as string, 10) || 10
   const specializationsRaw = formData.get('specializations') as string | null
+  const specializationOther = (formData.get('specializationOther') as string | null)?.trim() ?? ''
   const languagesRaw = formData.get('languages') as string | null
+  const languageOther = (formData.get('languageOther') as string | null)?.trim() ?? ''
   const acceptsNewClients = formData.get('acceptsNewClients') === 'true'
   const paypalEmail = (formData.get('paypalEmail') as string | null)?.trim() ?? ''
   const bankAccountName = (formData.get('bankAccountName') as string | null)?.trim() ?? ''
@@ -46,8 +48,11 @@ export async function updateTherapistProfile(
     return { error: 'Invalid form data. Please try again.' }
   }
 
-  if (specializations.length === 0) return { error: 'Select at least one specialisation.' }
-  if (languages.length === 0) return { error: 'Select at least one language.' }
+  if (specializationOther) specializations = [...specializations, specializationOther]
+  if (languageOther) languages = [...languages, languageOther]
+
+  if (specializations.length === 0) return { error: 'Select at least one specialisation or fill in Other.' }
+  if (languages.length === 0) return { error: 'Select at least one language or fill in Other.' }
 
   const admin = createAdminClient()
 
