@@ -70,10 +70,15 @@ async function signUpWithLogging(prev: AuthState, fd: FormData): Promise<AuthSta
 export default function SignupPage() {
   const [state, action, isPending] = useActionState(signUpWithLogging, initialState)
   const [questionnaireData, setQuestionnaireData] = useState('')
+  const [therapyCategory, setTherapyCategory] = useState<'individual' | 'couples' | 'teen'>('individual')
   const [showPassword, setShowPassword] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword
+  const [blurred, setBlurred] = useState({ fullName: false, email: false, password: false })
+  // Local copy of server error — cleared as soon as user edits any field
+  const [serverError, setServerError] = useState<string | undefined>()
 
   useEffect(() => {
     const stored = sessionStorage.getItem('mindcanopy_questionnaire')
@@ -85,11 +90,30 @@ export default function SignupPage() {
     console.log('[signup] state changed →', state)
   }, [state])
 
+  useEffect(() => { setServerError(state.error) }, [state.error])
+
   useEffect(() => {
     if (state.success) {
       sessionStorage.removeItem('mindcanopy_questionnaire')
     }
   }, [state.success])
+
+  function markBlurred(field: keyof typeof blurred) {
+    setBlurred(prev => ({ ...prev, [field]: true }))
+  }
+
+  function clearServerError() { setServerError(undefined) }
+
+  // Inline validation — only shown after the field has been blurred
+  const nameError = blurred.fullName && fullName.trim().length > 0 && fullName.trim().length < 2
+    ? 'Name must be at least 2 characters' : ''
+  const emailError = blurred.email && email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? 'Enter a valid email address' : ''
+  const passwordError = blurred.password && password.length > 0 && password.length < 8
+    ? 'Must be at least 8 characters' : ''
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword
+
+  const hasInlineErrors = !!nameError || !!emailError || !!passwordError || passwordMismatch
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex">
@@ -191,9 +215,9 @@ export default function SignupPage() {
                   </p>
                 </div>
 
-                {state.error && (
+                {serverError && (
                   <Alert variant="destructive" className="mb-5">
-                    <AlertDescription>{state.error}</AlertDescription>
+                    <AlertDescription>{serverError}</AlertDescription>
                   </Alert>
                 )}
 
@@ -208,6 +232,35 @@ export default function SignupPage() {
                 >
                   <input type="hidden" name="role" value="client" />
                   <input type="hidden" name="questionnaireData" value={questionnaireData} />
+                  <input type="hidden" name="therapyCategory" value={therapyCategory} />
+
+                  {/* Therapy type selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[#233551] font-medium text-sm">
+                      This therapy is for
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'individual', label: 'Myself', sub: 'Individual' },
+                        { value: 'couples',    label: 'Us',     sub: 'Couples' },
+                        { value: 'teen',       label: 'My teen', sub: 'Ages 13–19' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setTherapyCategory(opt.value)}
+                          className={`flex flex-col items-center py-3 px-2 rounded-xl border-2 text-center transition-all ${
+                            therapyCategory === opt.value
+                              ? 'border-[#7EC0B7] bg-[#7EC0B7]/10'
+                              : 'border-slate-200 hover:border-[#7EC0B7]/50'
+                          }`}
+                        >
+                          <span className="font-bold text-sm text-[#233551]">{opt.label}</span>
+                          <span className="text-xs text-[#233551]/50 mt-0.5">{opt.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName" className="text-[#233551] font-medium text-sm">
@@ -220,8 +273,14 @@ export default function SignupPage() {
                       placeholder="Jane Doe"
                       required
                       autoComplete="name"
-                      className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11"
+                      value={fullName}
+                      onChange={(e) => { setFullName(e.target.value); clearServerError() }}
+                      onBlur={() => markBlurred('fullName')}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        nameError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
                     />
+                    {nameError && <p className="text-xs text-red-500">{nameError}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -235,8 +294,14 @@ export default function SignupPage() {
                       placeholder="you@example.com"
                       required
                       autoComplete="email"
-                      className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); clearServerError() }}
+                      onBlur={() => markBlurred('email')}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        emailError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
                     />
+                    {emailError && <p className="text-xs text-red-500">{emailError}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -248,12 +313,15 @@ export default function SignupPage() {
                         id="password"
                         name="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Min. 8 characters"
+                        placeholder="At least 8 characters"
                         required
                         autoComplete="new-password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11 pr-10"
+                        onChange={(e) => { setPassword(e.target.value); clearServerError() }}
+                        onBlur={() => markBlurred('password')}
+                        className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 pr-10 ${
+                          passwordError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                        }`}
                       />
                       <button
                         type="button"
@@ -264,6 +332,7 @@ export default function SignupPage() {
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {passwordError && <p className="text-xs text-red-500">{passwordError}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -278,7 +347,7 @@ export default function SignupPage() {
                       required
                       autoComplete="new-password"
                       value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onChange={(e) => { setConfirmPassword(e.target.value); clearServerError() }}
                       className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
                         passwordMismatch
                           ? 'border-red-300 focus:border-red-400'
@@ -293,7 +362,7 @@ export default function SignupPage() {
                   <Button
                     type="submit"
                     className="w-full h-11 rounded-full bg-[#7EC0B7] hover:bg-[#3D8A80] text-white font-bold text-sm transition-colors mt-2 disabled:opacity-60"
-                    disabled={isPending || passwordMismatch || password.length === 0}
+                    disabled={isPending || hasInlineErrors || password.length === 0}
                   >
                     {isPending ? 'Creating account...' : 'Create account'}
                   </Button>

@@ -128,6 +128,13 @@ export default async function ClientDashboard() {
     }
   }
 
+  // Therapy category: prefer questionnaire type (post-intake), fall back to signup selection
+  const therapyCategory = (
+    (questionnairePrefs?.type) ??
+    (user.user_metadata?.therapy_category as string) ??
+    'individual'
+  ) as 'individual' | 'couples' | 'teen'
+
   const isMatched = !!match
   const hasActiveSubscription = !!subscription
   const hasQuestionnaire = !!questionnaireRow
@@ -155,6 +162,7 @@ export default async function ClientDashboard() {
           hasActiveSubscription={hasActiveSubscription}
           hasQuestionnaire={hasQuestionnaire}
           questionnairePrefs={questionnairePrefs}
+          therapyCategory={therapyCategory}
         />
       </main>
     </div>

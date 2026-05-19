@@ -85,58 +85,7 @@ interface Props {
   hasActiveSubscription: boolean
   hasQuestionnaire: boolean
   questionnairePrefs: QuestionnairePrefs
-}
-
-function CategoryPopup({ onClose }: { onClose: () => void }) {
-  const categories = [
-    { label: 'Individual therapy', sub: 'Just for you', href: '/questionnaire/individual', color: '#7EC0B7' },
-    { label: 'Couples therapy', sub: 'For both partners', href: '/questionnaire/couples', color: '#E8926A' },
-    { label: 'Teen therapy', sub: 'Ages 14–20', href: '/questionnaire/teen', color: '#F97B5A' },
-  ]
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h3 className="text-lg font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-              Which type of therapy?
-            </h3>
-            <p className="text-xs text-[#233551]/50 mt-0.5">Pick the right questionnaire for you.</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl leading-none"
-          >
-            ×
-          </button>
-        </div>
-        <div className="space-y-2">
-          {categories.map(c => (
-            <Link
-              key={c.label}
-              href={c.href}
-              onClick={onClose}
-              className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5 transition-all group"
-            >
-              <div>
-                <p className="text-sm font-semibold text-[#233551]">{c.label}</p>
-                <p className="text-xs text-[#233551]/45 mt-0.5">{c.sub}</p>
-              </div>
-              <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-[#7EC0B7] group-hover:translate-x-0.5 transition-transform">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  therapyCategory: 'individual' | 'couples' | 'teen'
 }
 
 function CheckIcon({ ok }: { ok: boolean }) {
@@ -260,10 +209,10 @@ export function PendingDashboard({
   hasActiveSubscription,
   hasQuestionnaire,
   questionnairePrefs,
+  therapyCategory,
 }: Props) {
-  const [showCategoryPopup, setShowCategoryPopup] = useState(false)
   const firstName = userName.split(' ')[0]
-  const planCategory: PlanCategory = questionnairePrefs?.type === 'couples' ? 'couples' : 'individual'
+  const planCategory: PlanCategory = (therapyCategory === 'couples' || questionnairePrefs?.type === 'couples') ? 'couples' : 'individual'
 
   function buildPreferencesList(): string[] {
     if (!questionnairePrefs) return []
@@ -326,13 +275,13 @@ export function PendingDashboard({
                 You haven&apos;t answered the intake questionnaire yet. It takes about 5 minutes and helps us match you accurately.
               </p>
             </div>
-            <button
-              onClick={() => setShowCategoryPopup(true)}
+            <Link
+              href={`/questionnaire/${therapyCategory}`}
               className="flex-shrink-0 bg-[#E8926A] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#d4784f] transition-colors"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
               Answer now →
-            </button>
+            </Link>
           </div>
         </div>
       )}
@@ -523,7 +472,6 @@ export function PendingDashboard({
         </section>
       )}
 
-      {showCategoryPopup && <CategoryPopup onClose={() => setShowCategoryPopup(false)} />}
     </div>
   )
 }

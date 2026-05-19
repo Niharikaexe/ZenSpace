@@ -37,9 +37,22 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
         {/* Logo */}
         <BrandLogo href="/dashboard/chat" />
 
-        {/* Center nav tabs — desktop only; only when matched */}
-        {isMatched && (
+        {/* Center nav tabs — desktop only */}
+        {isMatched ? (
         <nav className="hidden md:flex items-center gap-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              pathname === '/dashboard'
+                ? 'bg-[#233551] text-white'
+                : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Home
+          </Link>
           <Link
             href="/dashboard/chat"
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -78,6 +91,22 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Notes
+          </Link>
+        </nav>
+        ) : (
+        <nav className="hidden md:flex items-center gap-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              pathname === '/dashboard'
+                ? 'bg-[#233551] text-white'
+                : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Home
           </Link>
         </nav>
         )}
@@ -139,11 +168,11 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
                   <p className="text-sm font-semibold text-[#233551] truncate">{userName}</p>
                 </div>
                 {[
-                  { label: 'My Account', href: '/dashboard/account' },
-                  { label: 'My Therapist', href: '/dashboard/my-therapist' },
-                  { label: 'Change Therapist', href: '/dashboard/change-therapist' },
-                  { label: 'Subscription', href: '/dashboard/subscription' },
-                ].map(item => (
+                  { label: 'My Account', href: '/dashboard/account', always: true },
+                  { label: 'My Therapist', href: '/dashboard/my-therapist', always: false },
+                  { label: 'Change Therapist', href: '/dashboard/change-therapist', always: false },
+                  { label: 'Subscription', href: '/dashboard/subscription', always: true },
+                ].filter(item => item.always || isMatched).map(item => (
                   <Link
                     key={item.label}
                     href={item.href}
@@ -169,14 +198,19 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
         </div>
       </div>
 
-      {/* Mobile nav strip — only when matched */}
-      {isMatched && (
+      {/* Mobile nav strip */}
       <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
-        {[
-          { href: '/dashboard/chat',     label: 'Chat' },
-          { href: '/dashboard/sessions', label: 'Sessions' },
-          { href: '/dashboard/notes',    label: 'Notes' },
-        ].map(link => (
+        {(isMatched
+          ? [
+              { href: '/dashboard',          label: 'Home' },
+              { href: '/dashboard/chat',     label: 'Chat' },
+              { href: '/dashboard/sessions', label: 'Sessions' },
+              { href: '/dashboard/notes',    label: 'Notes' },
+            ]
+          : [
+              { href: '/dashboard', label: 'Home' },
+            ]
+        ).map(link => (
           <Link
             key={link.href}
             href={link.href}
@@ -190,7 +224,6 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
           </Link>
         ))}
       </div>
-      )}
     </header>
   )
 }

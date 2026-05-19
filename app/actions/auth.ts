@@ -43,6 +43,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   }
 
   const { fullName, email, password, role } = validation.data
+  const therapyCategory = (formData.get('therapyCategory') as string) || 'individual'
   const supabase = await createClient()
   const admin = createAdminClient()
 
@@ -50,7 +51,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     email,
     password,
     options: {
-      data: { full_name: fullName, role },
+      data: { full_name: fullName, role, therapy_category: therapyCategory },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })

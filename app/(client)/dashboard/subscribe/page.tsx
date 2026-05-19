@@ -38,8 +38,12 @@ export default async function SubscribePage() {
     admin.auth.admin.getUserById(user.id),
   ])
 
-  // 'individual' | 'couples' | 'teen' | null (null = legacy path, treat as individual)
-  const therapyType = (questionnaire?.responses?.type as string) ?? null
+  // prefer questionnaire type (post-intake), fall back to signup selection stored in user_metadata
+  const therapyType = (
+    (questionnaire?.responses?.type as string) ??
+    (authUser?.user?.user_metadata?.therapy_category as string) ??
+    null
+  )
   const email = authUser?.user?.email ?? ''
 
   return (

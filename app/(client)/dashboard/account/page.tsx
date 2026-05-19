@@ -19,7 +19,7 @@ export default async function AccountPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: match }, { data: subscription }, { data: clientProfile }] = await Promise.all([
+  const [{ data: match }, { data: subscription }] = await Promise.all([
     (admin as any)
       .from('matches')
       .select('id')
@@ -44,35 +44,7 @@ export default async function AccountPage() {
         } | null
         error: unknown
       }>,
-    (admin as any)
-      .from('client_profiles')
-      .select('billing_name, billing_phone, billing_address_line1, billing_address_line2, billing_city, billing_state, billing_pincode, billing_gstin')
-      .eq('user_id', user.id)
-      .maybeSingle() as Promise<{
-        data: {
-          billing_name: string | null
-          billing_phone: string | null
-          billing_address_line1: string | null
-          billing_address_line2: string | null
-          billing_city: string | null
-          billing_state: string | null
-          billing_pincode: string | null
-          billing_gstin: string | null
-        } | null
-        error: unknown
-      }>,
   ])
-
-  const billing = {
-    billingName: clientProfile?.billing_name ?? '',
-    billingPhone: clientProfile?.billing_phone ?? '',
-    billingAddressLine1: clientProfile?.billing_address_line1 ?? '',
-    billingAddressLine2: clientProfile?.billing_address_line2 ?? '',
-    billingCity: clientProfile?.billing_city ?? '',
-    billingState: clientProfile?.billing_state ?? '',
-    billingPincode: clientProfile?.billing_pincode ?? '',
-    billingGstin: clientProfile?.billing_gstin ?? '',
-  }
 
   return (
     <AccountForm
@@ -80,7 +52,6 @@ export default async function AccountPage() {
       userEmail={user.email ?? ''}
       isMatched={!!match}
       subscription={subscription}
-      billing={billing}
     />
   )
 }
