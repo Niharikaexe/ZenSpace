@@ -25,6 +25,7 @@ interface Props {
   matches: ClientMatch[]
   currentUserId: string
   therapistName: string
+  onMatchOpened?: (matchId: string, unread: number) => void
 }
 
 function timeAgo(iso: string) {
@@ -175,10 +176,21 @@ function InlineScheduleForm({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function MessengerLayout({ matches, currentUserId, therapistName }: Props) {
+export default function MessengerLayout({ matches, currentUserId, therapistName, onMatchOpened }: Props) {
   const [selectedMatchId, setSelectedMatchId] = useState<string>(matches[0]?.matchId ?? '')
   const [mobileShowChat, setMobileShowChat] = useState(false)
   const [isScheduling, setIsScheduling] = useState(false)
+  // Track which matches the therapist has opened — clear unread badge locally
+  const [viewedMatchIds, setViewedMatchIds] = useState<Set<string>>(
+    () => new Set(matches[0]?.matchId ? [matches[0].matchId] : [])
+  )
+
+  // Notify parent about initial match being viewed on mount
+  useEffect(() => {
+    const first = matches[0]
+    if (first) onMatchOpened?.(first.matchId, first.unreadCount)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const selected = matches.find(m => m.matchId === selectedMatchId)
 
@@ -186,6 +198,11 @@ export default function MessengerLayout({ matches, currentUserId, therapistName 
     setSelectedMatchId(matchId)
     setMobileShowChat(true)
     setIsScheduling(false)
+    if (!viewedMatchIds.has(matchId)) {
+      const match = matches.find(m => m.matchId === matchId)
+      onMatchOpened?.(matchId, match?.unreadCount ?? 0)
+      setViewedMatchIds(prev => new Set(prev).add(matchId))
+    }
   }
 
   return (
@@ -198,6 +215,7 @@ export default function MessengerLayout({ matches, currentUserId, therapistName 
         <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
           {matches.map(m => {
             const isSelected = m.matchId === selectedMatchId
+            const unread = viewedMatchIds.has(m.matchId) ? 0 : m.unreadCount
             return (
               <button
                 key={m.matchId}
@@ -210,15 +228,15 @@ export default function MessengerLayout({ matches, currentUserId, therapistName 
                   <div className="w-10 h-10 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] font-bold text-sm flex items-center justify-center">
                     {initials(m.clientName)}
                   </div>
-                  {m.unreadCount > 0 && (
+                  {unread > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#E8926A] text-white text-[9px] font-bold flex items-center justify-center">
-                      {m.unreadCount > 9 ? '9+' : m.unreadCount}
+                      {unread > 9 ? '9+' : unread}
                     </span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
-                    <p className={`text-sm truncate ${m.unreadCount > 0 ? 'font-bold text-[#233551]' : 'font-semibold text-[#233551]/80'}`}>
+                    <p className={`text-sm truncate ${unread > 0 ? 'font-bold text-[#233551]' : 'font-semibold text-[#233551]/80'}`}>
                       {m.clientName}
                     </p>
                     {m.lastMessageAt && (
@@ -226,7 +244,7 @@ export default function MessengerLayout({ matches, currentUserId, therapistName 
                     )}
                   </div>
                   {m.lastMessage ? (
-                    <p className={`text-xs truncate mt-0.5 ${m.unreadCount > 0 ? 'text-[#233551]/65 font-medium' : 'text-[#233551]/40'}`}>
+                    <p className={`text-xs truncate mt-0.5 ${unread > 0 ? 'text-[#233551]/65 font-medium' : 'text-[#233551]/40'}`}>
                       {m.lastMessage}
                     </p>
                   ) : (
