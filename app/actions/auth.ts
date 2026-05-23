@@ -112,6 +112,50 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     return { error: surfaced }
   }
 
+  // ── Post-signUp verification ────────────────────────────────────────────────
+  // supabase.auth.signUp can return { error: null } while either (a) the email
+  // is already registered — Supabase obfuscates and returns a user object with
+  // an empty `identities` array to prevent enumeration — or (b) the user was
+  // never actually persisted. In both cases the old code returned success,
+  // showing the success screen to a user who has no DB row and no email. We
+  // explicitly verify here and surface a real error if anything is off.
+
+  if (!userId) {
+    logger.error('auth/signUp', 'signUp returned no user ID despite no error', null, { email, role })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  // Empty identities array → existing-email obfuscation.
+  const identities = signUpData?.user?.identities
+  if (Array.isArray(identities) && identities.length === 0) {
+    logger.warn('auth/signUp', 'Empty identities array — email already registered (obfuscated)', { email, userId })
+    return { error: 'An account with this email already exists. Try signing in instead.' }
+  }
+
+  // Confirm the auth.users row actually persisted.
+  const { data: verifyAuth, error: verifyAuthErr } = await admin.auth.admin.getUserById(userId)
+  if (verifyAuthErr || !verifyAuth?.user) {
+    logger.error('auth/signUp', 'auth.users row missing after signUp', verifyAuthErr, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  // Confirm the profiles row exists. handle_new_user trigger runs on auth.users
+  // INSERT, so it should already be there. Missing row → trigger failed.
+  const { data: profileRow, error: profileLookupErr } = await (admin as any)
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profileLookupErr) {
+    logger.error('auth/signUp', 'Failed to look up profile after signUp', profileLookupErr, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+  if (!profileRow) {
+    logger.error('auth/signUp', 'profiles row missing after signUp — handle_new_user trigger may have failed', null, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
   logger.info('auth/signUp', 'Account created', { userId, email, role })
 
   if (role === 'client') {
