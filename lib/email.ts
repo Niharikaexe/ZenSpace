@@ -328,7 +328,7 @@ function tplAdminContactForm(senderName: string, senderEmail: string, message: s
 
 function tplPayoutRequest({
   therapistName,
-  sessionsThisMonth,
+  sessionsCompleted,
   pendingPayout,
   paypalEmail,
   bankAccountName,
@@ -336,7 +336,7 @@ function tplPayoutRequest({
   bankIfsc,
 }: {
   therapistName: string
-  sessionsThisMonth: number
+  sessionsCompleted: number
   pendingPayout: string
   paypalEmail: string | null
   bankAccountName: string | null
@@ -361,7 +361,7 @@ function tplPayoutRequest({
     ${tag('Payout Request', '#E8926A')}
     <br/><br/>
     ${h1(`${therapistName} has requested a payout.`)}
-    ${p(`<strong>${sessionsThisMonth}</strong> completed session${sessionsThisMonth !== 1 ? 's' : ''} this month · Estimated amount: <strong>${pendingPayout}</strong>`)}
+    ${p(`<strong>${sessionsCompleted}</strong> completed session${sessionsCompleted !== 1 ? 's' : ''} in the last 7 days · Amount due: <strong>${pendingPayout}</strong>`)}
     ${paymentBlock}
     ${btn('Open Admin Panel →', `${SITE}/admin`)}
   `)
@@ -420,7 +420,7 @@ export async function sendAdminContactFormEmail(senderName: string, senderEmail:
 
 export async function sendPayoutRequestEmail({
   therapistName,
-  sessionsThisMonth,
+  sessionsCompleted,
   pendingPayout,
   paypalEmail,
   bankAccountName,
@@ -428,7 +428,7 @@ export async function sendPayoutRequestEmail({
   bankIfsc,
 }: {
   therapistName: string
-  sessionsThisMonth: number
+  sessionsCompleted: number
   pendingPayout: string
   paypalEmail: string | null
   bankAccountName: string | null
@@ -437,7 +437,7 @@ export async function sendPayoutRequestEmail({
 }): Promise<void> {
   await sendAdminEmail(
     `Payout request — ${therapistName}`,
-    tplPayoutRequest({ therapistName, sessionsThisMonth, pendingPayout, paypalEmail, bankAccountName, bankAccountNumber, bankIfsc }),
+    tplPayoutRequest({ therapistName, sessionsCompleted, pendingPayout, paypalEmail, bankAccountName, bankAccountNumber, bankIfsc }),
     'payout-request',
   )
 }

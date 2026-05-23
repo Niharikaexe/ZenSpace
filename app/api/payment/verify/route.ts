@@ -129,7 +129,8 @@ export async function POST(request: Request) {
 
   // Notify admin — best-effort, non-blocking
   const { data: profile } = await (admin as any).from('profiles').select('full_name').eq('id', user.id).single()
-  void sendAdminNewSubscriptionEmail(profile?.full_name ?? user.email ?? 'A client', planData.label)
+  const planLabel = `${planData.name} (${planData.cadence})`
+  void sendAdminNewSubscriptionEmail(profile?.full_name ?? user.email ?? 'A client', planLabel)
 
   return NextResponse.json({ success: true })
 }

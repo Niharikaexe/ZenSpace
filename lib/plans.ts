@@ -166,6 +166,26 @@ export type PlanCategory = 'individual' | 'couples'
 
 export const PLAN_KEYS = Object.keys(PLANS) as PlanKey[]
 
+/**
+ * Therapist's default revenue share per completed session — 75% of the
+ * per-session value of the client's subscription plan, in rupees.
+ *
+ * Weekly plans bill for 1 session/week, so per-session value = full weekly
+ * charge. Monthly plans bill for 4 sessions/month, so per-session value =
+ * monthly charge ÷ 4.
+ *
+ * Example: client on premium_monthly (₹15,699/mo) → ₹3,925 per session →
+ * therapist gets ₹2,944 per completed session.
+ */
+export const DEFAULT_THERAPIST_SHARE_RATE = 0.75
+
+export function therapistSessionPayout(planKey: PlanKey, shareRate: number = DEFAULT_THERAPIST_SHARE_RATE): number {
+  const plan = PLANS[planKey]
+  const sessionsInPeriod = plan.cadence === 'monthly' ? 4 : 1
+  const perSessionRupees = (plan.amountPaise / 100) / sessionsInPeriod
+  return Math.round(perSessionRupees * shareRate)
+}
+
 /** Returns the Razorpay plan ID from env, or null if not configured. */
 export function getRazorpayPlanId(planKey: PlanKey): string | null {
   const envVar = PLANS[planKey].planIdEnvVar
