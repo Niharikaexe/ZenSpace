@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
+import { sendAdminNewClientSignupEmail } from '@/lib/email'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -56,11 +57,6 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     },
   })
 
-  // userId and sessionCreatedImmediately may be set by either the normal path
-  // or the email-delivery-failure bypass below.
-  let userId = signUpData?.user?.id
-  let sessionCreatedImmediately = !!signUpData?.session
-
   if (error) {
     const err = error as unknown as Record<string, unknown>
     const raw = error.message || ''
@@ -68,72 +64,42 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     logger.error('auth/signUp', 'Supabase signUp failed', error, {
       email, role, message: raw, code: err.code, status: err.status ?? err.statusCode,
     })
-    // eslint-disable-next-line no-console
-    console.error('[auth/signUp] raw error fields', { message: raw, code: err.code, status: err.status })
 
-    // Supabase returns '{}' (or an empty message) when its internal SMTP times out
-    // sending the confirmation email. The user row was already created — we just need
-    // to confirm it and sign them in directly.
-    const isEmailDeliveryError =
-      !raw || raw === '{}' || lower.includes('sending') || lower.includes('email rate')
-
-    if (isEmailDeliveryError) {
-      logger.warn('auth/signUp', 'Email delivery failed — attempting bypass', { email })
-
-      // The user was likely inserted before the email send timed out.
-      // The handle_new_user trigger would have created a profiles row already.
-      const { data: existingProfile } = await (admin as any)
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle()
-
-      if (existingProfile?.id) {
-        // Confirm their email so sign-in works, then sign them in.
-        await admin.auth.admin.updateUserById(existingProfile.id, { email_confirm: true })
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInErr) {
-          logger.error('auth/signUp', 'Sign-in after email bypass failed', signInErr, { email })
-          return { error: 'Account created. Please sign in at /login.' }
-        }
-        userId = existingProfile.id
-      } else {
-        // User was NOT created — create fresh with email pre-confirmed.
-        const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: { full_name: fullName, role },
-        })
-        if (createErr) {
-          logger.error('auth/signUp', 'Admin createUser fallback failed', createErr, { email })
-          return { error: 'Could not create your account. Please try again or contact admin@mindcanopy.in.' }
-        }
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
-        if (signInErr) {
-          return { error: 'Account created. Please sign in at /login.' }
-        }
-        userId = newUser?.user?.id
-      }
-
-      sessionCreatedImmediately = true
-    } else {
-      // Not an email delivery error — surface a human-readable message.
-      let surfaced = raw
-      if (lower.includes('confirmation email') || lower.includes('error sending confirmation')) {
-        surfaced = "We couldn't send a confirmation email right now. Try again in an hour, or contact admin@mindcanopy.in."
-      } else if (lower.includes('rate limit')) {
-        surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
-      } else if (lower.includes('already registered') || lower.includes('user already') || lower.includes('already exists')) {
-        surfaced = 'An account with this email already exists. Try signing in instead.'
-      } else if (!raw) {
-        surfaced = `Sign-up failed (${(err.code as string) ?? (err.status as string) ?? 'unknown'}). Please contact admin@mindcanopy.in.`
-      }
-      return { error: surfaced }
+    // Surface a human-readable message. We no longer auto-confirm on email
+    // delivery failure — the user must click the link in the email Supabase
+    // sends (via Resend SMTP). If that fails, surface it honestly so the
+    // problem is visible instead of being masked.
+    let surfaced = raw
+    if (
+      !raw || raw === '{}' ||
+      lower.includes('sending') ||
+      lower.includes('confirmation email') ||
+      lower.includes('error sending confirmation')
+    ) {
+      surfaced = "We couldn't send your confirmation email right now. Please try again in a few minutes, or contact admin@mindcanopy.in if it keeps happening."
+    } else if (lower.includes('rate limit') || lower.includes('email rate')) {
+      surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
+    } else if (
+      lower.includes('already registered') ||
+      lower.includes('user already') ||
+      lower.includes('already exists')
+    ) {
+      surfaced = 'An account with this email already exists. Try signing in instead.'
     }
+    return { error: surfaced }
   }
 
+  const userId = signUpData?.user?.id
+  // True only when email confirmation is disabled in Supabase Auth settings.
+  // Default flow requires email confirmation — the user lands on the success
+  // screen telling them to check their inbox, no immediate session.
+  const sessionCreatedImmediately = !!signUpData?.session
+
   logger.info('auth/signUp', 'Account created', { userId, email, role })
+
+  if (role === 'client') {
+    void sendAdminNewClientSignupEmail(fullName, email)
+  }
 
   // Save questionnaire data if present (client sign-ups only)
   const questionnaireRaw = formData.get('questionnaireData')

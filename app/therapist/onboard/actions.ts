@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
+import { sendAdminTherapistOnboardedEmail } from '@/lib/email'
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -247,6 +248,8 @@ export async function submitTherapistOnboarding(
       .update({ used_by: userId, used_at: new Date().toISOString() })
       .eq('id', invite.id)
   }
+
+  void sendAdminTherapistOnboardedEmail(v.fullName)
 
   const supabase = await createClient()
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: v.email, password: v.password })

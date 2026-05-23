@@ -242,22 +242,21 @@ export default function SignupPage() {
                     </Label>
                     <div className="grid grid-cols-3 gap-2">
                       {([
-                        { value: 'individual', label: 'Myself', sub: 'Individual' },
-                        { value: 'couples',    label: 'Us',     sub: 'Couples' },
-                        { value: 'teen',       label: 'My teen', sub: 'Ages 13–19' },
+                        { value: 'individual', label: 'Individual' },
+                        { value: 'couples',    label: 'Couples' },
+                        { value: 'teen',       label: 'Teen (13–19)' },
                       ] as const).map(opt => (
                         <button
                           key={opt.value}
                           type="button"
                           onClick={() => setTherapyCategory(opt.value)}
-                          className={`flex flex-col items-center py-3 px-2 rounded-xl border-2 text-center transition-all ${
+                          className={`flex items-center justify-center py-3 px-2 rounded-xl border-2 text-center transition-all ${
                             therapyCategory === opt.value
                               ? 'border-[#7EC0B7] bg-[#7EC0B7]/10'
                               : 'border-slate-200 hover:border-[#7EC0B7]/50'
                           }`}
                         >
                           <span className="font-bold text-sm text-[#233551]">{opt.label}</span>
-                          <span className="text-xs text-[#233551]/50 mt-0.5">{opt.sub}</span>
                         </button>
                       ))}
                     </div>

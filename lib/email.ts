@@ -284,6 +284,164 @@ export async function sendApplicationInviteEmail({
   }
 }
 
+// ── Admin notification templates ─────────────────────────────────────────────
+
+function tplAdminNewClientSignup(clientName: string, email: string) {
+  return base(`
+    ${tag('New Client Signup', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${clientName} just signed up.`)}
+    ${p(`Email: <strong>${email}</strong><br/>They are now in the pending match queue. Review their questionnaire and assign a therapist.`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminNewSubscription(clientName: string, planName: string) {
+  return base(`
+    ${tag('New Subscription', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${clientName} subscribed.`)}
+    ${p(`Plan: <strong>${planName}</strong>`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminTherapistOnboarded(therapistName: string) {
+  return base(`
+    ${tag('Therapist Onboarded', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${therapistName} has completed onboarding.`)}
+    ${p('Their profile is ready for review. Verify their credentials and start assigning clients.')}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminContactForm(senderName: string, senderEmail: string, message: string) {
+  return base(`
+    ${tag('Contact Form', '#E8926A')}
+    <br/><br/>
+    ${h1(`Message from ${senderName}`)}
+    ${p(`Email: <strong>${senderEmail}</strong>`)}
+    <div style="margin:16px 0;padding:14px 16px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${message}</div>
+  `)
+}
+
+function tplPayoutRequest({
+  therapistName,
+  sessionsThisMonth,
+  pendingPayout,
+  paypalEmail,
+  bankAccountName,
+  bankAccountNumber,
+  bankIfsc,
+}: {
+  therapistName: string
+  sessionsThisMonth: number
+  pendingPayout: string
+  paypalEmail: string | null
+  bankAccountName: string | null
+  bankAccountNumber: string | null
+  bankIfsc: string | null
+}) {
+  const paymentRows = [
+    paypalEmail        && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">PayPal</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${paypalEmail}</td></tr>`,
+    bankAccountName    && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">Account name</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankAccountName}</td></tr>`,
+    bankAccountNumber  && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">Account number</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankAccountNumber}</td></tr>`,
+    bankIfsc           && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">IFSC</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankIfsc}</td></tr>`,
+  ].filter(Boolean).join('')
+
+  const paymentBlock = paymentRows
+    ? `<div style="margin:20px 0;padding:16px;background:#f8f9fa;border:1px solid #e8ecef;border-radius:10px;">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">Payment details</p>
+        <table cellpadding="0" cellspacing="0" border="0">${paymentRows}</table>
+       </div>`
+    : `<p style="color:#E8926A;font-size:13px;margin:16px 0;">⚠️ No payment details on file. Ask the therapist to update their account settings.</p>`
+
+  return base(`
+    ${tag('Payout Request', '#E8926A')}
+    <br/><br/>
+    ${h1(`${therapistName} has requested a payout.`)}
+    ${p(`<strong>${sessionsThisMonth}</strong> completed session${sessionsThisMonth !== 1 ? 's' : ''} this month · Estimated amount: <strong>${pendingPayout}</strong>`)}
+    ${paymentBlock}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+// ── Admin send helpers ────────────────────────────────────────────────────────
+
+async function sendAdminEmail(subject: string, html: string, tag: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) return
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from: FROM, to: ADMIN_EMAIL, subject, html }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      console.error(`[email/${tag}] Resend rejected`, { status: res.status, body })
+    }
+  } catch (err) {
+    console.error(`[email/${tag}] send failed`, err)
+  }
+}
+
+export async function sendAdminNewClientSignupEmail(clientName: string, email: string): Promise<void> {
+  await sendAdminEmail(
+    `New client signup — ${clientName}`,
+    tplAdminNewClientSignup(clientName, email),
+    'admin-client-signup',
+  )
+}
+
+export async function sendAdminNewSubscriptionEmail(clientName: string, planName: string): Promise<void> {
+  await sendAdminEmail(
+    `New subscription — ${clientName} (${planName})`,
+    tplAdminNewSubscription(clientName, planName),
+    'admin-new-subscription',
+  )
+}
+
+export async function sendAdminTherapistOnboardedEmail(therapistName: string): Promise<void> {
+  await sendAdminEmail(
+    `Therapist onboarded — ${therapistName}`,
+    tplAdminTherapistOnboarded(therapistName),
+    'admin-therapist-onboarded',
+  )
+}
+
+export async function sendAdminContactFormEmail(senderName: string, senderEmail: string, message: string): Promise<void> {
+  await sendAdminEmail(
+    `Contact form — ${senderName}`,
+    tplAdminContactForm(senderName, senderEmail, message),
+    'admin-contact-form',
+  )
+}
+
+export async function sendPayoutRequestEmail({
+  therapistName,
+  sessionsThisMonth,
+  pendingPayout,
+  paypalEmail,
+  bankAccountName,
+  bankAccountNumber,
+  bankIfsc,
+}: {
+  therapistName: string
+  sessionsThisMonth: number
+  pendingPayout: string
+  paypalEmail: string | null
+  bankAccountName: string | null
+  bankAccountNumber: string | null
+  bankIfsc: string | null
+}): Promise<void> {
+  await sendAdminEmail(
+    `Payout request — ${therapistName}`,
+    tplPayoutRequest({ therapistName, sessionsThisMonth, pendingPayout, paypalEmail, bankAccountName, bankAccountNumber, bankIfsc }),
+    'payout-request',
+  )
+}
+
 // ── Send helper ──────────────────────────────────────────────────────────────
 
 export type EmailNotificationType =

@@ -2,6 +2,8 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { sendPayoutRequestEmail } from '@/lib/email'
+import { PLANS, type PlanKey } from '@/lib/plans'
 
 export type TherapistProfileState = { error?: string; success?: boolean }
 
@@ -94,6 +96,56 @@ export async function updateTherapistProfile(
   }
 
   logger.info('therapist/account', 'Therapist profile updated', { userId: user.id })
+  return { success: true }
+}
+
+export async function requestPayout(): Promise<{ error?: string; success?: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const admin = createAdminClient()
+
+  const [profileResult, tProfileResult, matchesResult] = await Promise.all([
+    (admin as any).from('profiles').select('full_name').eq('id', user.id).single(),
+    (admin as any).from('therapist_profiles').select('paypal_email, bank_account_name, bank_account_number, bank_ifsc').eq('user_id', user.id).single(),
+    (admin as any).from('matches').select('id').eq('therapist_id', user.id).eq('status', 'active'),
+  ])
+
+  const therapistName: string = profileResult.data?.full_name ?? 'Therapist'
+  const tProfile = tProfileResult.data
+
+  // Count completed sessions this month for the estimated amount
+  const matchIds: string[] = (matchesResult.data ?? []).map((m: { id: string }) => m.id)
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+  let sessionsThisMonth = 0
+  if (matchIds.length > 0) {
+    const { count } = await (admin as any)
+      .from('sessions')
+      .select('id', { count: 'exact', head: true })
+      .in('match_id', matchIds)
+      .eq('status', 'completed')
+      .gte('scheduled_at', monthStart)
+    sessionsThisMonth = count ?? 0
+  }
+
+  const THERAPIST_SHARE_RATE = 0.75
+  const baseSessionRupees = (PLANS['basic_weekly' as PlanKey].amountPaise / 100) * THERAPIST_SHARE_RATE
+  const pendingPayout = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(
+    sessionsThisMonth * Math.round(baseSessionRupees)
+  )
+
+  await sendPayoutRequestEmail({
+    therapistName,
+    sessionsThisMonth,
+    pendingPayout,
+    paypalEmail: tProfile?.paypal_email ?? null,
+    bankAccountName: tProfile?.bank_account_name ?? null,
+    bankAccountNumber: tProfile?.bank_account_number ?? null,
+    bankIfsc: tProfile?.bank_ifsc ?? null,
+  })
+
+  logger.info('therapist/payout', 'Payout request sent', { userId: user.id })
   return { success: true }
 }
 

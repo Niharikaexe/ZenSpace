@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { PLANS, type PlanKey } from '@/lib/plans'
+import PayoutButton from '@/components/therapist/PayoutButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -172,17 +173,7 @@ export default async function TherapistPaymentPage() {
             </p>
             <p className="text-xs text-white/45 mt-1">Based on sessions this month · estimate</p>
           </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <a
-              href="mailto:admin@mindcanopy.in?subject=Payout request&body=Hi, I'd like to request my payout for this month."
-              className="px-6 py-3 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors inline-block"
-            >
-              Request payout →
-            </a>
-            <p className="text-xs text-white/35 text-center sm:text-right max-w-[220px]">
-              Email admin@mindcanopy.in — we'll process within 5 business days.
-            </p>
-          </div>
+          <PayoutButton />
         </div>
 
         {/* Recent sessions */}
