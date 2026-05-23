@@ -57,43 +57,60 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     },
   })
 
+  // userId and sessionCreatedImmediately may be set by either the normal path
+  // or the email-delivery-failure bypass below.
+  let userId = signUpData?.user?.id
+  let sessionCreatedImmediately = !!signUpData?.session
+
   if (error) {
     const err = error as unknown as Record<string, unknown>
     const raw = error.message || ''
     const lower = raw.toLowerCase()
-    logger.error('auth/signUp', 'Supabase signUp failed', error, {
-      email, role, message: raw, code: err.code, status: err.status ?? err.statusCode,
-    })
+    const code = err.code as string | undefined
+    const status = (err.status ?? err.statusCode) as number | string | undefined
 
-    // Surface a human-readable message. We no longer auto-confirm on email
-    // delivery failure — the user must click the link in the email Supabase
-    // sends (via Resend SMTP). If that fails, surface it honestly so the
-    // problem is visible instead of being masked.
-    let surfaced = raw
-    if (
-      !raw || raw === '{}' ||
-      lower.includes('sending') ||
-      lower.includes('confirmation email') ||
-      lower.includes('error sending confirmation')
-    ) {
-      surfaced = "We couldn't send your confirmation email right now. Please try again in a few minutes, or contact admin@mindcanopy.in if it keeps happening."
-    } else if (lower.includes('rate limit') || lower.includes('email rate')) {
-      surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
-    } else if (
+    // Full structured log — keep this verbose so when prod breaks we have
+    // enough to diagnose without needing to reproduce.
+    logger.error('auth/signUp', 'Supabase signUp failed', error, {
+      email, role, message: raw, code, status,
+    })
+    // eslint-disable-next-line no-console
+    console.error('[auth/signUp] raw error fields', { message: raw, code, status })
+
+    // No bypass — if Supabase couldn't create the user or send the email,
+    // surface that to the user instead of silently auto-confirming them.
+    // Categorize the failure so the surfaced message is actionable.
+    const isEmailDeliveryError =
+      !raw || raw === '{}' || lower.includes('sending') ||
+      lower.includes('confirmation email') || lower.includes('error sending confirmation')
+    const isRateLimit = lower.includes('rate limit') || lower.includes('email rate')
+    const isAlreadyRegistered =
       lower.includes('already registered') ||
       lower.includes('user already') ||
       lower.includes('already exists')
-    ) {
+
+    if (isEmailDeliveryError) {
+      logger.warn('auth/signUp', 'Email delivery failure surfaced to user', { email, code, status })
+    } else if (isRateLimit) {
+      logger.warn('auth/signUp', 'Rate-limited by Supabase', { email, code, status })
+    } else if (isAlreadyRegistered) {
+      logger.warn('auth/signUp', 'Duplicate signup attempt', { email })
+    } else {
+      logger.warn('auth/signUp', 'Uncategorized signUp failure', { email, code, status, message: raw })
+    }
+
+    let surfaced = raw
+    if (isEmailDeliveryError) {
+      surfaced = "We couldn't send your confirmation email right now. Please try again in a few minutes, or contact admin@mindcanopy.in if it keeps happening."
+    } else if (isRateLimit) {
+      surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
+    } else if (isAlreadyRegistered) {
       surfaced = 'An account with this email already exists. Try signing in instead.'
+    } else if (!raw) {
+      surfaced = `Sign-up failed (${code ?? status ?? 'unknown'}). Please contact admin@mindcanopy.in.`
     }
     return { error: surfaced }
   }
-
-  const userId = signUpData?.user?.id
-  // True only when email confirmation is disabled in Supabase Auth settings.
-  // Default flow requires email confirmation — the user lands on the success
-  // screen telling them to check their inbox, no immediate session.
-  const sessionCreatedImmediately = !!signUpData?.session
 
   logger.info('auth/signUp', 'Account created', { userId, email, role })
 
