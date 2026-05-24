@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,7 +113,12 @@ export default async function TherapistClientDetailPage({
         goals = (a.q18 as string) ?? ''
         previousTherapy = (a.q17 as string) ?? ''
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      logger.warn('therapist/client-detail', 'Failed to parse client questionnaire', {
+        clientId: match.client_id,
+        err: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 
   const isNewClient = new Date(match.created_at) > new Date(Date.now() - 7 * 24 * 3600000)

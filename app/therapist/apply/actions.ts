@@ -46,7 +46,10 @@ export async function submitTherapistApplication(
     specializations = specializationsRaw ? JSON.parse(specializationsRaw) : []
     languages = languagesRaw ? JSON.parse(languagesRaw) : []
     certificateUrls = certificateUrlsRaw ? JSON.parse(certificateUrlsRaw) : []
-  } catch {
+  } catch (err) {
+    logger.warn('therapist/apply', 'Invalid JSON in application form fields', {
+      err: err instanceof Error ? err.message : String(err),
+    })
     return { error: 'Invalid form data. Please try again.' }
   }
 

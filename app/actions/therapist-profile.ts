@@ -46,7 +46,11 @@ export async function updateTherapistProfile(
   try {
     specializations = specializationsRaw ? JSON.parse(specializationsRaw) : []
     languages = languagesRaw ? JSON.parse(languagesRaw) : []
-  } catch {
+  } catch (err) {
+    logger.warn('therapist/account', 'Invalid JSON in specializations/languages', {
+      userId: user.id,
+      err: err instanceof Error ? err.message : String(err),
+    })
     return { error: 'Invalid form data. Please try again.' }
   }
 

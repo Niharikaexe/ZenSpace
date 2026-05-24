@@ -113,7 +113,12 @@ export function SubscriptionPlans({ userName, userEmail, category = 'individual'
       })
 
       rzp.open()
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[subscription-plans/checkout-throw]', {
+        planKey: selectedKey,
+        err: err instanceof Error ? err.message : String(err),
+      })
       setError('Something went wrong. Please try again.')
       setIsLoading(false)
     }

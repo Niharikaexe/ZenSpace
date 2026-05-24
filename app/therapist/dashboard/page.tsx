@@ -5,6 +5,7 @@ import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -148,7 +149,13 @@ export default async function TherapistDashboard() {
               const a = r.answers as Record<string, unknown>
               concerns = toArr(a?.q15)
             }
-          } catch { /* ignore */ }
+          } catch (err) {
+            logger.warn('therapist/dashboard', 'Failed to parse client questionnaire', {
+              matchId: m.id,
+              clientId: m.client_id,
+              err: err instanceof Error ? err.message : String(err),
+            })
+          }
         }
 
         const clientName = clientResult.data?.full_name ?? 'Client'

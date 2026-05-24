@@ -2,6 +2,8 @@
 // Set RESEND_API_KEY in .env.local to enable emails.
 // Without it, emails are silently skipped (non-fatal).
 
+import { logger } from '@/lib/logger'
+
 const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
 const FROM_ADMIN = process.env.RESEND_FROM_ADMIN ?? 'MindCanopy Admin <admin@mindcanopy.in>'
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
@@ -218,8 +220,11 @@ function tplNewApplication(fullName: string) {
   `)
 }
 
-export async function sendNewApplicationAdminEmail(fullName: string): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+export async function sendNewApplicationAdminEmail(fullName: string): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('email/new-application', 'RESEND_API_KEY not set — email skipped')
+    return false
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -236,12 +241,13 @@ export async function sendNewApplicationAdminEmail(fullName: string): Promise<vo
     })
     if (!res.ok) {
       const body = await res.text()
-      // eslint-disable-next-line no-console
-      console.error('[email/new-application] Resend rejected', { status: res.status, body })
+      logger.error('email/new-application', 'Resend rejected', null, { status: res.status, body })
+      return false
     }
+    return true
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[email/new-application] send failed', err)
+    logger.error('email/new-application', 'Send failed', err)
+    return false
   }
 }
 
@@ -257,8 +263,11 @@ export async function sendApplicationInviteEmail({
   inviteCode: string
   inviteUrl: string
   adminNotes?: string
-}): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+}): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('email/application-invite', 'RESEND_API_KEY not set — email skipped', { to })
+    return false
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -275,12 +284,13 @@ export async function sendApplicationInviteEmail({
     })
     if (!res.ok) {
       const body = await res.text()
-      // eslint-disable-next-line no-console
-      console.error('[email/application-invite] Resend rejected', { status: res.status, body })
+      logger.error('email/application-invite', 'Resend rejected', null, { to, status: res.status, body })
+      return false
     }
+    return true
   } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[email/application-invite] send failed', err)
+    logger.error('email/application-invite', 'Send failed', err, { to })
+    return false
   }
 }
 
@@ -369,8 +379,18 @@ function tplPayoutRequest({
 
 // ── Admin send helpers ────────────────────────────────────────────────────────
 
-async function sendAdminEmail(subject: string, html: string, tag: string): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+/**
+ * Send an admin notification email. Returns true on success so callers can
+ * surface failure to the user (e.g. the contact form).
+ *
+ * Callers that don't need the boolean can safely ignore it; this function
+ * never throws.
+ */
+async function sendAdminEmail(subject: string, html: string, ctx: string): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn(`email/${ctx}`, 'RESEND_API_KEY not set — email skipped', { subject })
+    return false
+  }
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -379,39 +399,42 @@ async function sendAdminEmail(subject: string, html: string, tag: string): Promi
     })
     if (!res.ok) {
       const body = await res.text()
-      console.error(`[email/${tag}] Resend rejected`, { status: res.status, body })
+      logger.error(`email/${ctx}`, 'Resend rejected', null, { subject, status: res.status, body })
+      return false
     }
+    return true
   } catch (err) {
-    console.error(`[email/${tag}] send failed`, err)
+    logger.error(`email/${ctx}`, 'Send failed', err, { subject })
+    return false
   }
 }
 
-export async function sendAdminNewClientSignupEmail(clientName: string, email: string): Promise<void> {
-  await sendAdminEmail(
+export async function sendAdminNewClientSignupEmail(clientName: string, email: string): Promise<boolean> {
+  return sendAdminEmail(
     `New client signup — ${clientName}`,
     tplAdminNewClientSignup(clientName, email),
     'admin-client-signup',
   )
 }
 
-export async function sendAdminNewSubscriptionEmail(clientName: string, planName: string): Promise<void> {
-  await sendAdminEmail(
+export async function sendAdminNewSubscriptionEmail(clientName: string, planName: string): Promise<boolean> {
+  return sendAdminEmail(
     `New subscription — ${clientName} (${planName})`,
     tplAdminNewSubscription(clientName, planName),
     'admin-new-subscription',
   )
 }
 
-export async function sendAdminTherapistOnboardedEmail(therapistName: string): Promise<void> {
-  await sendAdminEmail(
+export async function sendAdminTherapistOnboardedEmail(therapistName: string): Promise<boolean> {
+  return sendAdminEmail(
     `Therapist onboarded — ${therapistName}`,
     tplAdminTherapistOnboarded(therapistName),
     'admin-therapist-onboarded',
   )
 }
 
-export async function sendAdminContactFormEmail(senderName: string, senderEmail: string, message: string): Promise<void> {
-  await sendAdminEmail(
+export async function sendAdminContactFormEmail(senderName: string, senderEmail: string, message: string): Promise<boolean> {
+  return sendAdminEmail(
     `Contact form — ${senderName}`,
     tplAdminContactForm(senderName, senderEmail, message),
     'admin-contact-form',
@@ -434,8 +457,8 @@ export async function sendPayoutRequestEmail({
   bankAccountName: string | null
   bankAccountNumber: string | null
   bankIfsc: string | null
-}): Promise<void> {
-  await sendAdminEmail(
+}): Promise<boolean> {
+  return sendAdminEmail(
     `Payout request — ${therapistName}`,
     tplPayoutRequest({ therapistName, sessionsCompleted, pendingPayout, paypalEmail, bankAccountName, bankAccountNumber, bankIfsc }),
     'payout-request',
@@ -498,7 +521,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
   }
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -506,7 +529,12 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     })
-  } catch {
-    // Email is best-effort — never block the main action
+    if (!res.ok) {
+      const body = await res.text()
+      logger.warn('email/notification', 'Resend rejected', { to, type, status: res.status, body })
+    }
+  } catch (err) {
+    // Best-effort — never block the main action, but log so we can see failures
+    logger.warn('email/notification', 'Send failed', { to, type, err: err instanceof Error ? err.message : String(err) })
   }
 }

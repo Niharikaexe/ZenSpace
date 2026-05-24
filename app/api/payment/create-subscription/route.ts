@@ -19,12 +19,20 @@ export async function POST(request: Request) {
   let body: unknown
   try {
     body = await request.json()
-  } catch {
+  } catch (err) {
+    logger.warn('api/payment/create-subscription', 'Failed to parse request body', {
+      userId: user.id,
+      err: err instanceof Error ? err.message : String(err),
+    })
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
+    logger.warn('api/payment/create-subscription', 'Invalid plan payload', {
+      userId: user.id,
+      reason: parsed.error.issues[0].message,
+    })
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 

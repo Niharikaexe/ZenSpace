@@ -95,7 +95,11 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
         }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
-  } catch { /* notification failure must not break message send */ }
+  } catch (err) {
+    // Notification failure must not break message send — but log so we can see
+    // if notifications stop firing in prod.
+    logger.warn('sessions/sendMessage', 'Notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
+  }
 
   return {}
 }
@@ -172,9 +176,14 @@ export async function scheduleSession(
         const room = await res.json()
         dailyRoomUrl = room.url
         dailyRoomName = room.name
+      } else {
+        const body = await res.text().catch(() => '<no body>')
+        logger.warn('sessions/scheduleSession', 'Daily.co room creation rejected', { matchId, status: res.status, body })
       }
-    } catch {
-      // Daily.co failure is non-fatal — session still gets created without a room URL
+    } catch (err) {
+      // Daily.co failure is non-fatal — session is still created, just without
+      // a room URL. The therapist will see "No video link" in the UI.
+      logger.warn('sessions/scheduleSession', 'Daily.co room creation threw', { matchId, err: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -205,7 +214,9 @@ export async function scheduleSession(
       body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
       metadata: { matchId, scheduledAt, sessionType, dateStr },
     }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
-  } catch { /* non-fatal */ }
+  } catch (err) {
+    logger.warn('sessions/scheduleSession', 'Session-scheduled notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
+  }
 
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/sessions')
@@ -295,12 +306,19 @@ export async function updateSessionStatus(
         .single() as { data: { daily_room_name: string | null } | null; error: unknown }
 
       if (s?.daily_room_name && process.env.DAILY_API_KEY) {
-        await fetch(`https://api.daily.co/v1/rooms/${s.daily_room_name}`, {
+        const res = await fetch(`https://api.daily.co/v1/rooms/${s.daily_room_name}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${process.env.DAILY_API_KEY}` },
         })
+        if (!res.ok) {
+          logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion rejected', { sessionId, roomName: s.daily_room_name, status: res.status })
+        }
       }
-    } catch { /* room deletion failure is non-fatal */ }
+    } catch (err) {
+      // Non-fatal but log — a cancelled room left up means the join URL still
+      // works until Daily.co's expiry timestamp kicks in.
+      logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion threw', { sessionId, err: err instanceof Error ? err.message : String(err) })
+    }
   }
 
   revalidatePath('/therapist/dashboard/video')
@@ -354,10 +372,15 @@ export async function getSessionJoinUrl(sessionId: string): Promise<{ url?: stri
       }),
     })
 
-    if (!res.ok) return { error: 'Failed to generate join link' }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<no body>')
+      logger.error('sessions/getSessionJoinUrl', 'Daily.co meeting-token rejected', null, { sessionId, status: res.status, body })
+      return { error: 'Failed to generate join link' }
+    }
     const { token } = await res.json()
     return { url: `${session.daily_room_url}?t=${token}` }
-  } catch {
+  } catch (err) {
+    logger.error('sessions/getSessionJoinUrl', 'Failed to reach video service', err, { sessionId })
     return { error: 'Failed to reach video service' }
   }
 }

@@ -123,8 +123,12 @@ export default async function ClientDashboard() {
           therapistGender: null,
         }
       }
-    } catch {
-      // Malformed questionnaire JSON — treat as no questionnaire
+    } catch (err) {
+      // Malformed questionnaire JSON — treat as no questionnaire.
+      logger.warn('dashboard/client', 'Failed to parse questionnaire JSON', {
+        clientId: user.id,
+        err: err instanceof Error ? err.message : String(err),
+      })
     }
   }
 

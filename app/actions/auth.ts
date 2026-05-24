@@ -159,7 +159,10 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   logger.info('auth/signUp', 'Account created', { userId, email, role })
 
   if (role === 'client') {
-    void sendAdminNewClientSignupEmail(fullName, email)
+    // Awaited so the request stays alive long enough for the Resend POST to
+    // complete on Vercel serverless. The function itself catches its own
+    // errors, so failure here is logged but does not block the signup.
+    await sendAdminNewClientSignupEmail(fullName, email)
   }
 
   // Save questionnaire data if present (client sign-ups only)

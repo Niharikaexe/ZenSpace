@@ -31,7 +31,12 @@ export async function sendContactEmail(
 
   const { name, email, message } = parsed.data
 
-  await sendAdminContactFormEmail(name, email, message)
+  const sent = await sendAdminContactFormEmail(name, email, message)
+
+  if (!sent) {
+    logger.warn('contact', 'Contact email failed to send — surfacing to user', { name, email })
+    return { error: 'We could not send your message right now. Please try again, or email us directly at admin@mindcanopy.in.' }
+  }
 
   logger.info('contact', 'Contact email sent', { name, email })
   return { success: true }

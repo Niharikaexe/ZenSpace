@@ -28,6 +28,12 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
         await createMatch(client.id, selectedTherapistUserId, notes)
         onClose()
       } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('[admin/match-modal-throw]', {
+          clientId: client.id,
+          therapistId: selectedTherapistUserId,
+          err: e instanceof Error ? e.message : String(e),
+        })
         setError(e instanceof Error ? e.message : 'Something went wrong.')
       }
     })

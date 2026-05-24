@@ -249,7 +249,9 @@ export async function submitTherapistOnboarding(
       .eq('id', invite.id)
   }
 
-  void sendAdminTherapistOnboardedEmail(v.fullName)
+  // Awaited so the Resend POST completes before redirect() throws and the
+  // serverless function exits. The send helper swallows its own errors.
+  await sendAdminTherapistOnboardedEmail(v.fullName)
 
   const supabase = await createClient()
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: v.email, password: v.password })
