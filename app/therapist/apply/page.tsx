@@ -11,6 +11,9 @@ import { submitTherapistApplication, type ApplyState } from './actions'
 
 // Therapeutic specialisations: a blend of presenting issues and modalities/approaches
 // so therapists can flag both what they treat and how they work.
+// Client groups — shown prominently at the top of the specialisation picker.
+const CLIENT_GROUPS = ['Teen', 'Adult', 'Couples']
+
 const SPECIALIZATIONS = [
   // Modalities / approaches
   'CBT (Cognitive Behavioral Therapy)',
@@ -34,13 +37,11 @@ const SPECIALIZATIONS = [
   'Trauma / PTSD',
   'Grief & loss',
   'Relationships',
-  'Couples therapy',
   'Family conflicts',
   'Self-esteem & identity',
   'Life transitions',
   'OCD',
   'Addiction / substance use',
-  'Adolescents & teens',
   'LGBTQ+ identity',
   'Anger management',
   'Eating disorders',
@@ -53,8 +54,10 @@ const SPECIALIZATIONS = [
 ]
 
 const LANGUAGES = [
-  'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
+  'English',
+  'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi',
+  'Spanish', 'French', 'German', 'Mandarin', 'Arabic', 'Portuguese',
+  'Italian',
 ]
 
 const STEPS = ['Personal', 'Credentials', 'Practice']
@@ -62,6 +65,41 @@ const STEPS = ['Personal', 'Credentials', 'Practice']
 const ACCEPT_DOC = '.pdf,.doc,.docx,.png,.jpg,.jpeg'
 
 const GENDER_OPTIONS = ['Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say']
+
+// Country list — India at top, then alphabetical (UN member states + key territories)
+const COUNTRIES = [
+  'India',
+  '──────────',
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+  'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+  'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi',
+  'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia',
+  'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+  'East Timor', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia',
+  'Fiji', 'Finland', 'France',
+  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+  'Haiti', 'Honduras', 'Hong Kong', 'Hungary',
+  'Iceland', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Ivory Coast',
+  'Jamaica', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan',
+  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius',
+  'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+  'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway',
+  'Oman',
+  'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar',
+  'Romania', 'Russia', 'Rwanda',
+  'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Saudi Arabia',
+  'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia',
+  'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
+  'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
+  'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen',
+  'Zambia', 'Zimbabwe',
+]
 
 // Multi-region ethnicity options based on common international demographic surveys
 const ETHNICITY_OPTIONS = [
@@ -194,13 +232,26 @@ function StepPersonal({
           />
         </Field>
         <Field label="Country" required>
-          <input
-            type="text"
+          <select
             value={values.country}
             onChange={e => onChange('country', e.target.value)}
-            placeholder="xxxx"
-            className={inputCls}
-          />
+            className={cn(inputCls, 'appearance-none bg-white pr-10 cursor-pointer', !values.country && 'text-[#233551]/40')}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23233551' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              backgroundSize: '12px 8px',
+            }}
+          >
+            <option value="" disabled>Select your country</option>
+            {COUNTRIES.map(c => (
+              c.startsWith('──') ? (
+                <option key={c} value="" disabled>{c}</option>
+              ) : (
+                <option key={c} value={c}>{c}</option>
+              )
+            ))}
+          </select>
         </Field>
       </div>
       <Field label="Date of birth" required>
@@ -474,7 +525,27 @@ function StepPractice({
       </div>
 
       <Field label="Areas of specialisation" required hint="modalities and presenting issues — pick all that apply">
-        <div className="flex flex-wrap gap-2 mt-1">
+        {/* Client groups — three prominent picks in a row */}
+        <div className="grid grid-cols-3 gap-2 mt-1 mb-3">
+          {CLIENT_GROUPS.map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleSpecialization(s)}
+              className={cn(
+                'text-sm px-4 py-2.5 rounded-xl border-2 font-bold transition-all',
+                values.specializations.includes(s)
+                  ? 'bg-[#233551] text-white border-[#233551]'
+                  : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Rest of the specialisations */}
+        <div className="flex flex-wrap gap-2">
           {SPECIALIZATIONS.map(s => (
             <button
               key={s}
@@ -577,7 +648,7 @@ function SuccessScreen() {
         <p className="text-xs font-bold text-[#233551]/40 uppercase tracking-widest">What happens next</p>
         {[
           { step: '1', text: 'We review your application and credentials' },
-          { step: '2', text: 'We schedule a 30-minute intro call' },
+          { step: '2', text: 'We schedule a 15-minute intro call' },
           { step: '3', text: 'If it\'s a fit, we share your invite code' },
           { step: '4', text: 'You complete onboarding and go live' },
         ].map(({ step, text }) => (

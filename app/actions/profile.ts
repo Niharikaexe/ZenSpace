@@ -132,7 +132,7 @@ export async function sendPasswordReset(): Promise<ProfileActionState> {
   if (!user || !user.email) redirect('/login')
 
   const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/dashboard/account`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/dashboard/account`,
   })
 
   if (error) {

@@ -208,6 +208,135 @@ function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: str
 </html>`
 }
 
+// ── Application received — applicant confirmation ───────────────────────────
+
+function tplApplicationReceived(name: string, verifyUrl: string) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MindCanopy</title>
+</head>
+<body style="margin:0;padding:0;background:#FAFAFA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
+        <tr>
+          ${brandHeader()}
+        </tr>
+        <tr><td style="padding:32px;">
+          ${tag('Application Received', '#7EC0B7')}
+          <br/><br/>
+          ${h1(`Thanks for applying, ${name}.`)}
+          ${p(`We&rsquo;ve received your application and our team is taking a look. Before we move forward, please verify your email so we know we can reach you.`)}
+
+          <a href="${verifyUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Verify my email →</a>
+
+          <p style="margin:14px 0 0;font-size:12px;color:#9aa3ad;line-height:1.6;">
+            If the button doesn&rsquo;t work, copy and paste this link into your browser:<br/>
+            <a href="${verifyUrl}" style="color:#3D8A80;word-break:break-all;">${verifyUrl}</a>
+          </p>
+
+          <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e8ecef;">
+            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">What happens next</p>
+            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+              <tr>
+                <td style="padding:6px 12px 6px 0;vertical-align:top;width:24px;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">1</span>
+                </td>
+                <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
+                  <strong style="color:#233551;">Verify your email</strong> — click the button above.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 12px 6px 0;vertical-align:top;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">2</span>
+                </td>
+                <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
+                  <strong style="color:#233551;">We review your application</strong> — your education, CV, and credentials. We read every application personally.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 12px 6px 0;vertical-align:top;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">3</span>
+                </td>
+                <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
+                  <strong style="color:#233551;">15-minute intro call</strong> — if it looks like a fit, we&rsquo;ll set one up within 3&ndash;5 working days.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 12px 6px 0;vertical-align:top;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">4</span>
+                </td>
+                <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
+                  <strong style="color:#233551;">Onboarding</strong> — we&rsquo;ll share an invite code so you can set up your therapist profile.
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:6px 12px 6px 0;vertical-align:top;">
+                  <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">5</span>
+                </td>
+                <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
+                  <strong style="color:#233551;">Match with clients</strong> — once you&rsquo;re live, we&rsquo;ll match you with clients aligned to your approach.
+                </td>
+              </tr>
+            </table>
+          </div>
+        </td></tr>
+        <tr>
+          <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
+            <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
+              Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+export async function sendApplicationReceivedEmail({
+  to,
+  name,
+  verifyUrl,
+}: {
+  to: string
+  name: string
+  verifyUrl: string
+}): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('email/application-received', 'RESEND_API_KEY not set — email skipped', { to })
+    return false
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: FROM_ADMIN,
+        to,
+        subject: 'Your MindCanopy therapist application — please verify your email',
+        html: tplApplicationReceived(name, verifyUrl),
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      logger.error('email/application-received', 'Resend rejected', null, { to, status: res.status, body })
+      return false
+    }
+    return true
+  } catch (err) {
+    logger.error('email/application-received', 'Send failed', err, { to })
+    return false
+  }
+}
+
 // ── New application — admin notification ────────────────────────────────────
 
 function tplNewApplication(fullName: string) {

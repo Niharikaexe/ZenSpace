@@ -91,7 +91,7 @@ const therapyTypes = [
 
 const HeroSection = () => {
   return (
-    <section className="bg-white relative overflow-hidden min-h-[90vh] flex items-center">
+    <section className="bg-white relative overflow-hidden min-h-[auto] sm:min-h-[80vh] lg:min-h-[90vh] flex items-center">
 
       {/* Background peach blob — desktop only */}
       <div className="hidden lg:block mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
@@ -110,12 +110,12 @@ const HeroSection = () => {
 
       {/* Tree + owl animation — mobile background layer */}
       <div className="lg:hidden absolute inset-0 flex items-center justify-end pointer-events-none overflow-hidden">
-        <div className="w-[280px] h-[360px] opacity-[0.09] -mr-12 mt-8">
+        <div className="w-[280px] h-[360px] opacity-[0.16] -mr-12 mt-8">
           <TreeOwl />
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 w-full relative z-10">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-10 sm:py-16 md:py-24 w-full relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
           {/* ── LEFT: Text + category cards ── */}
@@ -234,8 +234,8 @@ const HeroSection = () => {
       </div>
 
       {/* Bottom organic wave */}
-      <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
-        <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20">
+      <div className="absolute -bottom-px left-0 w-full leading-none pointer-events-none">
+        <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20 block">
           <path
             d="M0,35 C200,70 400,0 600,35 C800,70 1000,5 1200,30 C1320,45 1400,20 1440,35 L1440,70 L0,70 Z"
             fill="#FFF5F2"

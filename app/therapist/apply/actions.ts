@@ -1,8 +1,11 @@
 'use server'
 
+import { randomBytes } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import { sendNewApplicationAdminEmail } from '@/lib/email'
+import { sendNewApplicationAdminEmail, sendApplicationReceivedEmail } from '@/lib/email'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
 export type ApplyState = {
   success?: boolean
@@ -59,6 +62,9 @@ export async function submitTherapistApplication(
 
   const admin = createAdminClient()
 
+  // One-time token used to verify the email address provided in this application.
+  const emailVerificationToken = randomBytes(32).toString('hex')
+
   const { error } = await (admin as any)
     .from('therapist_applications')
     .insert({
@@ -81,6 +87,7 @@ export async function submitTherapistApplication(
       cv_url: cvUrl || null,
       certificate_urls: certificateUrls,
       status: 'pending',
+      email_verification_token: emailVerificationToken,
     })
 
   if (error) {
@@ -115,6 +122,11 @@ export async function submitTherapistApplication(
   }
 
   logger.info('therapist/apply', 'Therapist application submitted', { email })
+
+  // Send the applicant a confirmation email with the verify-email link.
+  // Best-effort — log failure but don't block the success response.
+  const verifyUrl = `${SITE_URL}/therapist/verify-email?token=${emailVerificationToken}`
+  await sendApplicationReceivedEmail({ to: email, name: fullName, verifyUrl })
 
   // Notify admin — non-blocking, best-effort
   await sendNewApplicationAdminEmail(fullName)
