@@ -58,42 +58,37 @@ export default function TherapistJoinPage() {
       <Navbar />
 
       <main>
-        {/* ── Section 1: Hero / Pitch ─────────────────────────────────────── */}
-        <section className="bg-white pt-20 pb-16 md:pt-28 md:pb-20">
-          <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <Eyebrow>For counsellors</Eyebrow>
+        {/* ── Section 1: Hero ─────────────────────────────────────────────── */}
+        <section className="bg-white pt-24 pb-20 md:pt-32 md:pb-24">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 text-center">
             <h1
-              className="text-4xl md:text-5xl font-black text-[#233551] leading-tight mb-8"
+              className="text-4xl md:text-5xl lg:text-[3.6rem] italic font-black text-[#233551] leading-[1.15] mb-8"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Practice without<br />the practice overhead.
+              Peace isn&apos;t a destination —<br />it&apos;s a practice.
             </h1>
-            <div className="space-y-5 text-[#233551]/65 text-base md:text-lg leading-relaxed">
-              <p>
-                MindCanopy brings the clients to you. We handle the matching, the bookings, the chat, the video room, and the payments. You hold the session and write the note.
-              </p>
-              <p>
-                <span className="font-semibold text-[#233551]">No clinic rent. No commute. No hard contracts. No exclusivity.</span> Set your weekly availability, take the sessions that fit, get paid weekly.
-              </p>
-              <p>
-                We onboard counsellors trained both in India and abroad — many of our clients specifically want to work with someone outside their immediate cultural orbit, and we make sure that&apos;s an option.
-              </p>
-            </div>
-            <div className="mt-10 flex flex-col sm:flex-row gap-3">
-              <Link
-                href="/therapist/apply"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full bg-[#233551] hover:bg-[#2d4568] text-white text-sm font-bold transition-colors shadow-lg shadow-[#233551]/20"
-                style={{ fontFamily: 'var(--font-lato)' }}
-              >
-                Apply now →
-              </Link>
-              <a
-                href="#how-it-works"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-full border-2 border-slate-200 text-[#233551] text-sm font-bold hover:border-[#233551]/40 transition-colors"
-              >
-                See what&apos;s involved
-              </a>
-            </div>
+            <p className="text-[#233551]/65 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
+              A marketplace that matches you with clients whose way of needing care fits the way you give it.
+            </p>
+            <Link
+              href="/therapist/apply"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-[#233551] hover:bg-[#2d4568] text-white text-sm font-bold transition-colors shadow-lg shadow-[#233551]/20"
+              style={{ fontFamily: 'var(--font-lato)' }}
+            >
+              Apply to join →
+            </Link>
+          </div>
+        </section>
+
+        {/* ── Section 1.5: Intro pitch ────────────────────────────────────── */}
+        <section className="bg-[#FFF5F2] py-16 md:py-20">
+          <div className="max-w-3xl mx-auto px-4 md:px-6 space-y-5 text-[#233551]/75 text-base md:text-lg leading-relaxed">
+            <p>
+              We give you a platform to reach quality clients. Every person who comes to us completes an assessment first — and we route them to the therapist whose approach actually fits theirs.
+            </p>
+            <p className="italic text-[#3D8A80]">
+              A space built carefully, for both sides of the room.
+            </p>
           </div>
         </section>
 
@@ -202,10 +197,12 @@ export default function TherapistJoinPage() {
                     t: 'Intro chat, then sessions begin.',
                     d: 'Every new client gets a 15-minute intro chat with you. After that, sessions get booked into your slots — by you or by them.',
                   },
-                ].map(({ n, t, d }) => (
+                ].map(({ n, t, d }, i) => (
                   <li
                     key={n}
-                    className="flex items-start gap-4 bg-white border border-slate-100 rounded-2xl p-5 md:p-6"
+                    className={`flex items-start gap-4 bg-white border border-slate-100 rounded-2xl p-5 md:p-6 md:w-[calc(50%+1rem)] ${
+                      i % 2 === 0 ? 'md:mr-auto' : 'md:ml-auto'
+                    }`}
                   >
                     <span className="w-9 h-9 rounded-full bg-[#7EC0B7]/15 text-[#3D8A80] text-sm font-black flex items-center justify-center flex-shrink-0">
                       {n}
@@ -226,88 +223,99 @@ export default function TherapistJoinPage() {
           </div>
         </section>
 
-        {/* ── Section 4: Therapist Terms ──────────────────────────────────── */}
+        {/* ── Section 4+5: Therapist terms + Gentle note (side-by-side) ───── */}
         <section className="bg-[#FFF5F2] py-16 md:py-20">
-          <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <Eyebrow>Therapist terms</Eyebrow>
-            <SectionHeading>Simple, fair, and easy to work with.</SectionHeading>
+          <div className="max-w-6xl mx-auto px-4 md:px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-              <PointCard
-                title="No setup fee."
-                body="Joining MindCanopy costs you nothing. No platform charge, no subscription, no hidden onboarding fee."
-              />
-              <PointCard
-                title="No clinic, no hard contracts."
-                body="You don't pay clinic rent. You're not locked in. Practise alongside your other work if you'd like."
-              />
-              <PointCard
-                title="Weekly payouts."
-                body={
-                  <>
-                    We pay you every week, based on the clients you&apos;ve seen. The more clients you onboard with us, the more you earn.
-                  </>
-                }
-              />
-              <PointCard
-                title="A short intro chat with every match."
-                body="When a new client is matched to you, you'll offer them a 15-minute intro chat so they can decide if you're their person."
-              />
-              <PointCard
-                title="Active on chat within 48 hours."
-                body="Subscribed clients can message you between sessions. We ask you to reply within 48 hours — it's the one promise we make to them."
-              />
-              <PointCard
-                title="Leave whenever you need to."
-                body="No exclusivity. No lock-in. If MindCanopy stops working for you, you can step away — we just ask you to see your active clients through their current week."
-              />
-            </div>
-          </div>
-        </section>
+              {/* Left: Therapist terms */}
+              <div>
+                <Eyebrow>Therapist terms</Eyebrow>
+                <SectionHeading>Simple, fair, and easy to work with.</SectionHeading>
+                <ul className="mt-8 space-y-3">
+                  {[
+                    {
+                      t: 'No setup fee.',
+                      d: 'Joining MindCanopy costs you nothing. No platform charge, no subscription, no hidden onboarding fee.',
+                    },
+                    {
+                      t: 'No clinic, no hard contracts.',
+                      d: "You don't pay clinic rent. You're not locked in. Practise alongside your other work if you'd like.",
+                    },
+                    {
+                      t: 'Weekly payouts.',
+                      d: "We pay you every week, based on the clients you've seen. The more clients you onboard with us, the more you earn.",
+                    },
+                    {
+                      t: 'A short intro chat with every match.',
+                      d: "When a new client is matched to you, you'll offer them a 15-minute intro chat so they can decide if you're their person.",
+                    },
+                    {
+                      t: 'Active on chat within 48 hours.',
+                      d: "Subscribed clients can message you between sessions. We ask you to reply within 48 hours — it's the one promise we make to them.",
+                    },
+                  ].map(({ t, d }) => (
+                    <li
+                      key={t}
+                      className="bg-white border border-slate-100 rounded-2xl p-4 md:p-5"
+                    >
+                      <p
+                        className="text-[#233551] font-black text-sm md:text-base"
+                        style={{ fontFamily: 'var(--font-lato)' }}
+                      >
+                        {t}
+                      </p>
+                      <p className="text-[#233551]/65 text-sm leading-relaxed mt-1">{d}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-        {/* ── Section 5: Where we draw the line + Support ─────────────────── */}
-        <section className="bg-white py-16 md:py-20">
-          <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <Eyebrow>A gentle note</Eyebrow>
-            <SectionHeading>A few things to keep in mind.</SectionHeading>
-            <p className="text-[#233551]/65 mt-4 mb-8 leading-relaxed">
-              These aren&apos;t rules so much as the spirit we work in. Most of our therapists already practise this way.
-            </p>
-            <ul className="space-y-3">
-              {[
-                'Stay within your scope of training — we\'re a counselling platform, not a medical one.',
-                'Keep client conversations on the MindCanopy platform.',
-                'Respect client confidentiality, always.',
-                'Sessions stay private — no recording without written consent from both sides.',
-              ].map(rule => (
-                <li
-                  key={rule}
-                  className="flex items-start gap-3 bg-[#FFF5F2] border border-[#E8926A]/20 rounded-xl px-4 py-3"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#E8926A] flex-shrink-0 mt-2.5" />
-                  <span className="text-sm text-[#233551] leading-relaxed">{rule}</span>
-                </li>
-              ))}
-            </ul>
+              {/* Right: Gentle note + Support */}
+              <div className="md:border-l md:border-[#233551]/10 md:pl-12">
+                <Eyebrow>A gentle note</Eyebrow>
+                <SectionHeading>A few things to keep in mind.</SectionHeading>
+                <p className="text-[#233551]/65 mt-4 mb-6 leading-relaxed">
+                  These aren&apos;t rules so much as the spirit we work in. Most of our therapists already practise this way.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    'Stay within your scope of training — we\'re a counselling platform, not a medical one.',
+                    'Keep client conversations on the MindCanopy platform.',
+                    'Respect client confidentiality, always.',
+                    'Sessions stay private — no recording without written consent from both sides.',
+                  ].map(rule => (
+                    <li
+                      key={rule}
+                      className="flex items-start gap-3 bg-white border border-[#E8926A]/20 rounded-xl px-4 py-3"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E8926A] flex-shrink-0 mt-2.5" />
+                      <span className="text-sm text-[#233551] leading-relaxed">{rule}</span>
+                    </li>
+                  ))}
+                </ul>
 
-            {/* Support box */}
-            <div className="mt-12 bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-2xl px-6 py-6 md:px-8 md:py-7">
-              <p
-                className="text-[#233551] font-black text-lg md:text-xl mb-2"
-                style={{ fontFamily: 'var(--font-lato)' }}
-              >
-                Still have questions?
-              </p>
-              <p className="text-[#233551]/65 text-sm md:text-base leading-relaxed">
-                We&apos;re happy to walk you through anything before you apply. Write to us at{' '}
-                <a
-                  href="mailto:admin@mindcanopy.in"
-                  className="font-semibold text-[#3D8A80] hover:text-[#233551] underline underline-offset-2"
-                >
-                  admin@mindcanopy.in
-                </a>{' '}
-                and a real person will get back to you.
-              </p>
+                {/* Support box */}
+                <div className="mt-8 bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-2xl px-5 py-5 md:px-6 md:py-6">
+                  <p
+                    className="text-[#233551] font-black text-base md:text-lg mb-2"
+                    style={{ fontFamily: 'var(--font-lato)' }}
+                  >
+                    Still have questions?
+                  </p>
+                  <p className="text-[#233551]/65 text-sm leading-relaxed">
+                    We&apos;re happy to walk you through anything before you apply. Write to us at{' '}
+                    <a
+                      href="mailto:admin@mindcanopy.in"
+                      className="font-semibold text-[#3D8A80] hover:text-[#233551] underline underline-offset-2"
+                    >
+                      admin@mindcanopy.in
+                    </a>{' '}
+                    and a real person will get back to you.
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
