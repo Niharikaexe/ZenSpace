@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import OwlMascot from "@/components/home/OwlMascot"
+import { TreeOwl } from "@/components/home/TreeOwl"
 
 /* ── Floating decorative SVGs (desktop only) ── */
 const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; className?: string }) => (
@@ -96,7 +97,7 @@ const HeroSection = () => {
       <div className="hidden lg:block mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
         <svg viewBox="0 0 640 780" fill="none" preserveAspectRatio="xMaxYMid slice" className="w-full h-full">
           <path
-            d="M120,10 C260,-15 520,40 600,180 C680,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
+            d="M120,10 C260,-15 520,40 600,180 C640,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
             fill="#FFE8E2"
           />
           <path
@@ -105,6 +106,13 @@ const HeroSection = () => {
             fillOpacity="0.5"
           />
         </svg>
+      </div>
+
+      {/* Tree + owl animation — mobile background layer */}
+      <div className="lg:hidden absolute inset-0 flex items-center justify-end pointer-events-none overflow-hidden">
+        <div className="w-[280px] h-[360px] opacity-[0.09] -mr-12 mt-8">
+          <TreeOwl />
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 w-full relative z-10">
@@ -148,7 +156,7 @@ const HeroSection = () => {
             </motion.p>
 
             {/* Therapy type category cards */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-3">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3 pt-3">
               {therapyTypes.map((t, i) => (
                 <motion.div
                   key={t.label}
@@ -159,26 +167,26 @@ const HeroSection = () => {
                 >
                   <Link
                     href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
+                    className={`group relative flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-2.5 py-3 sm:px-5 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[88px] sm:min-h-[152px]`}
                   >
                     {/* Corner glow on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl sm:rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
 
                     {/* Icon */}
-                    <div className={`w-10 h-10 ${t.iconBg} rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 ${t.iconBg} rounded-lg sm:rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
                       <t.Icon />
                     </div>
 
                     {/* Label + tagline */}
                     <div>
-                      <p className="text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                      <p className="text-xs sm:text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
                         {t.label}
                       </p>
-                      <p className="text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
+                      <p className="hidden sm:block text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
                     </div>
 
-                    {/* Arrow */}
-                    <div className="flex items-center gap-1 mt-auto">
+                    {/* Arrow — desktop only */}
+                    <div className="hidden sm:flex items-center gap-1 mt-auto">
                       <span className="text-xs font-semibold" style={{ color: t.accent }}>Learn more</span>
                       <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" style={{ color: t.accent }}>
                         <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -186,7 +194,7 @@ const HeroSection = () => {
                     </div>
 
                     {/* Active dot */}
-                    <span className={`absolute top-3 right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
+                    <span className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
                   </Link>
                 </motion.div>
               ))}

@@ -67,8 +67,11 @@ export default function TherapistJoinPage() {
             >
               Peace isn&apos;t a destination —<br />it&apos;s a practice.
             </h1>
-            <p className="text-[#233551]/65 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
-              A marketplace that matches you with clients whose way of needing care fits the way you give it.
+            <p className="text-[#233551]/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-5">
+              We give you a platform to reach quality clients. Every person who comes to us completes an assessment first — and we route them to the therapist whose approach actually fits theirs.
+            </p>
+            <p className="italic text-[#3D8A80] text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+              A space built carefully, for both sides of the room.
             </p>
             <Link
               href="/therapist/apply"
@@ -77,18 +80,6 @@ export default function TherapistJoinPage() {
             >
               Apply to join →
             </Link>
-          </div>
-        </section>
-
-        {/* ── Section 1.5: Intro pitch ────────────────────────────────────── */}
-        <section className="bg-[#FFF5F2] py-16 md:py-20">
-          <div className="max-w-3xl mx-auto px-4 md:px-6 space-y-5 text-[#233551]/75 text-base md:text-lg leading-relaxed">
-            <p>
-              We give you a platform to reach quality clients. Every person who comes to us completes an assessment first — and we route them to the therapist whose approach actually fits theirs.
-            </p>
-            <p className="italic text-[#3D8A80]">
-              A space built carefully, for both sides of the room.
-            </p>
           </div>
         </section>
 
@@ -135,34 +126,10 @@ export default function TherapistJoinPage() {
           </div>
         </section>
 
-        {/* ── Section 3: Eligibility + Steps to join ──────────────────────── */}
+        {/* ── Section 3: Steps to join ───────────────────────────────────── */}
         <section className="bg-white py-16 md:py-20">
           <div className="max-w-3xl mx-auto px-4 md:px-6">
-            <Eyebrow>Who can join</Eyebrow>
-            <SectionHeading>The basics we ask for.</SectionHeading>
-            <div className="mt-6 space-y-5 text-[#233551]/65 leading-relaxed">
-              <p>
-                MindCanopy is a platform for <span className="font-semibold text-[#233551]">counsellors</span> — practitioners trained in counselling, counselling psychology, psychotherapy, or social work. We don&apos;t take on psychiatrists or anyone offering medical or prescription-based care.
-              </p>
-              <p className="font-semibold text-[#233551] pt-2">To apply, you&apos;ll share:</p>
-              <ul className="space-y-2.5 pl-1">
-                {[
-                  'A Master\'s degree (or equivalent) in counselling, counselling psychology, psychotherapy, or social work',
-                  'Your CV',
-                  'Years of experience and your areas of specialisation',
-                  'Certificates of training or registration, where applicable (optional)',
-                  'LinkedIn, if you have one (optional)',
-                ].map(line => (
-                  <li key={line} className="flex items-start gap-3">
-                    <span className="text-[#7EC0B7] mt-2 w-1.5 h-1.5 rounded-full bg-[#7EC0B7] flex-shrink-0" />
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Steps to join */}
-            <div className="mt-12">
+            <div>
               <Eyebrow>How it goes</Eyebrow>
               <SectionHeading>Six steps to your first client.</SectionHeading>
               <ol className="mt-8 space-y-4">
@@ -175,7 +142,7 @@ export default function TherapistJoinPage() {
                   {
                     n: '2',
                     t: 'We screen your education and CV.',
-                    d: 'A real person reviews every application. No bots, no auto-rejections.',
+                    d: 'We read every application ourselves. No bots, no auto-rejections.',
                   },
                   {
                     n: '3',
@@ -190,7 +157,7 @@ export default function TherapistJoinPage() {
                   {
                     n: '5',
                     t: 'We match you with the most aligned client.',
-                    d: 'Our admin hand-matches every client based on their needs and your strengths. No algorithm.',
+                    d: 'Our admin matches every client based on their needs and your strengths. No algorithm.',
                   },
                   {
                     n: '6',
@@ -311,7 +278,7 @@ export default function TherapistJoinPage() {
                     >
                       admin@mindcanopy.in
                     </a>{' '}
-                    and a real person will get back to you.
+                    and we&apos;ll get back to you soon.
                   </p>
                 </div>
               </div>
