@@ -49,16 +49,6 @@ function Bullets({ items }: { items: React.ReactNode[] }) {
   )
 }
 
-function Pending({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-[#FFF5F2] border border-[#E8926A]/25 rounded-xl px-4 py-3 mb-4">
-      <p className="text-sm text-[#233551]/65 leading-relaxed">
-        <span className="font-semibold text-[#233551]">[Pending finalisation by legal team]</span> {children}
-      </p>
-    </div>
-  )
-}
-
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function TermsPage() {
@@ -204,24 +194,58 @@ export default function TermsPage() {
               </P>
 
               <H2>4. Intellectual Property</H2>
-              <Pending>
-                All content on the Platform — including text, graphics, logos, software, and trademarks — is owned by or licensed to MINDCANOPY SERVICES LLP. Full clause text to be finalised; nothing in this Agreement grants you any right to reproduce, redistribute, or create derivative works from any part of the Platform without our prior written consent.
-              </Pending>
+              <P>
+                The Platform, the website www.mindcanopy.in and its related applications (&ldquo;MindCanopy Intellectual Property&rdquo;), and all rights, title, and interest, including all related intellectual property rights therein, are owned by the Company, its licensors, or other providers of such material. These rights are protected under the Copyright Act, 1957, the Trade Marks Act, 1999, and other applicable Indian intellectual property laws. This Agreement is not a sale and does not convey or grant you any rights in or related to the Platform, or any intellectual property rights owned by the Company.
+              </P>
+              <P>
+                &ldquo;MindCanopy&rdquo;, &ldquo;www.mindcanopy.in&rdquo;, and all related names, logos, product and service names, designs, and slogans (&ldquo;MindCanopy Marks&rdquo;) are trade marks or pending trade mark applications of the Company or its affiliates or licensors. You must not use the MindCanopy Marks without the prior written permission of the Company. All other names, logos, product and service names, designs, and slogans on the Platform and the website are the trade marks of their respective owners.
+              </P>
+              <P>
+                Subject to your compliance with these Terms, the Company grants you a limited, non-exclusive, non-sublicensable, revocable, non-transferable licence to: (i) access and use the Platform solely in connection with your use of the Services on your personal device; and (ii) access and use any content, information, and related materials made available through the Services, in each case solely for your personal, non-commercial use. Any rights not expressly granted herein are reserved by the Company and its licensors.
+              </P>
 
               <H2>5. Third Party Content</H2>
-              <Pending>
-                The Platform may display content, links, or services provided by third parties. The Company does not endorse and is not responsible for any third-party content or services. Full clause text to be finalised.
-              </Pending>
+              <P>
+                The Platform may contain content, products, or services offered or provided by third parties (&ldquo;Third Party Content&rdquo;), links to Third Party Content (including but not limited to links to other websites), or references to third-party services. We have no responsibility for the creation of any such Third Party Content, including but not limited to any related products, practices, terms, or policies, and we will not be liable for any damage or loss caused by any Third Party Content.
+              </P>
+              <P>
+                The Platform integrates with third-party service providers in the course of providing the Therapist Services, including without limitation payment processors and communication infrastructure providers as listed in our Privacy Policy. Your use of these third-party services may also be subject to those third parties&rsquo; own terms and conditions, which you should review.
+              </P>
 
               <H2>6. Disclaimer of Warranty and Limitation of Liability</H2>
-              <Pending>
-                The Platform is provided on an &ldquo;as is&rdquo; and &ldquo;as available&rdquo; basis. To the maximum extent permitted under Indian law, the Company disclaims all warranties and limits its liability for indirect, incidental, or consequential damages arising from your use of the Platform. Full clause text to be finalised.
-              </Pending>
+              <P>
+                TO THE MAXIMUM EXTENT PERMITTED BY LAW, AND SUBJECT TO YOUR MANDATORY RIGHTS UNDER THE CONSUMER PROTECTION ACT, 2019, YOU HEREBY RELEASE US AND AGREE TO HOLD US HARMLESS FROM ANY AND ALL CAUSES OF ACTION AND CLAIMS OF ANY NATURE RESULTING FROM THE THERAPIST SERVICES OR THE PLATFORM, INCLUDING (WITHOUT LIMITATION) ANY ACT, OMISSION, OPINION, RESPONSE, ADVICE, SUGGESTION, INFORMATION, OR SERVICE OF ANY THERAPIST AND/OR ANY OTHER CONTENT OR INFORMATION ACCESSIBLE THROUGH THE PLATFORM.
+              </P>
+              <P>
+                YOU UNDERSTAND, AGREE, AND ACKNOWLEDGE THAT THE PLATFORM IS PROVIDED &ldquo;AS IS&rdquo; WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES OF ANY KIND, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, NON-INFRINGEMENT, SECURITY, FITNESS FOR A PARTICULAR PURPOSE, OR ACCURACY. THE USE OF THE PLATFORM IS AT YOUR OWN RISK. TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, WE EXPRESSLY DISCLAIM ALL WARRANTIES OF ANY KIND, WHETHER EXPRESSED OR IMPLIED.
+              </P>
+              <P>
+                YOU UNDERSTAND, AGREE, AND ACKNOWLEDGE THAT WE SHALL NOT BE LIABLE TO YOU OR TO ANY THIRD PARTY FOR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, PUNITIVE, OR EXEMPLARY DAMAGES.
+              </P>
+              <P>
+                YOU UNDERSTAND, AGREE, AND ACKNOWLEDGE THAT OUR AGGREGATE LIABILITY FOR DAMAGES ARISING IN CONNECTION WITH THIS AGREEMENT AND ANY AND ALL USE OF THE PLATFORM WILL NOT EXCEED THE TOTAL AMOUNT OF MONEY PAID BY YOU OR ON YOUR BEHALF THROUGH THE PLATFORM IN THE TWELVE (12) MONTHS PRECEDING THE DATE OF THE CLAIM.
+              </P>
+              <P>
+                Nothing in this Agreement shall limit or exclude any liability that cannot be limited or excluded under applicable Indian law, including but not limited to liability arising from gross negligence, fraud, or wilful misconduct, or any rights you may have as a consumer under the Consumer Protection Act, 2019.
+              </P>
+              <P>
+                If the applicable law does not permit the limitation of liability as set forth above, the limitation will be deemed modified solely to the extent necessary to comply with applicable law. This Section 6 shall survive the termination or expiration of this Agreement.
+              </P>
 
               <H2>7. Dispute Resolution and Arbitration</H2>
-              <Pending>
-                Disputes arising out of or in connection with this Agreement shall be resolved by arbitration in accordance with the Arbitration and Conciliation Act, 1996, subject to your rights as a consumer under the Consumer Protection Act, 2019. The seat and venue of arbitration shall be Bengaluru, Karnataka. Full Sections 7.1 and 7.3 onwards to be finalised.
-              </Pending>
+              <div className="bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-xl px-4 py-3 my-4">
+                <p className="text-sm text-[#233551] leading-relaxed">
+                  THIS SECTION 7 OF THIS AGREEMENT SHALL BE REFERRED TO AS THE &ldquo;DISPUTE RESOLUTION AGREEMENT&rdquo;.
+                </p>
+              </div>
+              <P>
+                Subject to your statutory rights as a consumer under the Consumer Protection Act, 2019, you and the Company (collectively, the &ldquo;Parties&rdquo;) agree that any dispute, claim, or controversy (except those specifically exempted below) arising out of or relating to (i) this Agreement and prior versions of this Agreement, or concerning the existence, applicability, breach, termination, enforcement, interpretation, scope, waiver, or validity thereof; and (ii) the use of the Platform or Therapist Services (collectively, &ldquo;Disputes&rdquo;) will be resolved by binding arbitration in accordance with the provisions of this Section.
+              </P>
+
+              <H3>7.1 Preservation of Consumer Rights</H3>
+              <P>
+                Notwithstanding anything to the contrary in this Section, <span className="font-semibold text-[#233551]">if you are a &ldquo;consumer&rdquo; within the meaning of the Consumer Protection Act, 2019, you retain the right to approach the appropriate Consumer Disputes Redressal Commission (District, State, or National, as the case may be) in respect of any deficiency in service, unfair trade practice, or any other matter falling within the jurisdiction of such Commission.</span> This Agreement does not waive, limit, or exclude any rights you have as a consumer under the Consumer Protection Act, 2019 or any other applicable consumer protection law.
+              </P>
 
               <H3>7.2 Pre-Arbitration Dispute Resolution</H3>
               <P>
@@ -239,21 +263,143 @@ export default function TermsPage() {
                 </a>{' '}
                 or by post to MINDCANOPY SERVICES LLP at the registered office address set out in Section 16.
               </P>
+              <P>
+                All offers, promises, conduct, and statements, whether oral or written, made in the course of pre-arbitration negotiation by any of the Parties, their agents, employees, or counsel are confidential, privileged, and inadmissible for any purpose, including as evidence of liability, in any subsequent arbitration or proceeding.
+              </P>
+
+              <H3>7.3 Arbitration Procedure</H3>
+              <P>
+                If the Parties are unable to resolve the Dispute within thirty (30) days of the Notice of Dispute, either Party may refer the Dispute to arbitration in accordance with the following:
+              </P>
+              <Bullets items={[
+                <><span className="font-semibold text-[#233551]">(a) Governing Law of Arbitration:</span> The arbitration shall be governed by the Arbitration and Conciliation Act, 1996, as amended from time to time.</>,
+                <><span className="font-semibold text-[#233551]">(b) Number of Arbitrators:</span> The arbitration shall be conducted by a sole arbitrator mutually appointed by the Parties. If the Parties fail to agree on the appointment of the sole arbitrator within thirty (30) days, the sole arbitrator shall be appointed in accordance with Section 11 of the Arbitration and Conciliation Act, 1996.</>,
+                <><span className="font-semibold text-[#233551]">(c) Seat and Venue:</span> The seat of arbitration shall be Bengaluru, Karnataka, India. The venue of arbitration may be physical or virtual, as the arbitrator may direct, having regard to the convenience of the Parties.</>,
+                <><span className="font-semibold text-[#233551]">(d) Language:</span> The language of the arbitration shall be English.</>,
+                <><span className="font-semibold text-[#233551]">(e) Confidentiality:</span> The arbitration proceedings, the award, and all documents and information exchanged in connection with the arbitration shall be kept strictly confidential by the Parties and the arbitrator, save where disclosure is required by law or for the enforcement of the award.</>,
+                <><span className="font-semibold text-[#233551]">(f) Costs:</span> The arbitrator shall determine the allocation of costs of the arbitration, including the fees of the arbitrator and reasonable legal fees, between the Parties having regard to the conduct of the Parties and the merits of their claims.</>,
+                <><span className="font-semibold text-[#233551]">(g) Award:</span> The award of the arbitrator shall be final and binding on the Parties, subject only to challenge under the Arbitration and Conciliation Act, 1996. The Parties shall comply with the award without undue delay.</>,
+              ]} />
+
+              <H3>7.4 Exceptions to Arbitration</H3>
+              <P>
+                Notwithstanding the foregoing, this Section 7 shall not require arbitration of the following claims:
+              </P>
+              <Bullets items={[
+                '(i) consumer claims brought before the Consumer Disputes Redressal Commissions established under the Consumer Protection Act, 2019;',
+                <>(ii) applications for interim or injunctive relief in a court of competent jurisdiction to prevent the actual or threatened infringement, misappropriation, or violation of a Party&rsquo;s copyrights, trade marks, trade secrets, patents, or other intellectual property rights;</>,
+                '(iii) individual claims arising out of sexual harassment or sexual misconduct, which shall be governed by the Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013 and applicable criminal law; and',
+                '(iv) any claim that may not be subject to arbitration under applicable Indian law.',
+              ]} />
+
+              <H3>7.5 Survival</H3>
+              <P>
+                This Section 7 (Dispute Resolution and Arbitration) shall survive after the termination or expiration of this Agreement.
+              </P>
 
               <H2>8. Your Subscription</H2>
-              <Pending>
-                Subscriptions are billed in advance on the cadence you select (weekly or monthly). Cancellation, renewal, and refund terms, including the non-refundable nature of subscription fees save where required by law, will be set out in full in Sections 8.1–8.7. Full clause text to be finalised.
-              </Pending>
+              <P>
+                We offer different subscription options, with billing that may occur weekly, every four (4) weeks, monthly, or quarterly. Any subscription you choose will continue and automatically renew until you cancel it. By choosing a recurring subscription service, you acknowledge that such paid services have recurring payments, and you accept responsibility for all recurring charges prior to cancellation.
+              </P>
+
+              <H3>8.1 Charging and Billing Cycle</H3>
+              <P>
+                Once you provide complete payment information and complete the payment transaction, you will be charged for the subscription immediately. However, it may take some time before you are matched and can begin therapy with your Therapist. Your subscription and billing period will run from the date you are matched to a Therapist to ensure you are given the entire duration of that billing cycle to use the services. For example, if you pay on the 1st of a month and are matched with a Therapist on the 2nd, your four-week billing period will run from the 2nd onwards.
+              </P>
+              <P>
+                All amounts payable under this Agreement are denominated in Indian Rupees (INR). Subscription fees are inclusive of all applicable taxes including the Goods and Services Tax (GST) levied under the Central Goods and Services Tax Act, 2017 and the relevant State Goods and Services Tax legislation, unless expressly stated otherwise. The Company shall issue a GST-compliant tax invoice on each successful charge.
+              </P>
+
+              <H3>8.2 Automatic Renewal and Cancellation</H3>
+              <P>
+                You may cancel your subscription at any time, for any reason, through your dashboard. Cancellation takes effect at the end of the current billing period. Your subscription must be cancelled before it renews in order to avoid the next billing cycle. Unless otherwise advised by the Company, any sessions (video, audio, or chat) accrued but unused within a billing cycle will not roll over or be eligible for use after that billing cycle concludes.
+              </P>
+              <P>
+                For recurring payments processed through e-mandates, the Company shall comply with the Reserve Bank of India&rsquo;s framework on processing of e-mandates on recurring transactions, including pre-debit notifications and additional factor authentication where applicable.
+              </P>
+
+              <H3>8.3 Refunds</H3>
+              <P>
+                Refund eligibility shall be governed by our Refund and Cancellation Policy available at www.mindcanopy.in/refund-policy, which is incorporated into and deemed a part of this Agreement. Notwithstanding anything to the contrary, you shall be entitled to refunds in such circumstances as required under the Consumer Protection Act, 2019 and the Consumer Protection (E-Commerce) Rules, 2020.
+              </P>
+
+              <H3>8.4 Price Changes</H3>
+              <P>
+                We reserve the right to change our subscription offerings or adjust prices of our services. Any changes to your subscription will only take effect following at least thirty (30) days&rsquo; prior notice to you. You will have the opportunity to cancel your subscription before any such change takes effect.
+              </P>
+
+              <H3>8.5 Free Introductory Chat</H3>
+              <P>
+                We may offer a free fifteen (15) minute introductory chat with a Therapist before you commit to a paid subscription. Once the free introductory chat concludes, no paid subscription will commence unless you affirmatively elect to subscribe and provide payment.
+              </P>
+
+              <H3>8.6 Session Cancellation Policy</H3>
+              <P>
+                Late cancellations (within twenty-four (24) hours of the scheduled session time) and missed sessions may impact your Therapist&rsquo;s availability and earnings. Repeated late cancellations or no-shows may result in a charge as set out in our Refund and Cancellation Policy. Timely cancellations help your Therapist utilise open slots for other clients seeking help.
+              </P>
+
+              <H3>8.7 Therapist Matching</H3>
+              <P>
+                How you are matched with a Therapist depends on a number of factors. As a threshold matter, we require every Therapist to be credentialled and experienced in accordance with Section 2. Matches are based on your intake questionnaire responses, Therapist availability and capacity, Therapist specialisation, language preferences, and other factors considered relevant to a sustained and productive therapeutic relationship.
+              </P>
 
               <H2>9. Consent to Receive Electronic Communications</H2>
-              <Pending>
-                By using the Platform, you consent to receive electronic communications from the Company, including service notifications, session reminders, and policy updates, in the manner set out in Section 14. Full clause text to be finalised.
-              </Pending>
+              <P>
+                You agree that MindCanopy and/or the Therapists may contact you regarding the Therapist Services or any related services you enquire about through our website or mobile application. You consent to receive such communications electronically, including session reminders, confirmation emails, scheduling enquiries, service updates, updates to these Terms and Conditions, the Privacy Policy, or any other policies.
+              </P>
+              <P>
+                When providing us with your email address and phone number, you represent that they are accurate and current. You consent to receive text messages (SMS), WhatsApp messages, push notifications, and emails relating to the services you have signed up for, at the contact information you have provided.
+              </P>
+              <P>
+                Such communications are sent in accordance with the Information Technology Act, 2000 and, in respect of any commercial communications by SMS, in accordance with the Telecom Regulatory Authority of India&rsquo;s framework on Unsolicited Commercial Communications and the Telecom Commercial Communications Customer Preference Regulations, 2018.
+              </P>
+              <P>
+                Your consent to conduct interactions electronically covers all interactions between you and MindCanopy. If you later decide that you do not want to receive certain future communications electronically, please contact us via the contact information set out in Section 14. You may also opt out of certain electronic communications through your account settings or by following the unsubscribe instructions in any communication you receive from us. Your withdrawal of consent will be effective within a reasonable time after we receive your withdrawal notice.
+              </P>
+              <P>
+                MindCanopy or the Therapists may need to send you certain communications electronically regarding the Therapist Services from which you may not opt out without discontinuing the Services. These include notifications of updates to these Terms and Conditions, billing-related information, and crisis-related safety communications. Your withdrawal of consent will not affect the legal validity or enforceability of these Terms and Conditions. If you withdraw your consent to receive communications electronically, certain Services may become unavailable to you.
+              </P>
 
               <H2>10. Telehealth Informed Consent</H2>
-              <Pending>
-                Sections 10.1–10.4 set out the nature of telehealth services, the risks and benefits of receiving therapy over a digital platform, the steps the Company and Therapists take to protect confidentiality, and your acknowledgement that you have provided informed consent to receive Therapist Services via telehealth. Full clause text to be finalised.
-              </Pending>
+              <P>
+                By using the Platform, you provide your informed consent to receive Therapist Services remotely through electronic communications, including via online messaging, chat, audio, or video as applicable (&ldquo;Telehealth&rdquo;). You consent to other aspects of Telehealth including, but not limited to, electronic transmission of your therapy-related personal data and any other Sensitive Personal Data or Information.
+              </P>
+
+              <H3>10.1 Understanding of Telehealth</H3>
+              <P>You understand that:</P>
+              <Bullets items={[
+                '(a) Telehealth involves the delivery of therapy services via electronic communication and may not be appropriate for every situation;',
+                <>(b) there are inherent risks and benefits to Telehealth, including potential interruptions to service, technical failures, and limitations on a Therapist&rsquo;s ability to observe non-verbal cues fully;</>,
+                '(c) Telehealth services are not a substitute for in-person mental healthcare where such care is required;',
+                '(d) in the event of a technical failure, your Therapist will attempt to reconnect with you and, if not possible, will reschedule your session; and',
+                '(e) your Therapist may, at their professional discretion, refer you to in-person care or to a psychiatrist if your needs are beyond the scope of Telehealth services.',
+              ]} />
+
+              <H3>10.2 Location and Identity Verification</H3>
+              <P>
+                Before participating in each session, if required by the Company or your Therapist, you agree to accurately verify your identity and disclose your physical location. This is necessary because applicable laws and emergency response procedures vary by jurisdiction.
+              </P>
+
+              <H3>10.3 Limits of Confidentiality</H3>
+              <P>
+                You understand and agree that, while your Therapist will maintain strict confidentiality of your communications, there are circumstances in which your Therapist may be required by law to disclose information without your consent, including but not limited to:
+              </P>
+              <Bullets items={[
+                '(a) where there is a credible risk of imminent harm to yourself or to others;',
+                '(b) where the Therapist becomes aware of an offence against a child, in which case mandatory reporting under Section 19 of the Protection of Children from Sexual Offences Act, 2012 applies;',
+                '(c) where reporting is required under the Juvenile Justice (Care and Protection of Children) Act, 2015;',
+                '(d) where disclosure is required under the Mental Healthcare Act, 2017, including but not limited to circumstances involving the safe handling of a person with mental illness;',
+                '(e) pursuant to a lawful order of a court or competent authority; and',
+                '(f) where disclosure is required for the prevention or investigation of an offence.',
+              ]} />
+              <P>
+                You acknowledge that you have been informed of these limits and consent to such disclosures where required by law.
+              </P>
+
+              <H3>10.4 Withdrawal of Telehealth Consent</H3>
+              <P>
+                You may withdraw your consent to Telehealth at any time without affecting your right to seek future care. Please note, your Therapist may have additional consents or documentation for you to complete prior to commencing services.
+              </P>
 
               <H3>10.5 Minors</H3>
               <P>
@@ -261,19 +407,76 @@ export default function TermsPage() {
               </P>
 
               <H2>11. Your Account, Representations, Conduct and Commitments</H2>
-              <Pending>
-                Sections 11.1–11.6 set out your obligations regarding account security, accurate information, lawful use of the Platform, parental consent for minors, and your representations and warranties to the Company. Full clause text to be finalised.
-              </Pending>
+              <P>
+                You hereby confirm that you are legally able to consent to receive Therapist Services or have the consent of a parent or legal guardian, and are legally able to enter into a binding contract under Section 11 of the Indian Contract Act, 1872. Generally, only persons of the age of majority (eighteen years and above), of sound mind, and not disqualified from contracting by any law to which they are subject, may enter into this Agreement.
+              </P>
+
+              <H3>11.1 Minor Consent</H3>
+              <P>
+                Where consent from a parent or legal guardian is required for a minor to receive Therapist Services, you hereby confirm that, as the consenting parent or legal guardian, you have the legal right to consent to Therapist Services on behalf of the minor in your sole or joint capacity. You provide affirmative consent on behalf of the minor to the provisions set out in the accompanying Privacy Policy regarding the collection, processing, and use of the minor&rsquo;s personal data, including any &ldquo;sensitive personal data&rdquo; as defined under the SPDI Rules and any data relating to a &ldquo;child&rdquo; as defined under the DPDP Act. You agree that consent to Therapist Services on behalf of the minor remains valid until withdrawn in writing or until the subscription is cancelled.
+              </P>
+
+              <H3>11.2 Accuracy of Information</H3>
+              <P>
+                You confirm and agree that all information you have provided in or through the Platform, and all information you will provide in or through the Platform in the future, is accurate, true, current, and complete. You agree to maintain and update this information so it remains accurate, current, and complete.
+              </P>
+
+              <H3>11.3 Account Security</H3>
+              <P>
+                You acknowledge that you are responsible for maintaining the confidentiality of your password and any other security information related to your account (collectively, &ldquo;Account Access&rdquo;). We advise you to change your password frequently and to take all reasonable steps to safeguard your password.
+              </P>
+              <P>
+                You agree to notify us immediately of any unauthorised use of your Account Access or any other concern about the security of your account.
+              </P>
+              <P>
+                You acknowledge that we will not be liable for any loss or damage incurred as a result of someone else using your account, whether with or without your consent or knowledge. You acknowledge that you are solely and fully liable and responsible for all activities performed using your Account Access. You agree to indemnify us for any damage or loss incurred as a result of the use of your Account Access by any person, whether authorised by you or not.
+              </P>
+              <P>
+                You agree not to use the account or Account Access of any other person for any reason. You confirm that your use of the Platform, including the Therapist Services, is for your own personal use and that you are not using the Platform or the Therapist Services for or on behalf of any other person or organisation, except in the case of a parent or guardian acting on behalf of a minor as set out above.
+              </P>
+
+              <H3>11.4 Prohibited Conduct</H3>
+              <P>You agree not to:</P>
+              <Bullets items={[
+                '(a) interfere with or disrupt, or attempt to interfere with or disrupt, any of our systems, services, servers, networks, or infrastructure, including obtaining unauthorised access to any of the foregoing;',
+                <>(b) use the Platform for the posting, sending, or delivering of: (i) unsolicited email or advertisement or promotion of goods and services; (ii) malicious software or code; (iii) unlawful, harassing, privacy-invading, abusive, threatening, vulgar, obscene, racist, casteist, or otherwise harmful content; (iv) any content that infringes a third party&rsquo;s rights, including intellectual property rights; or (v) any content that constitutes, causes, or encourages a criminal offence or violates any applicable law, including under the Bharatiya Nyaya Sanhita, 2023 or the Information Technology Act, 2000;</>,
+                '(c) violate any applicable local, state, national, or international law, statute, ordinance, rule, regulation, or ethical code in relation to your use of the Platform and your relationship with the Therapists and us;',
+                '(d) make any audio or video recording, transcript, screenshot, or other capture of any therapy session or chat communication without the express prior written consent of the Company and your Therapist; or',
+                '(e) impersonate any person or misrepresent your identity, age, or affiliation with any person or entity.',
+              ]} />
+              <P>
+                If you receive any file from us or from a Therapist, whether through the Platform or otherwise, you agree to scan this file for any virus or malicious software prior to opening or using the file.
+              </P>
+
+              <H3>11.5 Indemnification</H3>
+              <P>
+                You will indemnify, defend, and hold harmless the Company and its officers, employees, designated partners, agents, and contractors from and against any and all claims, losses, causes of action, demands, liabilities, costs, or expenses (including reasonable legal fees and expenses) arising out of or relating to: (a) your access to or use of the Platform; (b) any actions made with your account or Account Access, whether by you or by someone else; (c) your violation of any provision of this Agreement; (d) non-payment for any of the services (including Therapist Services) provided through the Platform; or (e) your violation of any third-party right, including any intellectual property right, publicity, confidentiality, property, or privacy right. This clause shall survive the expiration or termination of this Agreement.
+              </P>
+
+              <H3>11.6 Payment Information</H3>
+              <P>
+                You confirm that you will use only credit cards, debit cards, UPI, net banking, or other payment means (&ldquo;Payment Means&rdquo;) that you are duly and fully authorised to use, and that all payment-related information you have provided or will provide is accurate, current, and correct. By providing us with your Payment Means, you authorise us to bill and charge you through that Payment Means in accordance with this Agreement and the Reserve Bank of India&rsquo;s regulations on electronic payments and e-mandates.
+              </P>
 
               <H2>12. Modifications, Termination, Interruption and Disruptions to the Platform</H2>
-              <Pending>
-                Sets out the Company&rsquo;s right to modify, suspend, or terminate the Platform or any portion of it, the consequences of termination, and the handling of subscription credits in such circumstances. Full clause text to be finalised.
-              </Pending>
+              <P>
+                You understand, agree, and acknowledge that we may modify, suspend, disrupt, or discontinue the Platform, any part of the Platform, or your use of the Platform — whether to all clients or to you specifically — at any time with or without notice. You agree and acknowledge that we will not be liable for any losses or damages caused by any of the aforementioned actions, save where such liability cannot be excluded by law.
+              </P>
+              <P>
+                The Platform depends on various factors such as software, hardware, and tools, either our own or those owned and operated by our contractors and suppliers. While we make commercially reasonable efforts to ensure the Platform&rsquo;s reliability and accessibility, you understand and agree that no platform can be one hundred percent (100%) reliable and accessible. We cannot guarantee that access to the Platform will be uninterrupted, consistent, timely, or error-free at all times.
+              </P>
+              <P>
+                We may terminate your access to the Platform if you breach any provision of this Agreement, including non-payment of subscription fees. Termination by us shall not affect any rights or remedies that have accrued prior to termination.
+              </P>
 
               <H2>13. Compliance with Indian Law</H2>
-              <Pending>
-                Confirms that the Company operates the Platform in compliance with applicable Indian law, including the Information Technology Act, 2000, the DPDP Act, and the Consumer Protection Act, 2019. Full clause text to be finalised.
-              </Pending>
+              <P>You represent and warrant that:</P>
+              <Bullets items={[
+                '(a) you are not a person resident in any jurisdiction in respect of which India has imposed restrictions on financial or service transactions, including persons designated under any sanctions list maintained by the Ministry of External Affairs, Government of India, pursuant to its obligations under United Nations Security Council resolutions and the Unlawful Activities (Prevention) Act, 1967;',
+                '(b) your use of the Platform does not violate any applicable laws relating to anti-money laundering, including the Prevention of Money Laundering Act, 2002;',
+                '(c) you will comply with the Foreign Exchange Management Act, 1999 in respect of any payments you make to or receive from the Company, where applicable; and',
+                '(d) you will not use the Platform for any unlawful purpose or in furtherance of any criminal activity.',
+              ]} />
 
               <H2>14. Notices and Grievances</H2>
               <P>
