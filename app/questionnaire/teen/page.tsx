@@ -15,7 +15,15 @@ type StepId =
   | 'q10' | 'q11' | 'q12' | 'q13'
   | 'q14' | 'q15' | 'q16'
   | 'q17' | 'q17a'
-  | 'q18'
+  | 'q18' | 'q19'
+
+const LANGUAGE_OPTIONS = [
+  'English',
+  'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi',
+  'Spanish', 'French', 'German', 'Mandarin', 'Arabic', 'Portuguese',
+  'Italian',
+  'No preference',
+]
 
 type Answers = {
   q1: string         // Recent feeling (single)
@@ -37,6 +45,8 @@ type Answers = {
   q17: string        // Past therapy Y/N
   q17a: string       // Past therapy style preference (single, if q17=Yes)
   q18: string        // Anything else for therapist (text, optional)
+  q19: string[]      // Language preference (multi)
+  q19Other: string   // Free-text other language(s)
 }
 
 const initialAnswers: Answers = {
@@ -45,7 +55,7 @@ const initialAnswers: Answers = {
   q10: '', q11: '', q12: '', q13: '',
   q14: '', q15: [], q16: [],
   q17: '', q17a: '',
-  q18: '',
+  q18: '', q19: [], q19Other: '',
 }
 
 function buildSteps(a: Answers): StepId[] {
@@ -57,7 +67,7 @@ function buildSteps(a: Answers): StepId[] {
     'q17',
   ]
   if (a.q17 === 'Yes') steps.push('q17a')
-  steps.push('q18')
+  steps.push('q18', 'q19')
   return steps
 }
 
@@ -93,7 +103,7 @@ export default function TeenQuestionnairePage() {
     setAnswers(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleMulti(key: 'q15' | 'q16', value: string) {
+  function toggleMulti(key: 'q15' | 'q16' | 'q19', value: string) {
     setAnswers(prev => {
       const arr = prev[key]
       return {
@@ -124,6 +134,7 @@ export default function TeenQuestionnairePage() {
       case 'q17': return !!answers.q17
       case 'q17a': return !!answers.q17a
       case 'q18': return true // text, optional
+      case 'q19': return answers.q19.length > 0 || answers.q19Other.trim().length > 0
       default: return true
     }
   }
@@ -510,6 +521,44 @@ export default function TeenQuestionnairePage() {
               <p className="text-xs text-[#233551]/40 pt-2">
                 Your therapist will ask what they need in the first session. This is just a head start.
               </p>
+            </div>
+          )}
+
+          {step === 'q19' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                Which language would you like to do therapy in?
+              </h2>
+              <p className="text-sm text-[#233551]/50">Pick one or more — we&apos;ll match you with a therapist who speaks the language you&apos;re most comfortable in.</p>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleMulti('q19', opt)}
+                    className={cn(
+                      'text-sm px-4 py-2 rounded-full border-2 font-medium transition-all',
+                      answers.q19.includes(opt)
+                        ? 'bg-[#233551] text-white border-[#233551]'
+                        : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-1">
+                <label className="block text-sm font-semibold text-[#233551] mb-1.5">
+                  Other <span className="text-xs font-normal text-[#233551]/40 ml-1">optional</span>
+                </label>
+                <input
+                  type="text"
+                  value={answers.q19Other}
+                  onChange={e => setSingle('q19Other', e.target.value)}
+                  placeholder="e.g. Malayalam, Punjabi, Urdu"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
+                />
+              </div>
             </div>
           )}
 

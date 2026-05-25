@@ -30,10 +30,10 @@ export default function ContactPage() {
                 className="text-4xl md:text-5xl font-black text-[#233551] leading-tight mb-4"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
-                We respond to everything.
+                Say hello.
               </h1>
               <p className="text-[#233551]/55 text-base leading-relaxed">
-                No bots. No auto-replies. If you send us a message, a person reads it and writes back.
+                Drop us a note about anything — questions, feedback, or just to say hi. We&apos;ll write back.
               </p>
             </div>
 
@@ -65,10 +65,10 @@ export default function ContactPage() {
                     <div>
                       <p className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-1">Phone</p>
                       <a
-                        href="tel:+917981275418"
+                        href="tel:+919036018541"
                         className="text-sm font-semibold text-[#233551] hover:text-[#3D8A80] transition-colors"
                       >
-                        +91 79812 75418
+                        +91 90360 18541
                       </a>
                       <p className="text-xs text-[#233551]/40 mt-0.5">Mon–Fri, 10am–6pm IST</p>
                     </div>
@@ -115,13 +115,13 @@ export default function ContactPage() {
                     Are you a therapist?
                   </p>
                   <p className="text-xs text-[#233551]/55 mb-3 leading-relaxed">
-                    If you're interested in joining MindCanopy as a therapist, use the application link — it goes to a different queue and gets reviewed faster.
+                    See what practising through MindCanopy looks like — how the matching works, what we ask of you, and what we don&apos;t.
                   </p>
                   <Link
-                    href="/therapist/apply"
+                    href="/therapist/join"
                     className="text-xs font-bold text-[#E8926A] hover:text-[#C8683A] transition-colors"
                   >
-                    Apply to join →
+                    Learn more →
                   </Link>
                 </div>
               </div>

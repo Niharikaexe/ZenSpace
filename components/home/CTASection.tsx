@@ -11,8 +11,8 @@ export default function CTASection() {
       <section className="relative overflow-hidden bg-[#233551]">
 
         {/* Top wave — teal section → navy (preserved) */}
-        <div className="absolute top-0 left-0 w-full leading-none pointer-events-none">
-          <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20">
+        <div className="absolute -top-px left-0 w-full leading-none pointer-events-none">
+          <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20 block">
             <path d="M0,0 L1440,0 L1440,40 C1160,72 880,4 600,36 C360,62 160,8 0,40 Z" fill="#F0FAF9" />
           </svg>
         </div>
@@ -97,8 +97,8 @@ export default function CTASection() {
         </div>
 
         {/* Bottom wave — navy → white (preserved) */}
-        <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
-          <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20">
+        <div className="absolute -bottom-px left-0 w-full leading-none pointer-events-none">
+          <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20 block">
             <path d="M0,35 C240,70 480,0 720,35 C900,60 1140,10 1440,35 L1440,70 L0,70 Z" fill="white" />
           </svg>
         </div>

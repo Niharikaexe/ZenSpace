@@ -267,8 +267,8 @@ const HowItWorks = () => (
     </div>
 
     {/* Bottom wave → dark navy (TherapistCards section) */}
-    <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full h-16 md:h-24">
+    <div className="absolute -bottom-px left-0 w-full leading-none pointer-events-none">
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full h-16 md:h-24 block">
         <path
           d="M0,40 C180,80 360,0 540,40 C720,80 900,10 1080,40 C1200,60 1340,20 1440,40 L1440,80 L0,80 Z"
           fill="#233551"

@@ -111,14 +111,14 @@ const TherapistCards = () => {
       <div className="max-w-6xl mx-auto px-6 pt-16 md:pt-20 pb-28 md:pb-36 relative z-10">
 
         {/* Top area: illustration + text */}
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16 mb-16">
+        <div className="relative flex flex-col lg:flex-row items-center gap-8 sm:gap-12 lg:gap-16 mb-12 md:mb-16">
 
           <motion.div
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="flex-shrink-0 w-52 h-64 md:w-64 md:h-80 relative"
+            className="absolute md:relative right-0 -top-6 md:right-auto md:top-auto w-36 h-44 sm:w-44 sm:h-56 md:w-64 md:h-80 opacity-[0.18] md:opacity-100 pointer-events-none md:pointer-events-auto flex-shrink-0"
           >
             <div className="md:float-slow w-full h-full">
               <WomanIllustration />
@@ -130,7 +130,7 @@ const TherapistCards = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
-            className="flex-1 space-y-6"
+            className="flex-1 space-y-6 relative z-10"
           >
             <h2
               className="text-3xl md:text-4xl lg:text-5xl font-black text-white leading-tight"
@@ -220,8 +220,8 @@ const TherapistCards = () => {
       </div>
 
       {/* Bottom wave → peach (Testimonials) */}
-      <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
-        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20">
+      <div className="absolute -bottom-px left-0 w-full leading-none pointer-events-none">
+        <svg viewBox="0 0 1440 72" preserveAspectRatio="none" className="w-full h-14 md:h-20 block">
           <path
             d="M0,36 C280,72 560,0 840,36 C1020,60 1220,10 1440,36 L1440,72 L0,72 Z"
             fill="#FFF5F2"

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { SubscriptionPlans } from './SubscriptionPlans'
-import { PLANS, type PlanCategory } from '@/lib/plans'
+import type { PlanCategory } from '@/lib/plans'
 
 const SAMPLE_THERAPISTS = [
   {
@@ -374,43 +374,6 @@ export function PendingDashboard({
         </h2>
         <p className="text-sm text-[#233551]/60 leading-relaxed">
           You have two ways to connect. You can send text messages to your therapist at any time — between sessions, on a Tuesday evening, whenever something comes up. You can also schedule weekly video sessions (50 minutes) to work through things face to face, without leaving your room.
-        </p>
-      </section>
-
-      {/* How much does it cost */}
-      <section className="mb-8">
-        <h2 className="text-lg font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
-          How much does it cost?
-        </h2>
-        <p className="text-sm text-[#233551]/60 mb-5 leading-relaxed">
-          {planCategory === 'couples'
-            ? 'MindCanopy offers two couples plans — Essentials and Premium — available weekly or monthly.'
-            : 'MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.'}
-        </p>
-
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {(planCategory === 'couples'
-            ? [
-                { tier: 'Essentials', weekly: PLANS.couples_basic_weekly, monthly: PLANS.couples_basic_monthly, note: '1 couples session (50 min) + unlimited chat for both partners' },
-                { tier: 'Premium', weekly: PLANS.couples_premium_weekly, monthly: PLANS.couples_premium_monthly, note: '1 session + priority chat + international therapist access' },
-              ]
-            : [
-                { tier: 'Essentials', weekly: PLANS.basic_weekly, monthly: PLANS.basic_monthly, note: '1 video session (50 min) + unlimited chat' },
-                { tier: 'Premium', weekly: PLANS.premium_weekly, monthly: PLANS.premium_monthly, note: '1 session + priority chat + international therapist access' },
-              ]
-          ).map(plan => (
-            <div key={plan.tier} className="bg-white border border-slate-200 rounded-2xl p-4">
-              <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-wider mb-1">{plan.tier}</p>
-              <p className="text-base font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.weekly.price}/week</p>
-              <p className="text-xs text-[#233551]/40 mb-1">or {plan.monthly.price}/month</p>
-              <p className="text-xs text-[#233551]/55 leading-relaxed">{plan.note}</p>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-xs text-[#233551]/40">
-          Subscriptions are non-refundable.{' '}
-          <Link href="/dashboard/subscribe" className="text-[#3D8A80] hover:underline">View full plan details →</Link>
         </p>
       </section>
 

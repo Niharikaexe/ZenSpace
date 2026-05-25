@@ -53,7 +53,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     password,
     options: {
       data: { full_name: fullName, role, therapy_category: therapyCategory },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
     },
   })
 
@@ -302,7 +302,7 @@ export async function requestPasswordReset(_: AuthState, formData: FormData): Pr
   // Supabase silently no-ops for unknown emails — this prevents user enumeration.
   const supabase = await createClient()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/auth/reset-password`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/auth/reset-password`,
   })
 
   if (error) {

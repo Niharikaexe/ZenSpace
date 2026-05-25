@@ -32,22 +32,27 @@ interface Props {
 export function SubscriptionPlans({ userName, userEmail, category = 'individual', onSuccess }: Props) {
   const router = useRouter()
 
-  // Surface the four plan keys for this category in a fixed display order:
-  // Essentials weekly, Essentials monthly, Premium weekly, Premium monthly.
+  // Four plan keys for this category in fixed order:
+  // [Essentials weekly, Essentials monthly, Premium weekly, Premium monthly].
   const planKeys = useMemo<PlanKey[]>(() => {
     return category === 'couples'
       ? ['couples_basic_weekly', 'couples_basic_monthly', 'couples_premium_weekly', 'couples_premium_monthly']
       : ['basic_weekly', 'basic_monthly', 'premium_weekly', 'premium_monthly']
   }, [category])
 
-  // Default selection: monthly Essentials (the most common entry point).
-  const [selectedKey, setSelectedKey] = useState<PlanKey>(planKeys[1])
+  // Tier-by-cadence matrix
+  const planMatrix = useMemo(() => ({
+    weekly:  { Essentials: planKeys[0], Premium: planKeys[2] },
+    monthly: { Essentials: planKeys[1], Premium: planKeys[3] },
+  }), [planKeys]) as Record<'weekly' | 'monthly', Record<'Essentials' | 'Premium', PlanKey>>
+
+  const [cadence, setCadence] = useState<'weekly' | 'monthly'>('monthly')
+  const [tier, setTier] = useState<'Essentials' | 'Premium'>('Essentials')
+  const selectedKey: PlanKey = planMatrix[cadence][tier]
+  const selected = PLANS[selectedKey]
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    setSelectedKey(planKeys[1])
-  }, [planKeys])
 
   useEffect(() => {
     loadRazorpay()
@@ -124,35 +129,57 @@ export function SubscriptionPlans({ userName, userEmail, category = 'individual'
     }
   }
 
-  const selected = PLANS[selectedKey]
+  const tiers: Array<'Essentials' | 'Premium'> = ['Essentials', 'Premium']
 
   return (
     <div className="space-y-4">
+      {/* Cadence toggle */}
+      <div className="inline-flex w-full sm:w-auto bg-slate-100 rounded-full p-1">
+        {(['weekly', 'monthly'] as const).map(c => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCadence(c)}
+            className={cn(
+              'flex-1 sm:flex-none sm:px-6 py-2 rounded-full text-xs font-bold transition-all capitalize',
+              cadence === c
+                ? 'bg-white text-[#233551] shadow-sm'
+                : 'text-[#233551]/50 hover:text-[#233551]'
+            )}
+            style={{ fontFamily: 'var(--font-lato)' }}
+          >
+            {c}
+            {c === 'monthly' && (
+              <span className="ml-1.5 text-[10px] text-[#3D8A80] font-bold">Save more</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tier cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {planKeys.map(key => {
+        {tiers.map(t => {
+          const key = planMatrix[cadence][t]
           const plan = PLANS[key]
-          const tierLabel = plan.name.replace('Couples ', '') === 'Basic' ? 'Essentials' : plan.name.replace('Couples ', '')
-          const cadenceLabel = plan.cadence === 'weekly' ? 'Weekly' : 'Monthly'
-          const isMonthly = plan.cadence === 'monthly'
+          const isSelected = tier === t
           return (
             <button
-              key={key}
+              key={t}
               type="button"
-              onClick={() => setSelectedKey(key)}
+              onClick={() => setTier(t)}
               className={cn(
                 'relative text-left p-4 rounded-xl border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7EC0B7]',
-                selectedKey === key
+                isSelected
                   ? 'border-[#7EC0B7] bg-[#7EC0B7]/8'
                   : 'border-slate-200 bg-white hover:border-[#7EC0B7]/50'
               )}
             >
-              {plan.highlight && isMonthly && (
+              {plan.highlight && cadence === 'monthly' && (
                 <Badge className="absolute top-3 right-3 bg-[#233551] text-white text-xs">
                   Best Value
                 </Badge>
               )}
-              <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-wider">{tierLabel}</p>
-              <p className="text-sm font-medium text-[#233551]/50 mt-0.5">{cadenceLabel}</p>
+              <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-wider">{t}</p>
               <p className="mt-2">
                 <span className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.price}</span>
                 <span className="text-[#233551]/50 text-sm ml-1">/ {plan.per}</span>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useActionState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { submitTherapistOnboarding, lookupInvite, type OnboardState } from './actions'
 import { BrandLogo } from '@/components/shared/BrandLogo'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +9,76 @@ import { cn } from '@/lib/utils'
 
 const STEPS = ['Invite Code', 'Your Account', 'Credentials', 'Verification', 'Photo', 'Your Profile']
 const ACCEPT_DOC = '.pdf,.png,.jpg,.jpeg'
+
+// Country list — India at top, then alphabetical (UN member states + key territories)
+const COUNTRIES = [
+  'India',
+  '──────────',
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+  'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+  'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi',
+  'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia',
+  'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+  'East Timor', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia',
+  'Fiji', 'Finland', 'France',
+  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+  'Haiti', 'Honduras', 'Hong Kong', 'Hungary',
+  'Iceland', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Ivory Coast',
+  'Jamaica', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan',
+  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius',
+  'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+  'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway',
+  'Oman',
+  'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar',
+  'Romania', 'Russia', 'Rwanda',
+  'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Saudi Arabia',
+  'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia',
+  'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
+  'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
+  'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen',
+  'Zambia', 'Zimbabwe',
+]
+
+// Common timezone abbreviations — IST pinned at top, then ordered roughly west-to-east.
+const TIMEZONES = [
+  'IST (India)',
+  '──────────',
+  'HST (Hawaii)',
+  'AKST (Alaska)',
+  'PST (US Pacific)',
+  'MST (US Mountain)',
+  'CST (US Central)',
+  'EST (US Eastern)',
+  'AST (Atlantic)',
+  'BRT (Brazil)',
+  'UTC',
+  'GMT (UK / Ireland)',
+  'WET (Western Europe)',
+  'CET (Central Europe)',
+  'EET (Eastern Europe)',
+  'MSK (Moscow)',
+  'GST (Gulf / UAE)',
+  'PKT (Pakistan)',
+  'BST (Bangladesh)',
+  'ICT (Indochina / Thailand)',
+  'WIB (Western Indonesia)',
+  'CST (China)',
+  'HKT (Hong Kong)',
+  'SGT (Singapore)',
+  'JST (Japan / Korea)',
+  'AWST (Western Australia)',
+  'ACST (Central Australia)',
+  'AEST (Eastern Australia)',
+  'NZST (New Zealand)',
+]
+
+const PRONOUNS_OPTIONS = ['she/her', 'he/him', 'they/them', 'ze/zir', 'xe/xem', 'Other', 'Prefer not to say']
 
 // ─── Shared input + Field helpers ─────────────────────────────────────────────
 
@@ -98,6 +169,8 @@ function StepAccount({
   values: { fullName: string; email: string; password: string; confirmPassword: string }
   onChange: (key: string, value: string) => void
 }) {
+  const [showPwd, setShowPwd] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   return (
     <div className="space-y-5">
       <div>
@@ -127,22 +200,42 @@ function StepAccount({
         />
       </Field>
       <Field label="Password" required hint="Minimum 8 characters">
-        <input
-          type="password"
-          value={values.password}
-          onChange={e => onChange('password', e.target.value)}
-          placeholder="••••••••"
-          className={inputCls}
-        />
+        <div className="relative">
+          <input
+            type={showPwd ? 'text' : 'password'}
+            value={values.password}
+            onChange={e => onChange('password', e.target.value)}
+            placeholder="••••••••"
+            className={cn(inputCls, 'pr-11')}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPwd(v => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#233551]/35 hover:text-[#233551]/70 transition-colors"
+            aria-label={showPwd ? 'Hide password' : 'Show password'}
+          >
+            {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
       </Field>
       <Field label="Confirm password" required>
-        <input
-          type="password"
-          value={values.confirmPassword}
-          onChange={e => onChange('confirmPassword', e.target.value)}
-          placeholder="••••••••"
-          className={cn(inputCls, values.confirmPassword && values.confirmPassword !== values.password && 'border-[#E8926A]')}
-        />
+        <div className="relative">
+          <input
+            type={showConfirm ? 'text' : 'password'}
+            value={values.confirmPassword}
+            onChange={e => onChange('confirmPassword', e.target.value)}
+            placeholder="••••••••"
+            className={cn(inputCls, 'pr-11', values.confirmPassword && values.confirmPassword !== values.password && 'border-[#E8926A]')}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm(v => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#233551]/35 hover:text-[#233551]/70 transition-colors"
+            aria-label={showConfirm ? 'Hide password' : 'Show password'}
+          >
+            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
         {values.confirmPassword && values.confirmPassword !== values.password && (
           <p className="text-xs text-[#E8926A] mt-1">Passwords do not match.</p>
         )}
@@ -186,34 +279,73 @@ function StepCredentials({
           />
         </Field>
         <Field label="Country of issue" required>
-          <input
-            type="text"
+          <select
             value={values.licenseCountry}
             onChange={e => onChange('licenseCountry', e.target.value)}
-            placeholder="India"
-            className={inputCls}
-          />
+            className={cn(inputCls, 'appearance-none bg-white pr-10 cursor-pointer', !values.licenseCountry && 'text-[#233551]/40')}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23233551' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              backgroundSize: '12px 8px',
+            }}
+          >
+            <option value="" disabled>Select country</option>
+            {COUNTRIES.map(c => (
+              c.startsWith('──') ? (
+                <option key={c} value="" disabled>{c}</option>
+              ) : (
+                <option key={c} value={c}>{c}</option>
+              )
+            ))}
+          </select>
         </Field>
       </div>
       <Field label="Time zone" required hint="used to coordinate your client sessions">
-        <input
-          type="text"
+        <select
           value={values.timezone}
           onChange={e => onChange('timezone', e.target.value)}
-          placeholder="Asia/Kolkata"
-          className={inputCls}
-        />
+          className={cn(inputCls, 'appearance-none bg-white pr-10 cursor-pointer', !values.timezone && 'text-[#233551]/40')}
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23233551' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E")`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'right 1rem center',
+            backgroundSize: '12px 8px',
+          }}
+        >
+          <option value="" disabled>Select your time zone</option>
+          {TIMEZONES.map(tz => (
+            tz.startsWith('──') ? (
+              <option key={tz} value="" disabled>{tz}</option>
+            ) : (
+              <option key={tz} value={tz}>{tz}</option>
+            )
+          ))}
+        </select>
       </Field>
       <Field label="Pronouns" hint="shown on your profile">
-        <input
-          type="text"
-          value={values.pronouns}
-          onChange={e => onChange('pronouns', e.target.value)}
-          placeholder="she/her, he/him, they/them"
-          className={inputCls}
-        />
+        <div className="flex flex-wrap gap-2 mt-1">
+          {PRONOUNS_OPTIONS.map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onChange('pronouns', p)}
+              className={cn(
+                'text-xs px-3 py-1.5 rounded-full border-2 font-medium transition-all',
+                values.pronouns === p
+                  ? 'bg-[#233551] text-white border-[#233551]'
+                  : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+              )}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
       </Field>
-      <Field label="Previous experience with clients" hint="briefly describe">
+      <Field
+        label="Previous experience with clients"
+        hint="Briefly describe your expertise with clients. This will help us match you with the right clients"
+      >
         <textarea
           value={values.previousExperience}
           onChange={e => onChange('previousExperience', e.target.value)}
@@ -229,12 +361,6 @@ function StepCredentials({
 type VerificationValues = {
   idDocumentUrl: string
   idDocumentFilename: string
-  addressLine1: string
-  addressLine2: string
-  addressCity: string
-  addressState: string
-  addressPostalCode: string
-  addressCountry: string
   paypalEmail: string
   bankAccountName: string
   bankAccountNumber: string
@@ -324,76 +450,11 @@ function StepVerification({
         )}
       </Field>
 
-      {/* Residential address */}
-      <div className="pt-3 border-t border-slate-100">
-        <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest mb-3">Residential address</p>
-        <div className="space-y-4">
-          <Field label="Address line 1" required>
-            <input
-              type="text"
-              value={values.addressLine1}
-              onChange={e => onChange('addressLine1', e.target.value)}
-              placeholder="Flat / Building, Street"
-              className={inputCls}
-            />
-          </Field>
-          <Field label="Address line 2">
-            <input
-              type="text"
-              value={values.addressLine2}
-              onChange={e => onChange('addressLine2', e.target.value)}
-              placeholder="Area, Landmark (optional)"
-              className={inputCls}
-            />
-          </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="City" required>
-              <input
-                type="text"
-                value={values.addressCity}
-                onChange={e => onChange('addressCity', e.target.value)}
-                placeholder="xxxx"
-                className={inputCls}
-              />
-            </Field>
-            <Field label="State" required>
-              <input
-                type="text"
-                value={values.addressState}
-                onChange={e => onChange('addressState', e.target.value)}
-                placeholder="xxxx"
-                className={inputCls}
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Postal code" required>
-              <input
-                type="text"
-                value={values.addressPostalCode}
-                onChange={e => onChange('addressPostalCode', e.target.value)}
-                placeholder="xxxxxx"
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Country" required>
-              <input
-                type="text"
-                value={values.addressCountry}
-                onChange={e => onChange('addressCountry', e.target.value)}
-                placeholder="xxxx"
-                className={inputCls}
-              />
-            </Field>
-          </div>
-        </div>
-      </div>
-
       {/* Payment info */}
       <div className="pt-3 border-t border-slate-100">
         <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest mb-3">Payment information</p>
         <p className="text-xs text-[#233551]/50 mb-3">
-          We pay therapists monthly. Provide either bank details or PayPal (for international therapists).
+          We pay therapists weekly. Provide either bank details or PayPal (for international therapists). This can be changed in your account page as well.
         </p>
         <div className="space-y-4">
           <Field label="Bank account holder name">
@@ -588,8 +649,6 @@ export default function TherapistOnboardPage() {
   })
   const [verification, setVerification] = useState<VerificationValues>({
     idDocumentUrl: '', idDocumentFilename: '',
-    addressLine1: '', addressLine2: '', addressCity: '', addressState: '',
-    addressPostalCode: '', addressCountry: '',
     paypalEmail: '', bankAccountName: '', bankAccountNumber: '', bankIfsc: '',
   })
   const [profile, setProfile] = useState<ProfileValues>({
@@ -597,6 +656,7 @@ export default function TherapistOnboardPage() {
   })
 
   const photoRef = useRef<HTMLInputElement>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFileName, setPhotoFileName] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
@@ -634,6 +694,7 @@ export default function TherapistOnboardPage() {
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) {
+      setPhotoFile(null)
       setPhotoPreview(null)
       setPhotoFileName(null)
       return
@@ -641,6 +702,7 @@ export default function TherapistOnboardPage() {
     if (file.size > 5 * 1024 * 1024) {
       setPhotoError('Photo must be under 5 MB.')
       if (photoRef.current) photoRef.current.value = ''
+      setPhotoFile(null)
       setPhotoPreview(null)
       setPhotoFileName(null)
       return
@@ -648,12 +710,14 @@ export default function TherapistOnboardPage() {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setPhotoError('Photo must be JPG, PNG, or WebP.')
       if (photoRef.current) photoRef.current.value = ''
+      setPhotoFile(null)
       setPhotoPreview(null)
       setPhotoFileName(null)
       return
     }
     setPhotoError(null)
     if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
     setPhotoFileName(file.name)
   }
@@ -661,6 +725,7 @@ export default function TherapistOnboardPage() {
   function clearPhoto() {
     if (photoRef.current) photoRef.current.value = ''
     if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(null)
     setPhotoPreview(null)
     setPhotoFileName(null)
     setPhotoError(null)
@@ -691,19 +756,9 @@ export default function TherapistOnboardPage() {
     }
     if (step === 2) return creds.licenseCountry.trim().length > 0 && creds.timezone.trim().length > 0
     if (step === 3) {
-      const hasBank = verification.bankAccountName.trim().length > 0 &&
-        verification.bankAccountNumber.trim().length > 0 &&
-        verification.bankIfsc.trim().length > 0
-      const hasPaypal = verification.paypalEmail.includes('@')
-      return (
-        verification.idDocumentUrl.length > 0 &&
-        verification.addressLine1.trim().length > 0 &&
-        verification.addressCity.trim().length > 0 &&
-        verification.addressState.trim().length > 0 &&
-        verification.addressPostalCode.trim().length > 0 &&
-        verification.addressCountry.trim().length > 0 &&
-        (hasBank || hasPaypal)
-      )
+      // Only the ID document is required at onboarding. Payment details and
+      // address can be added later from the account page.
+      return verification.idDocumentUrl.length > 0
     }
     if (step === 4) return !!photoPreview
     if (step === 5) return profile.bio.trim().length >= 10
@@ -712,6 +767,21 @@ export default function TherapistOnboardPage() {
 
   const isLastStep = step === STEPS.length - 1
   const progressPercent = Math.round((step / STEPS.length) * 100)
+
+  // The browser clears <input type="file"> after a failed form submission, so
+  // we keep the selected File in React state and inject it into FormData
+  // manually here. This makes retries work without re-selecting the photo.
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (!photoFile) {
+      e.preventDefault()
+      setPhotoError('Profile photo is required.')
+      return
+    }
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    fd.set('profilePhoto', photoFile, photoFile.name)
+    formAction(fd)
+  }
 
   return (
     <div className="min-h-screen bg-[#FFF5F2]">
@@ -756,7 +826,7 @@ export default function TherapistOnboardPage() {
         </div>
 
         <div className="bg-white border border-slate-100 rounded-3xl p-6 md:p-8 shadow-sm">
-          <form action={formAction}>
+          <form onSubmit={handleFormSubmit}>
             <input type="hidden" name="inviteCode" value={inviteCode} />
             <input type="hidden" name="fullName" value={account.fullName} />
             <input type="hidden" name="email" value={account.email} />
@@ -767,12 +837,6 @@ export default function TherapistOnboardPage() {
             <input type="hidden" name="previousExperience" value={creds.previousExperience} />
             <input type="hidden" name="timezone" value={creds.timezone} />
             <input type="hidden" name="idDocumentUrl" value={verification.idDocumentUrl} />
-            <input type="hidden" name="addressLine1" value={verification.addressLine1} />
-            <input type="hidden" name="addressLine2" value={verification.addressLine2} />
-            <input type="hidden" name="addressCity" value={verification.addressCity} />
-            <input type="hidden" name="addressState" value={verification.addressState} />
-            <input type="hidden" name="addressPostalCode" value={verification.addressPostalCode} />
-            <input type="hidden" name="addressCountry" value={verification.addressCountry} />
             <input type="hidden" name="paypalEmail" value={verification.paypalEmail} />
             <input type="hidden" name="bankAccountName" value={verification.bankAccountName} />
             <input type="hidden" name="bankAccountNumber" value={verification.bankAccountNumber} />

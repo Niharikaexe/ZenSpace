@@ -154,7 +154,7 @@ export default function CouplesPageClient() {
     <main className="bg-white">
       {/* ── HERO ── */}
       <section className="bg-[#233551] relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none select-none">
+        <div className="hidden lg:block absolute inset-0 pointer-events-none select-none">
           <div className="absolute top-0 right-0 w-1/2 h-full opacity-10">
             <svg viewBox="0 0 400 600" fill="none" className="w-full h-full">
               <circle cx="200" cy="200" r="180" fill="#E8926A" />
@@ -215,7 +215,7 @@ export default function CouplesPageClient() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex-shrink-0 w-64 h-64 md:w-80 md:h-80"
+              className="hidden lg:block flex-shrink-0 w-64 h-64 md:w-80 md:h-80"
             >
               <AbstractIllustration />
             </motion.div>
