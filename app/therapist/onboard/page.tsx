@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useActionState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { submitTherapistOnboarding, lookupInvite, type OnboardState } from './actions'
 import { BrandLogo } from '@/components/shared/BrandLogo'
 import { createClient } from '@/lib/supabase/client'
@@ -44,21 +45,37 @@ const COUNTRIES = [
   'Zambia', 'Zimbabwe',
 ]
 
-// Common IANA timezones — India first, then alphabetical by region
+// Common timezone abbreviations — IST pinned at top, then ordered roughly west-to-east.
 const TIMEZONES = [
-  'Asia/Kolkata',
+  'IST (India)',
   '──────────',
-  'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos', 'Africa/Nairobi',
-  'America/Anchorage', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Mexico_City',
-  'America/New_York', 'America/Phoenix', 'America/Sao_Paulo', 'America/Toronto', 'America/Vancouver',
-  'Asia/Bangkok', 'Asia/Dubai', 'Asia/Hong_Kong', 'Asia/Jakarta', 'Asia/Karachi', 'Asia/Kuala_Lumpur',
-  'Asia/Manila', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Singapore', 'Asia/Taipei', 'Asia/Tokyo',
-  'Australia/Brisbane', 'Australia/Melbourne', 'Australia/Perth', 'Australia/Sydney',
-  'Europe/Amsterdam', 'Europe/Athens', 'Europe/Berlin', 'Europe/Brussels', 'Europe/Dublin', 'Europe/Lisbon',
-  'Europe/London', 'Europe/Madrid', 'Europe/Moscow', 'Europe/Paris', 'Europe/Rome', 'Europe/Stockholm',
-  'Europe/Vienna', 'Europe/Warsaw', 'Europe/Zurich',
-  'Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Honolulu',
+  'HST (Hawaii)',
+  'AKST (Alaska)',
+  'PST (US Pacific)',
+  'MST (US Mountain)',
+  'CST (US Central)',
+  'EST (US Eastern)',
+  'AST (Atlantic)',
+  'BRT (Brazil)',
   'UTC',
+  'GMT (UK / Ireland)',
+  'WET (Western Europe)',
+  'CET (Central Europe)',
+  'EET (Eastern Europe)',
+  'MSK (Moscow)',
+  'GST (Gulf / UAE)',
+  'PKT (Pakistan)',
+  'BST (Bangladesh)',
+  'ICT (Indochina / Thailand)',
+  'WIB (Western Indonesia)',
+  'CST (China)',
+  'HKT (Hong Kong)',
+  'SGT (Singapore)',
+  'JST (Japan / Korea)',
+  'AWST (Western Australia)',
+  'ACST (Central Australia)',
+  'AEST (Eastern Australia)',
+  'NZST (New Zealand)',
 ]
 
 const PRONOUNS_OPTIONS = ['she/her', 'he/him', 'they/them', 'ze/zir', 'xe/xem', 'Other', 'Prefer not to say']
@@ -152,6 +169,8 @@ function StepAccount({
   values: { fullName: string; email: string; password: string; confirmPassword: string }
   onChange: (key: string, value: string) => void
 }) {
+  const [showPwd, setShowPwd] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   return (
     <div className="space-y-5">
       <div>
@@ -181,22 +200,42 @@ function StepAccount({
         />
       </Field>
       <Field label="Password" required hint="Minimum 8 characters">
-        <input
-          type="password"
-          value={values.password}
-          onChange={e => onChange('password', e.target.value)}
-          placeholder="••••••••"
-          className={inputCls}
-        />
+        <div className="relative">
+          <input
+            type={showPwd ? 'text' : 'password'}
+            value={values.password}
+            onChange={e => onChange('password', e.target.value)}
+            placeholder="••••••••"
+            className={cn(inputCls, 'pr-11')}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPwd(v => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#233551]/35 hover:text-[#233551]/70 transition-colors"
+            aria-label={showPwd ? 'Hide password' : 'Show password'}
+          >
+            {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
       </Field>
       <Field label="Confirm password" required>
-        <input
-          type="password"
-          value={values.confirmPassword}
-          onChange={e => onChange('confirmPassword', e.target.value)}
-          placeholder="••••••••"
-          className={cn(inputCls, values.confirmPassword && values.confirmPassword !== values.password && 'border-[#E8926A]')}
-        />
+        <div className="relative">
+          <input
+            type={showConfirm ? 'text' : 'password'}
+            value={values.confirmPassword}
+            onChange={e => onChange('confirmPassword', e.target.value)}
+            placeholder="••••••••"
+            className={cn(inputCls, 'pr-11', values.confirmPassword && values.confirmPassword !== values.password && 'border-[#E8926A]')}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm(v => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#233551]/35 hover:text-[#233551]/70 transition-colors"
+            aria-label={showConfirm ? 'Hide password' : 'Show password'}
+          >
+            {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
         {values.confirmPassword && values.confirmPassword !== values.password && (
           <p className="text-xs text-[#E8926A] mt-1">Passwords do not match.</p>
         )}

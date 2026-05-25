@@ -1,15 +1,21 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useRef, useTransition, useActionState } from 'react'
 import { cn } from '@/lib/utils'
 import {
   updateTherapistProfile,
   sendTherapistPasswordReset,
+  updateTherapistAvatar,
+  deleteTherapistAvatar,
   type TherapistProfileState,
 } from '@/app/actions/therapist-profile'
 import { signOut } from '@/app/actions/auth'
 
+// Client groups — three prominent picks shown above the full specialisations list
+const CLIENT_GROUPS = ['Teen', 'Adult', 'Couples']
+
 const SPECIALIZATIONS = [
+  // Modalities / approaches
   'CBT (Cognitive Behavioral Therapy)',
   'DBT (Dialectical Behavior Therapy)',
   'ACT (Acceptance & Commitment Therapy)',
@@ -24,19 +30,18 @@ const SPECIALIZATIONS = [
   'Gottman method (couples)',
   'Emotionally Focused Therapy (EFT)',
   'Trauma-focused CBT',
+  // Presenting issues
   'Anxiety',
   'Depression',
   'Stress & burnout',
   'Trauma / PTSD',
   'Grief & loss',
   'Relationships',
-  'Couples therapy',
   'Family conflicts',
   'Self-esteem & identity',
   'Life transitions',
   'OCD',
   'Addiction / substance use',
-  'Adolescents & teens',
   'LGBTQ+ identity',
   'Anger management',
   'Eating disorders',
@@ -49,8 +54,10 @@ const SPECIALIZATIONS = [
 ]
 
 const LANGUAGES = [
-  'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
+  'English',
+  'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi',
+  'Spanish', 'French', 'German', 'Mandarin', 'Arabic', 'Portuguese',
+  'Italian',
 ]
 
 const inputCls =
@@ -76,6 +83,7 @@ function Field({
 interface Props {
   initialData: {
     fullName: string
+    avatarUrl: string | null
     bio: string
     approach: string
     yearsExperience: number
@@ -103,7 +111,10 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [yearsExp, setYearsExp] = useState(String(initialData.yearsExperience))
   const [capacity, setCapacity] = useState(String(initialData.weeklyCapacity))
   // Strip any "free text" values not in the predefined list back into the Other field
-  const knownSpecs = new Set(SPECIALIZATIONS)
+  // Client groups + presenting issues / modalities are all stored as
+  // specializations strings, so we accept both as known values when matching
+  // against the saved profile.
+  const knownSpecs = new Set([...CLIENT_GROUPS, ...SPECIALIZATIONS])
   const knownLangs = new Set(LANGUAGES)
   const [specializations, setSpecializations] = useState<string[]>(
     initialData.specializations.filter(s => knownSpecs.has(s))
@@ -131,6 +142,41 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
+
+  // ── Avatar state ──────────────────────────────────────────────────────────
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialData.avatarUrl)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const [avatarPending, startAvatarTransition] = useTransition()
+
+  function handleAvatarSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setAvatarError(null)
+    const fd = new FormData()
+    fd.set('avatar', file, file.name)
+    startAvatarTransition(async () => {
+      const result = await updateTherapistAvatar(fd)
+      if (result.error) {
+        setAvatarError(result.error)
+      } else {
+        setAvatarUrl(result.avatarUrl ?? null)
+      }
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+    })
+  }
+
+  function handleAvatarDelete() {
+    setAvatarError(null)
+    startAvatarTransition(async () => {
+      const result = await deleteTherapistAvatar()
+      if (result.error) {
+        setAvatarError(result.error)
+      } else {
+        setAvatarUrl(null)
+      }
+    })
+  }
 
   const toggleSpec = (s: string) =>
     setSpecializations(prev =>
@@ -162,14 +208,62 @@ export function TherapistAccountForm({ initialData }: Props) {
 
       {/* Section: Identity */}
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">
-        <div className="flex items-center gap-3 pb-1">
-          <div className="w-12 h-12 rounded-2xl bg-[#7EC0B7]/15 text-[#3D8A80] text-lg font-black flex items-center justify-center"
-            style={{ fontFamily: 'var(--font-lato)' }}>
-            {fullName[0]?.toUpperCase() ?? 'T'}
-          </div>
-          <div>
-            <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Profile photo</p>
-            <p className="text-xs text-[#233551]/40 mt-0.5">Photo upload coming soon</p>
+        <div>
+          <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Profile photo</p>
+          <div className="flex items-center gap-4">
+            {/* Avatar preview */}
+            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-slate-200 bg-[#7EC0B7]/15 flex items-center justify-center flex-shrink-0">
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt="Profile photo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span
+                  className="text-[#3D8A80] text-2xl font-black"
+                  style={{ fontFamily: 'var(--font-lato)' }}
+                >
+                  {fullName[0]?.toUpperCase() ?? 'T'}
+                </span>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={avatarPending}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="px-4 py-2 rounded-full bg-[#233551] text-white text-xs font-bold hover:bg-[#2d4568] transition-colors disabled:opacity-50"
+                  style={{ fontFamily: 'var(--font-lato)' }}
+                >
+                  {avatarPending ? 'Working…' : avatarUrl ? 'Replace photo' : 'Upload photo'}
+                </button>
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    disabled={avatarPending}
+                    onClick={handleAvatarDelete}
+                    className="px-4 py-2 rounded-full border-2 border-slate-200 text-[#E8926A] text-xs font-bold hover:border-[#E8926A]/40 transition-colors disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-[#233551]/40">JPG, PNG, or WebP — max 5 MB</p>
+              {avatarError && <p className="text-xs text-[#E8926A]">{avatarError}</p>}
+            </div>
+
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
           </div>
         </div>
 
@@ -274,6 +368,27 @@ export function TherapistAccountForm({ initialData }: Props) {
       {/* Section: Specialisations */}
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4">
         <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Areas of Specialisation</p>
+
+        {/* Client groups — three prominent picks in a row */}
+        <div className="grid grid-cols-3 gap-2">
+          {CLIENT_GROUPS.map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleSpec(s)}
+              className={cn(
+                'text-sm px-4 py-2.5 rounded-xl border-2 font-bold transition-all',
+                specializations.includes(s)
+                  ? 'bg-[#233551] text-white border-[#233551]'
+                  : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        {/* Rest of the specialisations */}
         <div className="flex flex-wrap gap-2">
           {SPECIALIZATIONS.map(s => (
             <button

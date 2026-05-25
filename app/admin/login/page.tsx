@@ -1,6 +1,7 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { signIn, type AuthState } from "@/app/actions/auth"
 import Link from "next/link"
 import { BrandLogo } from "@/components/shared/BrandLogo"
@@ -9,6 +10,7 @@ const initialState: AuthState = {}
 
 export default function AdminLoginPage() {
   const [state, action, pending] = useActionState(signIn, initialState)
+  const [showPwd, setShowPwd] = useState(false)
 
   return (
     <div className="min-h-screen bg-[#233551] flex flex-col">
@@ -70,13 +72,23 @@ export default function AdminLoginPage() {
                 <label className="text-xs font-bold text-white/40 uppercase tracking-wider">
                   Password
                 </label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl bg-white/6 border border-white/12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#7EC0B7]/40 focus:border-[#7EC0B7]/50 transition-all"
-                />
+                <div className="relative">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    name="password"
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/6 border border-white/12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-[#7EC0B7]/40 focus:border-[#7EC0B7]/50 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                    aria-label={showPwd ? 'Hide password' : 'Show password'}
+                  >
+                    {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               {/* Submit */}

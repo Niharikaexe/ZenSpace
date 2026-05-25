@@ -14,7 +14,7 @@ type StepId =
   | 'q4' | 'q5' | 'q6' | 'q7' | 'q8' | 'q9' | 'q10'
   | 'q11' | 'q11a'
   | 'q12' | 'q12a' | 'q12b'
-  | 'q13' | 'q14'
+  | 'q13' | 'q14' | 'q15'
 
 type Answers = {
   q1: string         // What's bringing you here (single)
@@ -34,14 +34,24 @@ type Answers = {
   q12b: string[]     // Therapist style preference (multi, if q12=Yes)
   q13: string        // Gender preference (single)
   q14: string[]      // Other characteristics (multi, optional)
+  q15: string[]      // Language preference (multi)
+  q15Other: string   // Free-text other language(s)
 }
+
+const LANGUAGE_OPTIONS = [
+  'English',
+  'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi',
+  'Spanish', 'French', 'German', 'Mandarin', 'Arabic', 'Portuguese',
+  'Italian',
+  'No preference',
+]
 
 const initialAnswers: Answers = {
   q1: '', q2: [], q3: '',
   q4: '', q5: '', q6: '', q7: '', q8: '', q9: [], q10: [],
   q11: '', q11a: '',
   q12: '', q12a: '', q12b: [],
-  q13: '', q14: [],
+  q13: '', q14: [], q15: [], q15Other: '',
 }
 
 function buildSteps(a: Answers): StepId[] {
@@ -49,7 +59,7 @@ function buildSteps(a: Answers): StepId[] {
   if (a.q11 === 'Yes') steps.push('q11a')
   steps.push('q12')
   if (a.q12 === 'Yes') steps.push('q12a', 'q12b')
-  steps.push('q13', 'q14')
+  steps.push('q13', 'q14', 'q15')
   return steps
 }
 
@@ -84,7 +94,7 @@ export default function IndividualQuestionnairePage() {
     setAnswers(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleMulti(key: 'q2' | 'q9' | 'q10' | 'q12b' | 'q14', value: string) {
+  function toggleMulti(key: 'q2' | 'q9' | 'q10' | 'q12b' | 'q14' | 'q15', value: string) {
     setAnswers(prev => {
       const arr = prev[key]
       return {
@@ -113,6 +123,7 @@ export default function IndividualQuestionnairePage() {
       case 'q12b': return answers.q12b.length > 0
       case 'q13': return !!answers.q13
       case 'q14': return true // multi, optional
+      case 'q15': return answers.q15.length > 0 || answers.q15Other.trim().length > 0
       default: return true
     }
   }
@@ -457,7 +468,6 @@ export default function IndividualQuestionnairePage() {
               <p className="text-sm text-[#233551]/50">Optional — select all that apply.</p>
               <div className="grid grid-cols-1 gap-2">
                 {[
-                  'Speaks a specific Indian language',
                   'Familiar with my cultural background',
                   'Within a specific age range',
                   'Has expertise with LGBTQ+ identity',
@@ -471,6 +481,44 @@ export default function IndividualQuestionnairePage() {
               <p className="text-xs text-[#233551]/40 pt-2">
                 Your answers will help us match you with our best therapist.
               </p>
+            </div>
+          )}
+
+          {step === 'q15' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                Which language would you like to do therapy in?
+              </h2>
+              <p className="text-sm text-[#233551]/50">Pick one or more — we&apos;ll match you with a therapist who speaks the language you&apos;re most comfortable in.</p>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleMulti('q15', opt)}
+                    className={cn(
+                      'text-sm px-4 py-2 rounded-full border-2 font-medium transition-all',
+                      answers.q15.includes(opt)
+                        ? 'bg-[#233551] text-white border-[#233551]'
+                        : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-1">
+                <label className="block text-sm font-semibold text-[#233551] mb-1.5">
+                  Other <span className="text-xs font-normal text-[#233551]/40 ml-1">optional</span>
+                </label>
+                <input
+                  type="text"
+                  value={answers.q15Other}
+                  onChange={e => setSingle('q15Other', e.target.value)}
+                  placeholder="e.g. Malayalam, Punjabi, Urdu"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
+                />
+              </div>
             </div>
           )}
 

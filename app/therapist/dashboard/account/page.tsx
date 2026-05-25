@@ -12,9 +12,9 @@ export default async function TherapistAccountPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, full_name')
+    .select('role, full_name, avatar_url')
     .eq('id', user.id)
-    .single() as { data: { role: string; full_name: string } | null; error: unknown }
+    .single() as { data: { role: string; full_name: string; avatar_url: string | null } | null; error: unknown }
 
   if (profile?.role !== 'therapist') redirect('/login')
 
@@ -35,6 +35,7 @@ export default async function TherapistAccountPage() {
 
   const initialData = {
     fullName: profile!.full_name,
+    avatarUrl: profile!.avatar_url,
     email: user.email ?? '',
     bio: tProfile?.bio ?? '',
     approach: tProfile?.approach ?? '',

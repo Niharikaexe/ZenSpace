@@ -1,6 +1,7 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { updatePassword } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
@@ -12,6 +13,7 @@ const initialState = { error: undefined, success: false }
 
 export default function ResetPasswordPage() {
   const [state, action, isPending] = useActionState(updatePassword, initialState)
+  const [showPwd, setShowPwd] = useState(false)
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex items-center justify-center p-6">
@@ -52,15 +54,25 @@ export default function ResetPasswordPage() {
               <Label htmlFor="password" className="text-[#233551] font-medium text-sm">
                 New password
               </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Min. 8 characters"
-                required
-                autoComplete="new-password"
-                className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPwd ? 'text' : 'password'}
+                  placeholder="Min. 8 characters"
+                  required
+                  autoComplete="new-password"
+                  className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#233551]/35 hover:text-[#233551]/70 transition-colors"
+                  aria-label={showPwd ? 'Hide password' : 'Show password'}
+                >
+                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <Button

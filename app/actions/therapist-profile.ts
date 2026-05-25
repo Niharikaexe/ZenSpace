@@ -6,6 +6,124 @@ import { sendPayoutRequestEmail } from '@/lib/email'
 import { PLANS, therapistSessionPayout, type PlanKey } from '@/lib/plans'
 
 export type TherapistProfileState = { error?: string; success?: boolean }
+export type AvatarState = { error?: string; avatarUrl?: string | null }
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+// ── Avatar upload / delete ──────────────────────────────────────────────────
+
+export async function updateTherapistAvatar(formData: FormData): Promise<AvatarState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const file = formData.get('avatar')
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: 'Please select a photo to upload.' }
+  }
+  if (file.size > MAX_PHOTO_BYTES) {
+    return { error: 'Photo must be under 5 MB.' }
+  }
+  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+    return { error: 'Photo must be JPG, PNG, or WebP.' }
+  }
+
+  const admin = createAdminClient()
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `therapists/${user.id}/avatar-${Date.now()}.${ext}`
+
+  const { error: uploadErr } = await admin.storage
+    .from('avatars')
+    .upload(path, file, { contentType: file.type, upsert: true })
+
+  if (uploadErr) {
+    logger.error('therapist/avatar', 'Upload failed', uploadErr, {
+      userId: user.id,
+      path,
+      contentType: file.type,
+      size: file.size,
+    })
+    return { error: `Upload failed: ${uploadErr.message ?? 'unknown error'}` }
+  }
+
+  const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(path)
+  const url = publicUrlData.publicUrl
+
+  // Best-effort: clean up the previous photo so we don't accumulate orphans.
+  const { data: existing } = await (admin as any)
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const previousUrl: string | null = existing?.avatar_url ?? null
+
+  const { error: updateErr } = await (admin as any)
+    .from('profiles')
+    .update({ avatar_url: url })
+    .eq('id', user.id)
+
+  if (updateErr) {
+    logger.error('therapist/avatar', 'Failed to save avatar URL', updateErr, { userId: user.id })
+    return { error: 'Photo uploaded but failed to save. Please try again.' }
+  }
+
+  if (previousUrl) {
+    const prevPath = extractAvatarPath(previousUrl)
+    if (prevPath && prevPath !== path) {
+      await admin.storage.from('avatars').remove([prevPath])
+    }
+  }
+
+  return { avatarUrl: url }
+}
+
+export async function deleteTherapistAvatar(): Promise<AvatarState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const admin = createAdminClient()
+
+  const { data: existing } = await (admin as any)
+    .from('profiles')
+    .select('avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  const currentUrl: string | null = existing?.avatar_url ?? null
+
+  const { error: updateErr } = await (admin as any)
+    .from('profiles')
+    .update({ avatar_url: null })
+    .eq('id', user.id)
+
+  if (updateErr) {
+    logger.error('therapist/avatar', 'Failed to clear avatar URL', updateErr, { userId: user.id })
+    return { error: 'Failed to remove photo. Please try again.' }
+  }
+
+  if (currentUrl) {
+    const path = extractAvatarPath(currentUrl)
+    if (path) {
+      await admin.storage.from('avatars').remove([path])
+    }
+  }
+
+  return { avatarUrl: null }
+}
+
+// Extract the storage object path from a public URL.
+//   https://<project>.supabase.co/storage/v1/object/public/avatars/therapists/<uid>/avatar-xxx.jpg
+//   ──────────────────────────────────────────────────────^^^^^^^^─────────────────────────────
+// We strip everything up to and including "/avatars/" to get the path Supabase Storage expects.
+function extractAvatarPath(url: string): string | null {
+  const marker = '/avatars/'
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  return url.slice(idx + marker.length)
+}
 
 export async function updateTherapistProfile(
   _prev: TherapistProfileState,

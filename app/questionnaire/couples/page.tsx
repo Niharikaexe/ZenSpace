@@ -14,7 +14,15 @@ type CommonStepId =
   | 'c4' | 'c5' | 'c6'
   | 'c7' | 'c8'
   | 'c9' | 'c10' | 'c10a'
-  | 'c11' | 'c12'
+  | 'c11' | 'c12' | 'c13'
+
+const LANGUAGE_OPTIONS = [
+  'English',
+  'Hindi', 'Tamil', 'Telugu', 'Bengali', 'Marathi',
+  'Spanish', 'French', 'German', 'Mandarin', 'Arabic', 'Portuguese',
+  'Italian',
+  'No preference',
+]
 
 type CommonAnswers = {
   c1: string     // Relationship feels (single)
@@ -32,6 +40,8 @@ type CommonAnswers = {
   c10a: string   // Style preference (single, conditional on c10)
   c11: string    // Gender preference (single)
   c12: string[]  // Identity/experience preferences (multi)
+  c13: string[]  // Language preference (multi)
+  c13Other: string // Free-text other language(s)
 }
 
 type PartnerAnswers = {
@@ -48,7 +58,7 @@ const initialCommon: CommonAnswers = {
   c4: '', c5: '', c6: [], c6Other: '',
   c7: 0, c8: '',
   c9: [], c9Other: '', c10: '', c10a: '',
-  c11: '', c12: [],
+  c11: '', c12: [], c13: [], c13Other: '',
 }
 
 const initialPartner: PartnerAnswers = {
@@ -59,7 +69,7 @@ type Phase = 'common' | 'partner1-private' | 'handover' | 'partner2-private' | '
 const PRIVATE_STEPS: (keyof PartnerAnswers)[] = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
 
 function buildCommonSteps(): CommonStepId[] {
-  return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12']
+  return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12', 'c13']
 }
 
 function buildFinalSteps(a: CommonAnswers): CommonStepId[] {
@@ -110,7 +120,7 @@ export default function CouplesQuestionnairePage() {
     setCommon(prev => ({ ...prev, [key]: value }))
   }
 
-  function toggleCommonMulti(key: 'c6' | 'c9' | 'c12', value: string) {
+  function toggleCommonMulti(key: 'c6' | 'c9' | 'c12' | 'c13', value: string) {
     setCommon(prev => {
       const arr = prev[key]
       return {
@@ -141,6 +151,7 @@ export default function CouplesQuestionnairePage() {
         case 'c10a': return !!common.c10a
         case 'c11': return !!common.c11
         case 'c12': return true // optional
+        case 'c13': return common.c13.length > 0 || common.c13Other.trim().length > 0
       }
     }
     if (isPrivate) {
@@ -649,6 +660,44 @@ export default function CouplesQuestionnairePage() {
                 ].map(opt => (
                   <OptionButton key={opt} selected={common.c12.includes(opt)} onClick={() => toggleCommonMulti('c12', opt)}>{opt}</OptionButton>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {phase === 'common' && commonStep === 'c13' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                Which language would you like to do therapy in?
+              </h2>
+              <p className="text-sm text-[#233551]/50">Pick one or more — we&apos;ll match you with a therapist who speaks the language you both feel most comfortable in.</p>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGE_OPTIONS.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleCommonMulti('c13', opt)}
+                    className={cn(
+                      'text-sm px-4 py-2 rounded-full border-2 font-medium transition-all',
+                      common.c13.includes(opt)
+                        ? 'bg-[#233551] text-white border-[#233551]'
+                        : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+                    )}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-1">
+                <label className="block text-sm font-semibold text-[#233551] mb-1.5">
+                  Other <span className="text-xs font-normal text-[#233551]/40 ml-1">optional</span>
+                </label>
+                <input
+                  type="text"
+                  value={common.c13Other}
+                  onChange={e => setCommonField('c13Other', e.target.value)}
+                  placeholder="e.g. Malayalam, Punjabi, Urdu"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
+                />
               </div>
             </div>
           )}
