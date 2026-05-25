@@ -98,6 +98,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/help') ||
     pathname === '/therapist/onboard' ||        // invite-based onboarding (no account yet)
     pathname === '/therapist/apply' ||          // public application form (no account yet)
+    pathname === '/therapist/verify-email' ||   // public email-verification landing
     pathname === '/therapist/join' ||           // public landing for prospective therapists
     pathname.startsWith('/for') ||              // audience landing pages (public marketing)
     pathname === '/about' ||                    // public about page
@@ -141,12 +142,14 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // /therapist/apply and /therapist/onboard are public — skip role check for them
+  // Public /therapist/* routes — skip role check (apply, onboard, verify-email, join)
   if (
     user &&
     pathname.startsWith('/therapist') &&
     pathname !== '/therapist/apply' &&
-    pathname !== '/therapist/onboard'
+    pathname !== '/therapist/onboard' &&
+    pathname !== '/therapist/verify-email' &&
+    pathname !== '/therapist/join'
   ) {
     const role = await getRole(supabase, user.id)
     if (role !== 'therapist' && role !== 'admin') {

@@ -61,12 +61,8 @@ const onboardSchema = z.object({
   previousExperience: z.string().optional(),
   timezone: z.string().min(1, 'Time zone is required'),
   idDocumentUrl: z.string().min(1, 'Proof of identification is required'),
-  addressLine1: z.string().min(1, 'Address is required'),
-  addressLine2: z.string().optional(),
-  addressCity: z.string().min(1, 'City is required'),
-  addressState: z.string().min(1, 'State is required'),
-  addressPostalCode: z.string().min(1, 'Postal code is required'),
-  addressCountry: z.string().min(1, 'Country is required'),
+  // Address fields removed from onboarding — therapists can fill these in
+  // later from the account page.
   paypalEmail: z.string().optional(),
   bankAccountName: z.string().optional(),
   bankAccountNumber: z.string().optional(),
@@ -105,12 +101,8 @@ export async function submitTherapistOnboarding(
 
   const v = parsed.data
 
-  // At least one payout method must be provided
-  const hasBank = !!(v.bankAccountName && v.bankAccountNumber && v.bankIfsc)
-  const hasPaypal = !!(v.paypalEmail && v.paypalEmail.includes('@'))
-  if (!hasBank && !hasPaypal) {
-    return { error: 'Please provide either complete bank details or a PayPal email for payouts.' }
-  }
+  // Payment details are now optional at onboarding — therapists add them
+  // later from the account page. No payout-method guard here.
 
   const admin = createAdminClient()
   const code = v.inviteCode.trim().toUpperCase()
@@ -201,14 +193,8 @@ export async function submitTherapistOnboarding(
     weekly_capacity: v.weeklyCapacity,
     accepts_new_clients: true,
     is_verified: true,
-    // verification + address + payout
+    // verification + payout — address removed from onboarding
     id_document_url: v.idDocumentUrl,
-    address_line1: v.addressLine1,
-    address_line2: v.addressLine2 || null,
-    address_city: v.addressCity,
-    address_state: v.addressState,
-    address_postal_code: v.addressPostalCode,
-    address_country: v.addressCountry,
     paypal_email: v.paypalEmail || null,
     bank_account_name: v.bankAccountName || null,
     bank_account_number: v.bankAccountNumber || null,
@@ -216,12 +202,29 @@ export async function submitTherapistOnboarding(
   })
 
   if (profileError) {
+    // eslint-disable-next-line no-console
+    console.error('[therapist/onboard] therapist_profiles insert failed', {
+      userId,
+      code: (profileError as any).code,
+      message: (profileError as any).message,
+      details: (profileError as any).details,
+      hint: (profileError as any).hint,
+    })
     await admin.auth.admin.deleteUser(userId)
-    return { error: 'Failed to save profile. Please try again.' }
+    return { error: `Could not save profile: ${(profileError as any).message ?? 'unknown error'}` }
   }
 
   const ext = profilePhoto.name.split('.').pop()?.toLowerCase() || 'jpg'
   const photoPath = `therapists/${userId}/avatar-${Date.now()}.${ext}`
+
+  // eslint-disable-next-line no-console
+  console.log('[therapist/onboard] uploading profile photo', {
+    userId,
+    path: photoPath,
+    contentType: profilePhoto.type,
+    size: profilePhoto.size,
+    name: profilePhoto.name,
+  })
 
   const { error: uploadError } = await admin.storage
     .from('avatars')
@@ -231,8 +234,19 @@ export async function submitTherapistOnboarding(
     })
 
   if (uploadError) {
+    // eslint-disable-next-line no-console
+    console.error('[therapist/onboard] avatar upload failed', {
+      userId,
+      path: photoPath,
+      contentType: profilePhoto.type,
+      size: profilePhoto.size,
+      message: (uploadError as any).message,
+      name: (uploadError as any).name,
+      statusCode: (uploadError as any).statusCode,
+      error: uploadError,
+    })
     await admin.auth.admin.deleteUser(userId)
-    return { error: 'Failed to upload profile photo. Please try again.' }
+    return { error: `Failed to upload profile photo: ${(uploadError as any).message ?? 'unknown error'}` }
   }
 
   const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(photoPath)
