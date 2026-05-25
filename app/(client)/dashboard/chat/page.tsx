@@ -32,9 +32,10 @@ export default async function ClientChatPage() {
       .from('subscriptions')
       .select('status, current_period_end')
       .eq('client_id', user.id)
-      .eq('status', 'active')
-      .gt('current_period_end', new Date().toISOString())
-      .maybeSingle() as Promise<{ data: { status: string; current_period_end: string } | null; error: unknown }>,
+      .in('status', ['active', 'cancelled'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle() as Promise<{ data: { status: string; current_period_end: string | null } | null; error: unknown }>,
     (admin as any)
       .from('questionnaire_responses')
       .select('responses')
@@ -47,7 +48,10 @@ export default async function ClientChatPage() {
       .eq('sender_id', user.id) as Promise<{ count: number | null; error: unknown }>,
   ])
 
-  const isSubscribed = !!subscription
+  const isSubscribed = !!(subscription && (
+    subscription.status === 'active' ||
+    (subscription.status === 'cancelled' && subscription.current_period_end && new Date(subscription.current_period_end) > new Date())
+  ))
 
   // Intro chat: 10 free messages within 7 days of match (window hidden from client)
   const INTRO_LIMIT = 10

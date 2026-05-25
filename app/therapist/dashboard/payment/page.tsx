@@ -1,20 +1,19 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import { therapistSessionPayout, type PlanKey, PLANS } from '@/lib/plans'
+import PayoutButton from '@/components/therapist/PayoutButton'
 
 export const dynamic = 'force-dynamic'
 
-// Therapist share per session (~60% of plan price). Keys match canonical plan names.
-const THERAPIST_SHARE: Record<string, number> = {
-  basic_weekly:           1079,  // ₹1,799 × 60%
-  basic_monthly:           975,  // ₹6,499 ÷ 4 × 60%
-  premium_weekly:         2699,  // ₹4,499 × 60%
-  premium_monthly:        2475,  // ₹16,499 ÷ 4 × 60%
-  couples_basic_weekly:   1920,  // ₹3,200 × 60%
-  couples_basic_monthly:  1755,  // ₹11,699 ÷ 4 × 60%
-  couples_premium_weekly: 4499,  // ₹7,499 × 60%
-  couples_premium_monthly:3750,  // ₹25,000 ÷ 4 × 60%
-}
+// Earnings model: per completed session, the therapist earns
+// `therapistSessionPayout(client's plan)`. The dashboard sums those across
+// three windows:
+//   - Pending payout (last 7 days)
+//   - This month (calendar month-to-date)
+//   - All time
+// Updates the moment a session is marked `completed` — no cron, no snapshot
+// table.
 
 function formatINR(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
@@ -39,82 +38,107 @@ export default async function TherapistPaymentPage() {
 
   const admin = createAdminClient()
 
-  // Get all matches for this therapist (including active check)
+  // All matches this therapist has ever had (any status) — past clients still
+  // count for past sessions they completed.
   const { data: matches } = await (admin as any)
     .from('matches')
-    .select('id, client_id, created_at, status')
-    .eq('therapist_id', user.id)
+    .select('id, client_id, status')
+    .eq('therapist_id', user.id) as { data: { id: string; client_id: string; status: string }[] | null; error: unknown }
 
-  const isMatched = (matches ?? []).some((m: { status: string }) => m.status === 'active')
+  const matchList = matches ?? []
+  const isMatched = matchList.some(m => m.status === 'active')
+  const matchIds = matchList.map(m => m.id)
+  const clientIds = Array.from(new Set(matchList.map(m => m.client_id)))
+  const clientByMatch = new Map(matchList.map(m => [m.id, m.client_id]))
 
-  const matchIds = (matches ?? []).map((m: { id: string }) => m.id)
+  // Bulk fetches — three independent queries can run in parallel.
+  // We grab the most-recent subscription per client (any status) to figure
+  // out which plan to price their sessions at. If a client has changed plans
+  // over time, historical sessions are priced at the current plan — a
+  // tradeoff we accept because Supabase keeps one subscription row per
+  // client (updated in place), not one per billing cycle.
+  const [sessionsResult, subsResult, profilesResult] = await Promise.all([
+    matchIds.length > 0
+      ? (admin as any)
+          .from('sessions')
+          .select('id, match_id, session_type, scheduled_at')
+          .in('match_id', matchIds)
+          .eq('status', 'completed')
+          .order('scheduled_at', { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    clientIds.length > 0
+      ? (admin as any)
+          .from('subscriptions')
+          .select('client_id, plan, created_at')
+          .in('client_id', clientIds)
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    clientIds.length > 0
+      ? (admin as any)
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', clientIds)
+      : Promise.resolve({ data: [], error: null }),
+  ])
 
-  // Sessions this month + total sessions
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-
-  let sessionsThisMonth = 0
-  let sessionsTotal = 0
-  let recentSessions: { scheduled_at: string; session_type: string; client_name: string; plan: string }[] = []
-
-  if (matchIds.length > 0) {
-    const [monthResult, totalResult, recentResult] = await Promise.all([
-      (admin as any)
-        .from('sessions')
-        .select('id', { count: 'exact', head: true })
-        .in('match_id', matchIds)
-        .eq('status', 'completed')
-        .gte('scheduled_at', monthStart),
-      (admin as any)
-        .from('sessions')
-        .select('id', { count: 'exact', head: true })
-        .in('match_id', matchIds)
-        .eq('status', 'completed'),
-      (admin as any)
-        .from('sessions')
-        .select('scheduled_at, session_type, match_id')
-        .in('match_id', matchIds)
-        .eq('status', 'completed')
-        .order('scheduled_at', { ascending: false })
-        .limit(8),
-    ])
-
-    sessionsThisMonth = monthResult.count ?? 0
-    sessionsTotal = totalResult.count ?? 0
-
-    // Enrich recent sessions with client name + plan
-    const recent = recentResult.data ?? []
-    recentSessions = await Promise.all(
-      recent.map(async (s: { scheduled_at: string; session_type: string; match_id: string }) => {
-        const matchRow = (matches ?? []).find((m: { id: string }) => m.id === s.match_id)
-        let clientName = 'Client'
-        let plan = 'essentials'
-        if (matchRow) {
-          const [uResult, subResult] = await Promise.all([
-            (admin as any).from('profiles').select('full_name').eq('id', matchRow.client_id).single(),
-            (admin as any)
-              .from('subscriptions')
-              .select('plan')
-              .eq('client_id', matchRow.client_id)
-              .eq('status', 'active')
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ])
-          clientName = uResult.data?.full_name ?? 'Client'
-          plan = subResult.data?.plan ?? 'essentials'
-        }
-        return { ...s, client_name: clientName, plan }
-      })
-    )
+  // Most-recent subscription plan per client.
+  const planByClient = new Map<string, PlanKey>()
+  for (const s of (subsResult.data ?? []) as { client_id: string; plan: string }[]) {
+    if (!planByClient.has(s.client_id) && s.plan in PLANS) {
+      planByClient.set(s.client_id, s.plan as PlanKey)
+    }
   }
 
-  // Estimate earnings
-  const estThisMonth = sessionsThisMonth * (THERAPIST_SHARE['basic_weekly']) // conservative estimate
-  const estTotal = sessionsTotal * (THERAPIST_SHARE['basic_weekly'])
+  const nameByClient = new Map<string, string>()
+  for (const p of (profilesResult.data ?? []) as { id: string; full_name: string | null }[]) {
+    nameByClient.set(p.id, p.full_name ?? 'Client')
+  }
 
-  // Pending payout (all earnings — illustrative only, payouts are off-app)
-  const pendingPayout = estThisMonth
+  // Bucket sessions into windows.
+  const now = new Date()
+  const weekStart = new Date(now.getTime() - 7 * 24 * 3600 * 1000)
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  let pendingPayout = 0       // last 7 days
+  let monthPayout = 0
+  let totalPayout = 0
+  let monthSessions = 0
+  let totalSessions = 0
+
+  type SessionRow = { id: string; match_id: string; session_type: string; scheduled_at: string }
+  type RecentSession = { scheduled_at: string; session_type: string; client_name: string; payout: number }
+  const recentSessions: RecentSession[] = []
+
+  for (const s of (sessionsResult.data ?? []) as SessionRow[]) {
+    const clientId = clientByMatch.get(s.match_id)
+    if (!clientId) continue
+
+    const planKey = planByClient.get(clientId)
+    // Sessions for clients with no subscription on record (edge case — e.g.
+    // a record predating the subscriptions table) contribute 0 to payouts.
+    const payout = planKey ? therapistSessionPayout(planKey) : 0
+    const sessionDate = new Date(s.scheduled_at)
+
+    totalPayout += payout
+    totalSessions++
+
+    if (sessionDate >= monthStart) {
+      monthPayout += payout
+      monthSessions++
+    }
+    if (sessionDate >= weekStart) {
+      pendingPayout += payout
+    }
+
+    if (recentSessions.length < 8) {
+      recentSessions.push({
+        scheduled_at: s.scheduled_at,
+        session_type: s.session_type,
+        client_name: nameByClient.get(clientId) ?? 'Client',
+        payout,
+      })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -127,17 +151,17 @@ export default async function TherapistPaymentPage() {
             Payment Dashboard
           </h1>
           <p className="text-sm text-[#233551]/45 mt-1">
-            Your earnings summary. Payouts are processed off-platform.
+            Earnings update the moment a session is marked completed. Payouts are processed off-platform.
           </p>
         </div>
 
         {/* Earnings cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Sessions this month', value: String(sessionsThisMonth), sub: 'completed' },
-            { label: 'Earnings this month', value: formatINR(estThisMonth), sub: 'estimate' },
-            { label: 'Total sessions', value: String(sessionsTotal), sub: 'all time' },
-            { label: 'Total earnings', value: formatINR(estTotal), sub: 'all time' },
+            { label: 'Sessions this month', value: String(monthSessions), sub: 'completed' },
+            { label: 'Earnings this month', value: formatINR(monthPayout), sub: '75% share' },
+            { label: 'Total sessions', value: String(totalSessions), sub: 'all time' },
+            { label: 'Total earnings', value: formatINR(totalPayout), sub: 'all time' },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-white border border-slate-100 rounded-2xl px-4 py-4">
               <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest leading-tight">{label}</p>
@@ -156,19 +180,9 @@ export default async function TherapistPaymentPage() {
             <p className="text-3xl font-black text-white mt-1" style={{ fontFamily: 'var(--font-lato)' }}>
               {formatINR(pendingPayout)}
             </p>
-            <p className="text-xs text-white/45 mt-1">Based on sessions this month · estimate</p>
+            <p className="text-xs text-white/45 mt-1">Sessions completed in the last 7 days</p>
           </div>
-          <div className="flex flex-col gap-2 sm:items-end">
-            <a
-              href="mailto:hello@mindcanopy.in?subject=Payout request&body=Hi, I'd like to request my payout for this month."
-              className="px-6 py-3 bg-[#7EC0B7] text-[#233551] text-sm font-bold rounded-xl hover:bg-[#6db5ac] transition-colors inline-block"
-            >
-              Request payout →
-            </a>
-            <p className="text-xs text-white/35 text-center sm:text-right max-w-[220px]">
-              Email hello@mindcanopy.in — we'll process within 5 business days.
-            </p>
-          </div>
+          <PayoutButton />
         </div>
 
         {/* Recent sessions */}
@@ -183,11 +197,11 @@ export default async function TherapistPaymentPage() {
                   <div>
                     <p className="text-sm font-medium text-[#233551]">{s.client_name}</p>
                     <p className="text-xs text-[#233551]/40 mt-0.5">
-                      {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDate(s.scheduled_at)}
+                      {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDate(s.scheduled_at)}
                     </p>
                   </div>
                   <p className="text-sm font-semibold text-[#3D8A80]">
-                    {formatINR(THERAPIST_SHARE[s.plan] ?? THERAPIST_SHARE['basic_weekly'])}
+                    {formatINR(s.payout)}
                   </p>
                 </div>
               ))}

@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,8 +20,10 @@ function formatDateTime(iso: string) {
 export default async function TherapistClientDetailPage({
   params,
 }: {
-  params: { matchId: string }
+  params: Promise<{ matchId: string }>
 }) {
+  const { matchId } = await params
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -39,7 +42,7 @@ export default async function TherapistClientDetailPage({
   const { data: match } = await (admin as any)
     .from('matches')
     .select('id, client_id, created_at, status')
-    .eq('id', params.matchId)
+    .eq('id', matchId)
     .eq('therapist_id', user.id)
     .single() as { data: { id: string; client_id: string; created_at: string; status: string } | null; error: unknown }
 
@@ -90,21 +93,32 @@ export default async function TherapistClientDetailPage({
     try {
       const r = qRow.responses as Record<string, unknown>
       qType = r.type as string ?? ''
+      const toArr = (v: unknown): string[] =>
+        Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
       if (qType === 'individual') {
         const a = r.answers as Record<string, unknown> ?? {}
-        concerns = (a.q1 as string[]) ?? []
-        goals = (a.q2 as string) ?? ''
-        previousTherapy = (a.q3 as string) ?? ''
-        therapistGenderPref = (a.q5 as string) ?? ''
+        concerns = toArr(a.q2)
+        goals = (a.q3 as string) ?? ''
+        previousTherapy = (a.q12 as string) ?? ''
+        therapistGenderPref = (a.q13 as string) ?? ''
       } else if (qType === 'couples') {
-        const s = r.shared as Record<string, unknown> ?? {}
-        concerns = (s.q3 as string[]) ?? []
+        const s = r.common as Record<string, unknown> ?? {}
+        concerns = toArr(s.c6)
+        goals = Array.isArray(s.c9) ? (s.c9 as string[]).join(', ') : ''
+        previousTherapy = (s.c10 as string) ?? ''
+        therapistGenderPref = (s.c11 as string) ?? ''
       } else if (qType === 'teen') {
         const a = r.answers as Record<string, unknown> ?? {}
-        concerns = (a.q1 as string[]) ?? []
-        goals = (a.q2 as string) ?? ''
+        concerns = toArr(a.q15)
+        goals = (a.q18 as string) ?? ''
+        previousTherapy = (a.q17 as string) ?? ''
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      logger.warn('therapist/client-detail', 'Failed to parse client questionnaire', {
+        clientId: match.client_id,
+        err: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
 
   const isNewClient = new Date(match.created_at) > new Date(Date.now() - 7 * 24 * 3600000)
@@ -145,7 +159,7 @@ export default async function TherapistClientDetailPage({
                   <span className="text-[10px] font-black text-[#7EC0B7] bg-[#7EC0B7]/15 px-2 py-0.5 rounded-full uppercase tracking-wide">New</span>
                 )}
                 {sub?.status === 'active' && (
-                  <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/10 px-2 py-0.5 rounded-full capitalize">{sub.plan}</span>
+                  <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/10 px-2 py-0.5 rounded-full">Subscribed</span>
                 )}
               </div>
               <p className="text-sm text-[#233551]/45 mt-0.5">{client?.email}</p>
@@ -158,7 +172,7 @@ export default async function TherapistClientDetailPage({
               href="/therapist/dashboard/chat"
               className="relative flex items-center gap-1.5 px-4 py-2 bg-[#7EC0B7]/10 text-[#3D8A80] text-xs font-semibold rounded-xl hover:bg-[#7EC0B7]/20 transition-colors"
             >
-              💬 Chat
+              Chat
               {unread > 0 && (
                 <span className="ml-1 text-[#E8926A] font-bold">{unread} unread</span>
               )}
@@ -167,7 +181,7 @@ export default async function TherapistClientDetailPage({
               href="/therapist/dashboard/video"
               className="flex items-center gap-1.5 px-4 py-2 bg-[#233551]/5 text-[#233551] text-xs font-semibold rounded-xl hover:bg-[#233551]/10 transition-colors"
             >
-              📹 Sessions
+              Sessions
             </Link>
           </div>
         </div>
@@ -221,7 +235,7 @@ export default async function TherapistClientDetailPage({
           {sub ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-[#233551] capitalize">{sub.plan} plan</p>
+                <p className="text-sm font-semibold text-[#233551]">Active subscription</p>
                 {sub.current_period_end && (
                   <p className="text-xs text-[#233551]/40 mt-0.5">
                     {sub.status === 'active' ? 'Renews' : 'Expired'} {formatDate(sub.current_period_end)}
@@ -250,7 +264,7 @@ export default async function TherapistClientDetailPage({
                 <div key={s.id} className="px-5 py-3.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-medium text-[#233551]">
-                      {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} · {formatDateTime(s.scheduled_at)}
+                      {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDateTime(s.scheduled_at)}
                     </p>
                     <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${
                       s.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :

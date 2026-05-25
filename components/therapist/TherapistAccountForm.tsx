@@ -10,15 +10,47 @@ import {
 import { signOut } from '@/app/actions/auth'
 
 const SPECIALIZATIONS = [
-  'Anxiety', 'Depression', 'Stress', 'Relationships', 'Grief', 'Trauma',
-  'Self-esteem', 'Life transitions', 'PTSD', 'Burnout', 'OCD', 'Addiction',
-  'Family therapy', 'Adolescents', 'LGBTQ+', 'Career', 'Anger management',
-  'Eating disorders', 'Sleep issues', 'Chronic illness', 'Others',
+  'CBT (Cognitive Behavioral Therapy)',
+  'DBT (Dialectical Behavior Therapy)',
+  'ACT (Acceptance & Commitment Therapy)',
+  'EMDR',
+  'Psychodynamic therapy',
+  'Person-centered / Humanistic',
+  'Mindfulness-based / MBCT',
+  'Solution-focused brief therapy',
+  'Schema therapy',
+  'Internal Family Systems (IFS)',
+  'Narrative therapy',
+  'Gottman method (couples)',
+  'Emotionally Focused Therapy (EFT)',
+  'Trauma-focused CBT',
+  'Anxiety',
+  'Depression',
+  'Stress & burnout',
+  'Trauma / PTSD',
+  'Grief & loss',
+  'Relationships',
+  'Couples therapy',
+  'Family conflicts',
+  'Self-esteem & identity',
+  'Life transitions',
+  'OCD',
+  'Addiction / substance use',
+  'Adolescents & teens',
+  'LGBTQ+ identity',
+  'Anger management',
+  'Eating disorders',
+  'Sleep issues',
+  'Postpartum / Perinatal',
+  'ADHD / Neurodivergence',
+  'Bipolar disorder',
+  'Chronic illness',
+  'Career counselling',
 ]
 
 const LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada',
-  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia', 'Others',
+  'Malayalam', 'Bengali', 'Marathi', 'Gujarati', 'Punjabi', 'Odia',
 ]
 
 const inputCls =
@@ -53,6 +85,10 @@ interface Props {
     acceptsNewClients: boolean
     email: string
     isVerified: boolean
+    paypalEmail: string
+    bankAccountName: string
+    bankAccountNumber: string
+    bankIfsc: string
   }
 }
 
@@ -66,9 +102,31 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [approach, setApproach] = useState(initialData.approach)
   const [yearsExp, setYearsExp] = useState(String(initialData.yearsExperience))
   const [capacity, setCapacity] = useState(String(initialData.weeklyCapacity))
-  const [specializations, setSpecializations] = useState<string[]>(initialData.specializations)
-  const [languages, setLanguages] = useState<string[]>(initialData.languages)
+  // Strip any "free text" values not in the predefined list back into the Other field
+  const knownSpecs = new Set(SPECIALIZATIONS)
+  const knownLangs = new Set(LANGUAGES)
+  const [specializations, setSpecializations] = useState<string[]>(
+    initialData.specializations.filter(s => knownSpecs.has(s))
+  )
+  const [specializationOther, setSpecializationOther] = useState(
+    initialData.specializations.filter(s => !knownSpecs.has(s)).join(', ')
+  )
+  const [languages, setLanguages] = useState<string[]>(
+    initialData.languages.filter(l => knownLangs.has(l))
+  )
+  const [languageOther, setLanguageOther] = useState(
+    initialData.languages.filter(l => !knownLangs.has(l)).join(', ')
+  )
   const [acceptsNew, setAcceptsNew] = useState(initialData.acceptsNewClients)
+
+  // Payment info — two tabs (PayPal + Bank)
+  const [payTab, setPayTab] = useState<'paypal' | 'bank'>(
+    initialData.bankAccountNumber && !initialData.paypalEmail ? 'bank' : 'paypal'
+  )
+  const [paypalEmail, setPaypalEmail] = useState(initialData.paypalEmail)
+  const [bankAccountName, setBankAccountName] = useState(initialData.bankAccountName)
+  const [bankAccountNumber, setBankAccountNumber] = useState(initialData.bankAccountNumber)
+  const [bankIfsc, setBankIfsc] = useState(initialData.bankIfsc)
 
   const [resetSent, setResetSent] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -97,7 +155,9 @@ export function TherapistAccountForm({ initialData }: Props) {
     <form action={formAction} className="space-y-8">
       {/* Hidden computed fields */}
       <input type="hidden" name="specializations" value={JSON.stringify(specializations)} />
+      <input type="hidden" name="specializationOther" value={specializationOther} />
       <input type="hidden" name="languages" value={JSON.stringify(languages)} />
+      <input type="hidden" name="languageOther" value={languageOther} />
       <input type="hidden" name="acceptsNewClients" value={String(acceptsNew)} />
 
       {/* Section: Identity */}
@@ -231,8 +291,15 @@ export function TherapistAccountForm({ initialData }: Props) {
             </button>
           ))}
         </div>
-        {specializations.length === 0 && (
-          <p className="text-xs text-[#E8926A]">Select at least one area.</p>
+        <input
+          type="text"
+          value={specializationOther}
+          onChange={e => setSpecializationOther(e.target.value)}
+          placeholder="Other (please specify)"
+          className={inputCls}
+        />
+        {specializations.length === 0 && !specializationOther.trim() && (
+          <p className="text-xs text-[#E8926A]">Select at least one area or specify in &ldquo;Other&rdquo;.</p>
         )}
       </section>
 
@@ -256,6 +323,113 @@ export function TherapistAccountForm({ initialData }: Props) {
             </button>
           ))}
         </div>
+        <input
+          type="text"
+          value={languageOther}
+          onChange={e => setLanguageOther(e.target.value)}
+          placeholder="Other language (please specify)"
+          className={inputCls}
+        />
+      </section>
+
+      {/* Section: Payment info */}
+      <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Payment Info</p>
+            <p className="text-xs text-[#233551]/45 mt-1">
+              Where MindCanopy should send your payouts. Only admins can see this.
+            </p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-slate-100">
+          <button
+            type="button"
+            onClick={() => setPayTab('paypal')}
+            className={cn(
+              'px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
+              payTab === 'paypal'
+                ? 'border-[#7EC0B7] text-[#233551]'
+                : 'border-transparent text-[#233551]/45 hover:text-[#233551]',
+            )}
+          >
+            PayPal
+          </button>
+          <button
+            type="button"
+            onClick={() => setPayTab('bank')}
+            className={cn(
+              'px-4 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
+              payTab === 'bank'
+                ? 'border-[#7EC0B7] text-[#233551]'
+                : 'border-transparent text-[#233551]/45 hover:text-[#233551]',
+            )}
+          >
+            Bank Account
+          </button>
+        </div>
+
+        {payTab === 'paypal' ? (
+          <Field label="PayPal email" hint="For international payouts">
+            <input
+              name="paypalEmail"
+              type="email"
+              value={paypalEmail}
+              onChange={e => setPaypalEmail(e.target.value)}
+              placeholder="you@paypal.com"
+              className={inputCls}
+            />
+          </Field>
+        ) : (
+          <div className="space-y-4">
+            <Field label="Account holder name">
+              <input
+                name="bankAccountName"
+                type="text"
+                value={bankAccountName}
+                onChange={e => setBankAccountName(e.target.value)}
+                placeholder="Name as on bank record"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Account number">
+              <input
+                name="bankAccountNumber"
+                type="text"
+                inputMode="numeric"
+                value={bankAccountNumber}
+                onChange={e => setBankAccountNumber(e.target.value.replace(/\D/g, ''))}
+                placeholder="1234567890"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="IFSC code">
+              <input
+                name="bankIfsc"
+                type="text"
+                value={bankIfsc}
+                onChange={e => setBankIfsc(e.target.value.toUpperCase())}
+                placeholder="HDFC0001234"
+                maxLength={11}
+                className={inputCls}
+              />
+            </Field>
+          </div>
+        )}
+
+        {/* Always include the inactive tab's fields as hidden inputs so they persist on save */}
+        {payTab === 'bank' && (
+          <input type="hidden" name="paypalEmail" value={paypalEmail} />
+        )}
+        {payTab === 'paypal' && (
+          <>
+            <input type="hidden" name="bankAccountName" value={bankAccountName} />
+            <input type="hidden" name="bankAccountNumber" value={bankAccountNumber} />
+            <input type="hidden" name="bankIfsc" value={bankIfsc} />
+          </>
+        )}
       </section>
 
       {/* Section: Security */}

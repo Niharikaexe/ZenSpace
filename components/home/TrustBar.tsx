@@ -24,7 +24,7 @@ const TrustBar = () => {
               transition={{ duration: 0.4, delay: i * 0.08 }}
               className="flex items-center justify-center gap-3"
             >
-              <div className="w-9 h-9 rounded-full bg-[#7EC0B7]/15 flex items-center justify-center flex-shrink-0">
+              <div className="mc-touch w-11 h-11 rounded-full bg-[#7EC0B7]/15 flex-shrink-0">
                 <Icon size={16} className="text-[#3D8A80]" strokeWidth={2} />
               </div>
               <span className="text-sm font-semibold text-[#233551]/70">{label}</span>

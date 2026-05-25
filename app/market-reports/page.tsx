@@ -7,7 +7,7 @@ import { reportsBySection } from "@/lib/market-reports-data"
 export const metadata: Metadata = {
   title: "Market Reports — India Mental Health Index",
   description:
-    "Six research reports on mental health in India: the treatment gap, suicide, workplace burnout, disclosure barriers, urban access, and rural exclusion. Aggregated from WHO, NIMHANS, Lancet, and Deloitte.",
+    "Six research reports on mental health in India: the treatment gap, crisis mortality, workplace burnout, disclosure barriers, urban access, and rural exclusion. Aggregated from WHO, NIMHANS, Lancet, and Deloitte.",
   openGraph: {
     title: "MindCanopy Market Reports — India Mental Health Index",
     description:

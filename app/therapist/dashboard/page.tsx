@@ -5,6 +5,7 @@ import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,10 +13,11 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function formatDateTime(iso: string) {
+function formatDateTime(iso: string, tz?: string | null) {
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit', hour12: true,
+    ...(tz ? { timeZone: tz } : {}),
   })
 }
 
@@ -75,7 +77,7 @@ export default async function TherapistDashboard() {
       .eq('status', 'active'),
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability')
+      .select('specializations, bio, years_experience, weekly_capacity, weekly_availability, timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
   ])
@@ -135,17 +137,25 @@ export default async function TherapistDashboard() {
           try {
             const r = qRow.responses as Record<string, unknown>
             const qType = r.type as string
+            const toArr = (v: unknown): string[] =>
+              Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
             if (qType === 'individual') {
               const a = r.answers as Record<string, unknown>
-              concerns = (a?.q1 as string[] | undefined) ?? []
+              concerns = toArr(a?.q2)
             } else if (qType === 'couples') {
-              const s = r.shared as Record<string, unknown> | undefined
-              concerns = (s?.q3 as string[] | undefined) ?? []
+              const s = r.common as Record<string, unknown> | undefined
+              concerns = toArr(s?.c6)
             } else if (qType === 'teen') {
               const a = r.answers as Record<string, unknown>
-              concerns = (a?.q1 as string[] | undefined) ?? []
+              concerns = toArr(a?.q15)
             }
-          } catch { /* ignore */ }
+          } catch (err) {
+            logger.warn('therapist/dashboard', 'Failed to parse client questionnaire', {
+              matchId: m.id,
+              clientId: m.client_id,
+              err: err instanceof Error ? err.message : String(err),
+            })
+          }
         }
 
         const clientName = clientResult.data?.full_name ?? 'Client'
@@ -216,6 +226,12 @@ export default async function TherapistDashboard() {
           </div>
         </div>
 
+        {/* Weekly availability — moved above clients */}
+        <WeeklyAvailabilityEditor
+          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+          therapistTimezone={(tProfile?.timezone as string | null) ?? null}
+        />
+
         {isMatched ? (
           <>
             {/* Stats row */}
@@ -258,12 +274,12 @@ export default async function TherapistDashboard() {
                   {upcomingSessions.slice(0, 6).map(s => (
                     <div key={s.sessionId} className="flex items-center justify-between px-5 py-3.5 gap-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-[#233551]/5 flex items-center justify-center text-base flex-shrink-0">
-                          {s.sessionType === 'video' ? '📹' : '💬'}
+                        <div className="w-9 h-9 rounded-xl bg-[#233551]/5 flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-[#233551]/50">{s.sessionType === 'video' ? 'VID' : 'CHT'}</span>
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#233551] truncate">{s.clientName}</p>
-                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt)}</p>
+                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt, tProfile?.timezone as string | null)}</p>
                         </div>
                       </div>
                       {s.roomUrl ? (
@@ -315,15 +331,13 @@ export default async function TherapistDashboard() {
                           <p className="text-xs text-[#233551]/40 truncate">{c.email}</p>
                         </div>
                       </div>
-                      {c.subscriptionPlan && (
-                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 capitalize ${
-                          c.subscriptionStatus === 'active'
-                            ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
-                            : 'bg-amber-50 text-amber-600'
-                        }`}>
-                          {c.subscriptionPlan}
-                        </span>
-                      )}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold flex-shrink-0 ${
+                        c.subscriptionStatus === 'active'
+                          ? 'bg-[#7EC0B7]/15 text-[#3D8A80]'
+                          : 'bg-slate-100 text-[#233551]/40'
+                      }`}>
+                        {c.subscriptionStatus === 'active' ? 'Subscribed' : 'No subscription'}
+                      </span>
                     </div>
                     </Link>
 
@@ -443,10 +457,6 @@ export default async function TherapistDashboard() {
             )}
           </div>
         )}
-        {/* Weekly availability — always visible */}
-        <WeeklyAvailabilityEditor
-          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
-        />
 
       </main>
     </div>

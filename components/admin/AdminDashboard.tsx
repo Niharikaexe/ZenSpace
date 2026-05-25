@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { signOut } from '@/app/actions/auth'
 import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
+import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -65,14 +66,25 @@ export type TherapistApplication = {
   email: string
   phone: string | null
   city: string | null
-  license_number: string
+  state: string | null
+  country: string | null
+  gender: string | null
+  ethnicity: string | null
+  date_of_birth: string | null
+  linkedin_url: string | null
+  license_number: string | null
   license_body: string | null
   years_experience: number
   education: string | null
   specializations: string[]
+  specialization_other: string | null
   languages: string[]
-  bio: string
+  bio: string | null
   why_mindcanopy: string | null
+  cv_signed_url: string | null
+  cv_download_url: string | null
+  certificate_signed_urls: string[]
+  certificate_download_urls: string[]
   status: string
   submitted_at: string
 }
@@ -151,12 +163,12 @@ function StatCard({ label, value, sub, accent }: { label: string; value: number;
   )
 }
 
-function InfoField({ label, value }: { label: string; value: string | boolean | null | undefined }) {
+function InfoField({ label, value, preserveCase = false }: { label: string; value: string | boolean | null | undefined; preserveCase?: boolean }) {
   if (value === null || value === undefined || value === '') return null
   return (
     <div>
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="text-sm text-slate-700 font-medium mt-0.5 capitalize">{String(value)}</p>
+      <p className={`text-sm text-slate-700 font-medium mt-0.5 break-words ${preserveCase ? '' : 'capitalize'}`}>{String(value)}</p>
     </div>
   )
 }
@@ -203,9 +215,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-sm">
-              <span className="text-white text-sm font-bold">Z</span>
-            </div>
+            <OwlLogo size={30} />
             <div>
               <p className="text-sm font-semibold text-slate-900">MindCanopy Admin</p>
               <p className="text-xs text-slate-400">Welcome back, {adminName.split(' ')[0]}</p>
@@ -217,7 +227,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -237,12 +247,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
 
           {/* Tab bar */}
-          <div className="border-b border-slate-200 px-6 flex">
+          <div className="border-b border-slate-200 px-2 md:px-6 flex overflow-x-auto">
             {tabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`px-4 py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors -mb-px ${
+                className={`flex-shrink-0 whitespace-nowrap px-4 py-3.5 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors -mb-px ${
                   tab === t.key
                     ? 'border-emerald-500 text-emerald-700'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
@@ -306,37 +316,135 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     {/* Expanded review panel */}
                     {expandedAppId === app.id && (
                       <div className="px-6 pb-6 pt-2 bg-slate-50 border-t border-slate-100">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-3">
-                          <InfoField label="Email" value={app.email} />
-                          <InfoField label="Phone" value={app.phone} />
+
+                        {/* Contact + Location */}
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-3 mb-2">Contact</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
+                          <InfoField label="Email" value={app.email} preserveCase />
+                          <InfoField label="Phone" value={app.phone} preserveCase />
+                          <InfoField label="LinkedIn" value={app.linkedin_url} preserveCase />
                           <InfoField label="City" value={app.city} />
-                          <InfoField label="License number" value={app.license_number} />
-                          <InfoField label="License body" value={app.license_body} />
+                          <InfoField label="State" value={app.state} />
+                          <InfoField label="Country" value={app.country} />
+                        </div>
+
+                        {/* Demographics */}
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Demographics</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
+                          <InfoField label="Gender" value={app.gender} />
+                          <InfoField label="Ethnicity" value={app.ethnicity} />
+                          <InfoField
+                            label="Date of birth"
+                            value={app.date_of_birth ? new Date(app.date_of_birth).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : null}
+                          />
+                        </div>
+
+                        {/* Professional */}
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Professional</p>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-3">
                           <InfoField label="Years experience" value={String(app.years_experience)} />
                           <InfoField label="Education" value={app.education} />
+                          <InfoField label="License number" value={app.license_number} preserveCase />
+                          <InfoField label="License body" value={app.license_body} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                           <div>
                             <p className="text-xs text-slate-400">Languages</p>
-                            <p className="text-sm text-slate-700 font-medium mt-0.5">{app.languages.join(', ')}</p>
+                            <p className="text-sm text-slate-700 font-medium mt-0.5">{app.languages.join(', ') || '—'}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-400">Specializations</p>
+                            <p className="text-xs text-slate-400">Specialisations</p>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {app.specializations.map(s => (
                                 <span key={s} className="text-xs px-2 py-0.5 bg-violet-50 text-violet-700 rounded-full capitalize">{s}</span>
                               ))}
+                              {app.specialization_other && (
+                                <span className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full">
+                                  Other: {app.specialization_other}
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <div className="col-span-2 md:col-span-3">
-                            <p className="text-xs text-slate-400">Bio</p>
-                            <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.bio}</p>
-                          </div>
-                          {app.why_mindcanopy && (
-                            <div className="col-span-2 md:col-span-3">
-                              <p className="text-xs text-slate-400">Why MindCanopy</p>
-                              <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">{app.why_mindcanopy}</p>
-                            </div>
+                        </div>
+
+                        {/* Documents */}
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Documents</p>
+                        <div className="flex flex-wrap gap-2 mb-5">
+                          {app.cv_signed_url ? (
+                            <>
+                              <a
+                                href={app.cv_signed_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
+                              >
+                                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                View CV
+                                <span className="text-xs text-slate-400">↗</span>
+                              </a>
+                              {app.cv_download_url && (
+                                <a
+                                  href={app.cv_download_url}
+                                  className="inline-flex items-center gap-2 px-3 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                  Download CV
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">No CV uploaded</span>
+                          )}
+                          {app.certificate_signed_urls.map((url, i) => (
+                            <span key={url} className="inline-flex items-center gap-1">
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-violet-300 transition-colors"
+                              >
+                                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                                Cert {i + 1}
+                                <span className="text-xs text-slate-400">↗</span>
+                              </a>
+                              {app.certificate_download_urls[i] && (
+                                <a
+                                  href={app.certificate_download_urls[i]}
+                                  className="inline-flex items-center justify-center w-8 h-8 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors"
+                                  title={`Download certificate ${i + 1}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                </a>
+                              )}
+                            </span>
+                          ))}
+                          {app.certificate_signed_urls.length === 0 && !app.cv_signed_url && null}
+                          {app.certificate_signed_urls.length === 0 && app.cv_signed_url && (
+                            <span className="text-xs text-slate-400 italic self-center">No certificates uploaded</span>
                           )}
                         </div>
+
+                        {/* Long-form */}
+                        {app.bio && (
+                          <div className="mb-3">
+                            <p className="text-xs text-slate-400">Bio</p>
+                            <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed whitespace-pre-wrap">{app.bio}</p>
+                          </div>
+                        )}
+                        {app.why_mindcanopy && (
+                          <div className="mb-3">
+                            <p className="text-xs text-slate-400">Why MindCanopy</p>
+                            <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed whitespace-pre-wrap">{app.why_mindcanopy}</p>
+                          </div>
+                        )}
 
                         {/* Notes + action buttons */}
                         <div className="mt-5 pt-4 border-t border-slate-200">

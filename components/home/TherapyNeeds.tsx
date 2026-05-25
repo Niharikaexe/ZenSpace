@@ -44,6 +44,22 @@ const bubbles: Bubble[] = [
   { label: "Quarter-life",      top: "90%", left: "90%", size: "md", color: "coral-solid", float: "float-slow float-delay-3",   delay: 0.34 },
 ]
 
+// Fewer bubbles for mobile — scattered at edges, center kept clear for the heading
+const mobileBubbles = [
+  { label: "Anxiety",        top: "7%",  left: "10%", color: "navy-light"  as BubbleColor, float: "float-slow",                 delay: 0.05 },
+  { label: "Burnout",        top: "4%",  left: "72%", color: "coral-solid" as BubbleColor, float: "float-medium float-delay-1", delay: 0.10 },
+  { label: "Loneliness",     top: "6%",  left: "90%", color: "teal-light"  as BubbleColor, float: "float-slow float-delay-2",   delay: 0.08 },
+  { label: "Depression",     top: "26%", left: "5%",  color: "teal-solid"  as BubbleColor, float: "float-slow float-delay-3",   delay: 0.14 },
+  { label: "Teen struggles", top: "30%", left: "87%", color: "navy-solid"  as BubbleColor, float: "float-medium float-delay-2", delay: 0.18 },
+  { label: "Grief",          top: "52%", left: "3%",  color: "coral-light" as BubbleColor, float: "float-medium float-delay-1", delay: 0.20 },
+  { label: "Overthinking",   top: "55%", left: "87%", color: "navy-light"  as BubbleColor, float: "float-slow float-delay-3",   delay: 0.16 },
+  { label: "Work stress",    top: "72%", left: "8%",  color: "coral-solid" as BubbleColor, float: "float-slow float-delay-1",   delay: 0.22 },
+  { label: "Identity",       top: "75%", left: "82%", color: "teal-light"  as BubbleColor, float: "float-medium float-delay-3", delay: 0.24 },
+  { label: "Relationship",   top: "88%", left: "4%",  color: "navy-light"  as BubbleColor, float: "float-slow float-delay-2",   delay: 0.28 },
+  { label: "Quarter-life",   top: "90%", left: "52%", color: "coral-light" as BubbleColor, float: "float-medium float-delay-1", delay: 0.26 },
+  { label: "Panic attacks",  top: "88%", left: "86%", color: "teal-solid"  as BubbleColor, float: "float-slow float-delay-3",   delay: 0.30 },
+]
+
 const colorStyles: Record<BubbleColor, string> = {
   "teal-solid":  "bg-[#7EC0B7] text-white shadow-md shadow-[#7EC0B7]/30",
   "teal-light":  "bg-[#7EC0B7]/15 text-[#3D8A80]",
@@ -116,40 +132,46 @@ const TherapyNeeds = () => {
             ))}
           </div>
 
-          {/* ── Mobile: heading + flex-wrap chips ── */}
-          <div className="md:hidden">
-            <motion.h2
-              className="text-3xl font-black text-[#233551] leading-tight text-center mb-8"
-              style={{ fontFamily: 'var(--font-lato)' }}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              Whatever it is —<br />there&apos;s a name for it.
-            </motion.h2>
+          {/* ── Mobile: scattered background bubbles + centred heading ── */}
+          <div className="md:hidden relative overflow-hidden" style={{ minHeight: '400px' }}>
 
-            <div className="flex flex-wrap justify-center gap-3">
-              {bubbles.map((bubble, i) => (
-                <motion.div
-                  key={bubble.label}
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: i * 0.04, type: "spring", stiffness: 280, damping: 22 }}
+            {/* Background bubbles — scattered at edges, center clear */}
+            {mobileBubbles.map((b, i) => (
+              <motion.div
+                key={b.label}
+                className="absolute -translate-x-1/2 -translate-y-1/2"
+                style={{ top: b.top, left: b.left }}
+                initial={{ opacity: 0, scale: 0.4 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: '-30px' }}
+                transition={{ duration: 0.45, delay: b.delay, type: 'spring', stiffness: 260, damping: 20 }}
+              >
+                <div
+                  className={`
+                    ${b.float}
+                    ${colorStyles[b.color]}
+                    w-[68px] h-[68px] rounded-full flex items-center justify-center text-center
+                    text-[10px] font-semibold leading-tight px-2 select-none opacity-80
+                  `}
+                  style={{ fontFamily: 'var(--font-lato)' }}
                 >
-                  <div
-                    className={`
-                      ${colorStyles[bubble.color]}
-                      w-20 h-20 rounded-full flex items-center justify-center text-center
-                      text-[11px] font-semibold leading-tight px-2 select-none
-                    `}
-                    style={{ fontFamily: 'var(--font-lato)' }}
-                  >
-                    {bubble.label}
-                  </div>
-                </motion.div>
-              ))}
+                  {b.label}
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Heading — centered over the bubble field */}
+            <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-10">
+              <motion.h2
+                className="text-3xl font-black text-[#233551] leading-tight text-center"
+                style={{ fontFamily: 'var(--font-lato)' }}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.15 }}
+              >
+                Whatever it is —<br />there&apos;s a name for it.
+              </motion.h2>
             </div>
           </div>
 

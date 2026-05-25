@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
-import { OwlLogo } from "@/components/home/OwlLogo"
+import { BrandLogo } from "@/components/shared/BrandLogo"
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -13,19 +13,14 @@ const Navbar = () => {
       <div className="max-w-6xl mx-auto flex items-center justify-between h-16 px-6">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <OwlLogo size={34} />
-          <span className="font-black text-xl tracking-tight text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo owlSize={34} />
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           <Link href="/about" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             About Us
           </Link>
-          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
+          <Link href="/therapist/join" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
             Join as Therapist
           </Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/60 hover:text-[#233551] transition-colors">
@@ -69,7 +64,7 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-6 py-5 flex flex-col gap-4">
           <Link href="/about" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>About Us</Link>
-          <Link href="/therapist/apply" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Join as Therapist</Link>
+          <Link href="/therapist/join" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Join as Therapist</Link>
           <Link href="/blog" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Blog</Link>
           <Link href="/market-reports" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Market Reports</Link>
           <Link href="/contact" className="text-sm font-medium text-[#233551]/70" onClick={() => setMobileOpen(false)}>Contact</Link>

@@ -165,28 +165,28 @@ const treatmentGap: DeepDiveReport = {
 }
 
 const suicideCrisis: DeepDiveReport = {
-  slug: "suicide-in-india",
-  title: "Suicide in India",
+  slug: "crisis-mortality-india",
+  title: "Crisis Mortality in India",
   subtitle: "What the official numbers miss — and what the research shows",
   section: "national",
   sectionLabel: "National Picture",
   publishedAt: "2026-01-22",
   intro:
-    "India accounts for approximately 17% of global suicide deaths. The recorded numbers are likely an undercount. The patterns behind the data — by gender, region, method, and economic condition — reveal a crisis shaped by specific structural factors, most of which are policy-addressable. This report examines what the data shows and why it is underreported.",
+    "India accounts for approximately 17% of global crisis-related deaths. The recorded numbers are likely an undercount. The patterns behind the data — by gender, region, method, and economic condition — reveal a crisis shaped by specific structural factors, most of which are policy-addressable. This report examines what the data shows and why it is underreported.",
   keyStats: [
     {
       figure: "164,033",
-      label: "Recorded suicide deaths in India in 2021 — highest ever recorded",
+      label: "Recorded crisis-related deaths in India in 2021 — highest ever recorded",
       source: "NCRB, 2022",
     },
     {
       figure: "17%",
-      label: "Share of global suicide deaths attributed to India",
+      label: "Share of global crisis-related deaths attributed to India",
       source: "WHO, 2021",
     },
     {
       figure: "14.7",
-      label: "Female suicide rate per 100,000 — more than double the global average for women",
+      label: "Female crisis mortality rate per 100,000 — more than double the global average for women",
       source: "WHO Global Health Observatory",
     },
     {
@@ -196,12 +196,12 @@ const suicideCrisis: DeepDiveReport = {
     },
     {
       figure: "10,881",
-      label: "Farmer and agricultural labourer suicides recorded in 2021",
+      label: "Farmer and agricultural labourer crisis deaths recorded in 2021",
       source: "NCRB, 2022",
     },
     {
       figure: "2017",
-      label: "Year suicide was decriminalised in India (Mental Healthcare Act)",
+      label: "Year crisis-related deaths were decriminalised in India (Mental Healthcare Act)",
       source: "Ministry of Law and Justice",
     },
   ],
@@ -210,43 +210,43 @@ const suicideCrisis: DeepDiveReport = {
       heading: "The official count is a systematic underestimate",
       body: "A landmark 2012 study published in The Lancet (Registrar General of India / CGHR) compared survey-based mortality data against NCRB official records and found that actual suicide deaths were 2.3–3.1 times higher than officially recorded. In 2010, the NCRB recorded approximately 134,000 suicides; the same study estimated the actual figure at 187,000–260,000. Causes of underreporting include: families citing stigma, insurance policy clauses that void payouts for suicide, lingering social and procedural consequences from the era when suicide was a criminal offence (prior to 2017), and limited forensic capacity in rural areas to distinguish suicide from accidental death.",
       stat: "2–3×",
-      statLabel: "the real number vs. official count",
+      statLabel: "estimated real figure vs. official count",
     },
     {
       heading: "Young adults and women are disproportionately affected",
-      body: "Adults aged 18–45 account for the majority of suicide deaths in India. The 18–30 cohort is the single largest age group in NCRB data. India's female suicide rate (14.7 per 100,000) is among the highest in the world for women — more than double the global female average of approximately 6.1 per 100,000 (WHO). Research attributes the high female rate to domestic violence, limited economic autonomy, early marriage, and few socially acceptable pathways out of harmful domestic situations. In contrast, the global pattern shows male suicide rates typically exceeding female rates by 2–3 times; in India, the ratio is much closer.",
+      body: "Adults aged 18–45 account for the majority of crisis-related deaths in India. The 18–30 cohort is the single largest age group in NCRB data. India's female crisis mortality rate (14.7 per 100,000) is among the highest in the world for women — more than double the global female average of approximately 6.1 per 100,000 (WHO). Research attributes the high female rate to domestic violence, limited economic autonomy, early marriage, and few socially acceptable pathways out of harmful domestic situations. In contrast, the global pattern shows male mortality rates typically exceeding female rates by 2–3 times; in India, the ratio is much closer.",
       stat: "14.7",
-      statLabel: "female suicide rate per 100K",
+      statLabel: "female crisis mortality rate per 100K",
     },
     {
       heading: "Method lethality is a policy-addressable factor",
-      body: "In rural India, pesticide ingestion is the leading method of suicide — and one of the most lethal. WHO research estimates that up to 30% of global suicide deaths result from pesticide poisoning, with India and other South/Southeast Asian nations accounting for the majority. The lethality of pesticide ingestion means that impulsive acts — which might result in survivable attempts with less accessible means — are fatal. WHO has identified pesticide restriction as one of the highest-impact single interventions available globally. Sri Lanka's restrictions on highly toxic pesticides correlated with a 70% reduction in suicide rates over 20 years. India has moved slowly on this evidence.",
+      body: "In rural India, pesticide ingestion is the leading method involved in crisis deaths — and one of the most lethal. WHO research estimates that up to 30% of global crisis-related deaths result from pesticide poisoning, with India and other South/Southeast Asian nations accounting for the majority. The lethality of pesticide ingestion means that impulsive acts — which might result in survivable outcomes with less accessible means — are fatal. WHO has identified pesticide restriction as one of the highest-impact single interventions available globally. Sri Lanka's restrictions on highly toxic pesticides correlated with a 70% reduction in crisis mortality rates over 20 years. India has moved slowly on this evidence.",
       stat: "30%",
-      statLabel: "of global suicides involve pesticides",
+      statLabel: "of global crisis deaths involve pesticides",
     },
     {
-      heading: "Farmer suicide is a distinct and documented sub-crisis",
-      body: "India has recorded farmer suicides as a separate category since 1995. The NCRB recorded 10,881 farmer and agricultural labourer suicides in 2021. Research shows strong correlations with crop failure years, indebtedness (particularly to informal moneylenders at high interest rates), and commodity price volatility. Maharashtra, Karnataka, and Andhra Pradesh consistently account for the highest numbers. A 2021 EPW meta-analysis found that suicides peak in the months immediately following crop failure announcement or loan default notification. Crucially, farmers in distress rarely access mental health support — in affected regions, a single ASHA worker may cover populations of 1,000–1,500 with no mental health training.",
+      heading: "Farmer crisis mortality is a distinct and documented sub-crisis",
+      body: "India has recorded farmer crisis deaths as a separate category since 1995. The NCRB recorded 10,881 farmer and agricultural labourer crisis deaths in 2021. Research shows strong correlations with crop failure years, indebtedness (particularly to informal moneylenders at high interest rates), and commodity price volatility. Maharashtra, Karnataka, and Andhra Pradesh consistently account for the highest numbers. A 2021 EPW meta-analysis found that crisis deaths peak in the months immediately following crop failure announcement or loan default notification. Crucially, farmers in distress rarely access mental health support — in affected regions, a single ASHA worker may cover populations of 1,000–1,500 with no mental health training.",
       stat: "10,881",
-      statLabel: "farmer suicides recorded in 2021",
+      statLabel: "farmer crisis deaths recorded in 2021",
     },
     {
       heading: "The criminalisation legacy continues to shape behaviour",
-      body: "Section 309 of the Indian Penal Code criminalised suicide attempts until its effective repeal through the Mental Healthcare Act 2017. For over 150 years, a person who survived a suicide attempt could be prosecuted. The psychological and social consequences of this legal framework — families concealing deaths, survivors afraid to seek care, medical staff uncertain of obligations — did not evaporate in 2017. Research on stigma persistence after decriminalisation in other jurisdictions consistently shows multi-decade effects. In India, the cultural memory of criminalisation continues to shape both family reporting behaviour and individual willingness to acknowledge suicidal ideation to health workers.",
+      body: "Section 309 of the Indian Penal Code criminalised crisis-related acts until its effective repeal through the Mental Healthcare Act 2017. For over 150 years, a person who survived a mental health crisis could be prosecuted. The psychological and social consequences of this legal framework — families concealing deaths, survivors afraid to seek care, medical staff uncertain of obligations — did not evaporate in 2017. Research on stigma persistence after decriminalisation in other jurisdictions consistently shows multi-decade effects. In India, the cultural memory of criminalisation continues to shape both family reporting behaviour and individual willingness to acknowledge mental health distress to health workers.",
       stat: "150+",
       statLabel: "years of criminalisation",
     },
     {
-      heading: "The relationship between mental health treatment gap and suicide is not incidental",
-      body: "An estimated 90% of suicide deaths globally occur in the context of a diagnosable mental health condition (WHO). In India, where 83% of people with mental illness receive no treatment, the mathematical relationship between the treatment gap and suicide mortality is direct. Research on gatekeeper training programs (MANAS trial, iCall, Vandrevala Foundation data) consistently shows that increasing access to basic psychosocial support in communities with high distress reduces suicidal ideation and attempts. The treatment gap is not a passive background condition — it is a contributing cause.",
+      heading: "The relationship between mental health treatment gap and crisis mortality is not incidental",
+      body: "An estimated 90% of crisis-related deaths globally occur in the context of a diagnosable mental health condition (WHO). In India, where 83% of people with mental illness receive no treatment, the mathematical relationship between the treatment gap and crisis mortality is direct. Research on gatekeeper training programs (MANAS trial, iCall, Vandrevala Foundation data) consistently shows that increasing access to basic psychosocial support in communities with high distress reduces mental health distress and crisis risk. The treatment gap is not a passive background condition — it is a contributing cause.",
       stat: "90%",
-      statLabel: "of suicides involve untreated mental illness",
+      statLabel: "of crisis deaths involve untreated mental illness",
     },
   ],
   whyThisHappens: [
     {
       heading: "Legal frameworks created systematic incentives to conceal",
-      body: "For 150 years, the criminal status of suicide attempts meant families had active legal and financial reasons to record deaths differently. Insurance policies, police involvement, and social consequences all created pressure toward misclassification. The 2017 Mental Healthcare Act removed the criminal sanction but could not immediately undo the institutional and cultural practices built around concealment. Civil registration of deaths — the mechanism by which cause of death is recorded — varies in quality across states and is near-absent in many rural areas.",
+      body: "For 150 years, the criminal status of crisis-related acts meant families had active legal and financial reasons to record deaths differently. Insurance policies, police involvement, and social consequences all created pressure toward misclassification. The 2017 Mental Healthcare Act removed the criminal sanction but could not immediately undo the institutional and cultural practices built around concealment. Civil registration of deaths — the mechanism by which cause of death is recorded — varies in quality across states and is near-absent in many rural areas.",
     },
     {
       heading: "Economic precarity amplifies psychological risk",
@@ -254,11 +254,11 @@ const suicideCrisis: DeepDiveReport = {
     },
     {
       heading: "Means restriction has proven impact but faces implementation resistance",
-      body: "The evidence for pesticide restriction as a suicide prevention intervention is among the strongest in public health. Sri Lanka, Bangladesh, and South Korea all show significant reductions in suicide rates following restriction of highly toxic pesticides. In India, the Central Insecticide Board has moved to restrict certain highly toxic compounds, but enforcement is uneven and the agricultural lobby has historically resisted restrictions that reduce crop protection options for farmers. The tension between agricultural economics and public health policy has slowed implementation of a proven intervention.",
+      body: "The evidence for pesticide restriction as a crisis prevention intervention is among the strongest in public health. Sri Lanka, Bangladesh, and South Korea all show significant reductions in crisis mortality rates following restriction of highly toxic pesticides. In India, the Central Insecticide Board has moved to restrict certain highly toxic compounds, but enforcement is uneven and the agricultural lobby has historically resisted restrictions that reduce crop protection options for farmers. The tension between agricultural economics and public health policy has slowed implementation of a proven intervention.",
     },
   ],
   implications:
-    "Suicide in India requires responses at multiple levels simultaneously: means restriction at the policy level, mental health workforce expansion at the system level, and accessible, low-stigma support at the individual level. Online therapy does not address the immediate crisis dimensions of suicide — but it is one of the few mechanisms that reaches working adults in distress before they reach crisis point. The evidence on stepped-care models consistently shows that earlier access to lower-intensity support reduces progression to severe states. Closing the treatment gap is, among other things, a suicide prevention strategy.",
+    "Crisis mortality in India requires responses at multiple levels simultaneously: means restriction at the policy level, mental health workforce expansion at the system level, and accessible, low-stigma support at the individual level. Online therapy does not address the immediate dimensions of acute mental health crises — but it is one of the few mechanisms that reaches working adults in distress before they reach crisis point. The evidence on stepped-care models consistently shows that earlier access to lower-intensity support reduces progression to severe states. Closing the treatment gap is, among other things, a crisis prevention strategy.",
   sources: [
     {
       title: "Accidental Deaths & Suicides in India 2021",

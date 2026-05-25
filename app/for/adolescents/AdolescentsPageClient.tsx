@@ -4,6 +4,9 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { PLANS } from '@/lib/plans'
+
+const STARTING_PRICE = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
 
 const EyebrowBadge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
@@ -345,7 +348,7 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
-      {/* ── THE SUSTAINABLE HABIT (₹2,999/week) ── */}
+      {/* ── THE SUSTAINABLE HABIT ── */}
       <section className="bg-[#7EC0B7] py-20">
         <div className="max-w-5xl mx-auto px-6">
           <motion.div
@@ -355,7 +358,7 @@ export default function AdolescentsPageClient() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-2xl mx-auto mb-12"
           >
-            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">₹2,999 / week</p>
+            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">{STARTING_PRICE}</p>
             <h2
               className="text-3xl md:text-4xl font-black text-white mb-4"
               style={{ fontFamily: 'var(--font-lato)' }}

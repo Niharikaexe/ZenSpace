@@ -1,7 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { TherapistNav } from '@/components/therapist/TherapistNav'
-import MessengerLayout from '@/components/therapist/MessengerLayout'
+import TherapistChatShell from '@/components/therapist/TherapistChatShell'
 import { getNotifications } from '@/app/actions/notifications'
 
 export const dynamic = 'force-dynamic'
@@ -65,21 +64,12 @@ export default async function TherapistChatPage() {
   const totalUnread = matchData.reduce((sum, m) => sum + m.unreadCount, 0)
 
   return (
-    <div className="h-screen flex flex-col">
-      <TherapistNav
-        therapistName={profile!.full_name}
-        userId={user.id}
-        initialNotifications={initialNotifications}
-        unreadCount={totalUnread}
-        isMatched={true}
-      />
-      <div className="flex-1 overflow-hidden">
-        <MessengerLayout
-          matches={matchData}
-          currentUserId={user.id}
-          therapistName={profile!.full_name}
-        />
-      </div>
-    </div>
+    <TherapistChatShell
+      therapistName={profile!.full_name}
+      userId={user.id}
+      matches={matchData}
+      initialTotalUnread={totalUnread}
+      initialNotifications={initialNotifications}
+    />
   )
 }

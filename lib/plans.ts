@@ -9,16 +9,15 @@ export const PLANS = {
     cadence: 'weekly' as const,
     category: 'individual' as const,
     tagline: 'Everything you need to start',
-    price: '₹1,799',
+    price: '₹1,499',
     per: 'week',
-    amountPaise: 179900,
+    amountPaise: 149900,
     sessionsPerWeek: 1,
     features: [
+      'A licensed therapist tailored just for you',
       '1 video session per week (50 min)',
-      'Unlimited async text messaging',
+      'Unlimited chat with your therapist',
       'Switch therapist anytime',
-      'Session notes (read-only)',
-      'Complete privacy',
     ],
     highlight: false,
     planIdEnvVar: 'RAZORPAY_PLAN_BASIC_WEEKLY',
@@ -28,16 +27,15 @@ export const PLANS = {
     cadence: 'monthly' as const,
     category: 'individual' as const,
     tagline: 'Everything you need to start',
-    price: '₹6,499',
+    price: '₹5,299',
     per: 'month',
-    amountPaise: 649900,
+    amountPaise: 529900,
     sessionsPerWeek: 1,
     features: [
+      'A licensed therapist tailored just for you',
       '4 video sessions per month (50 min each)',
-      'Unlimited async text messaging',
+      'Unlimited chat with your therapist',
       'Switch therapist anytime',
-      'Session notes (read-only)',
-      'Complete privacy',
     ],
     highlight: false,
     planIdEnvVar: 'RAZORPAY_PLAN_BASIC_MONTHLY',
@@ -52,12 +50,11 @@ export const PLANS = {
     amountPaise: 449900,
     sessionsPerWeek: 1,
     features: [
+      'A licensed international therapist just for you',
       '1 video session per week (50 min)',
-      'Unlimited async text messaging',
-      'Priority message response',
-      'Foreign therapist access',
+      'Unlimited priority chat with your therapist',
       'Switch therapist anytime',
-      'Session notes (read-only)',
+      'Community benefits and more',
     ],
     highlight: true,
     planIdEnvVar: 'RAZORPAY_PLAN_PREMIUM_WEEKLY',
@@ -67,17 +64,16 @@ export const PLANS = {
     cadence: 'monthly' as const,
     category: 'individual' as const,
     tagline: 'Priority access and global therapists',
-    price: '₹16,499',
+    price: '₹15,699',
     per: 'month',
-    amountPaise: 1649900,
+    amountPaise: 1569900,
     sessionsPerWeek: 1,
     features: [
+      'A licensed international therapist just for you',
       '4 video sessions per month (50 min each)',
-      'Unlimited async text messaging',
-      'Priority message response',
-      'Foreign therapist access',
+      'Unlimited priority chat with your therapist',
       'Switch therapist anytime',
-      'Session notes (read-only)',
+      'Community benefits and more',
     ],
     highlight: true,
     planIdEnvVar: 'RAZORPAY_PLAN_PREMIUM_MONTHLY',
@@ -89,12 +85,12 @@ export const PLANS = {
     cadence: 'weekly' as const,
     category: 'couples' as const,
     tagline: 'Work through it together',
-    price: '₹3,200',
+    price: '₹2,299',
     per: 'week',
-    amountPaise: 320000,
+    amountPaise: 229900,
     sessionsPerWeek: 1,
     features: [
-      '1 couples session per week (60 min)',
+      '1 couples session per week (50 min)',
       'Unlimited async text for both partners',
       'Switch therapist anytime',
       'Session notes (read-only)',
@@ -108,12 +104,12 @@ export const PLANS = {
     cadence: 'monthly' as const,
     category: 'couples' as const,
     tagline: 'Work through it together',
-    price: '₹11,699',
+    price: '₹7,999',
     per: 'month',
-    amountPaise: 1169900,
+    amountPaise: 799900,
     sessionsPerWeek: 1,
     features: [
-      '4 couples sessions per month (60 min each)',
+      '4 couples sessions per month (50 min each)',
       'Unlimited async text for both partners',
       'Switch therapist anytime',
       'Session notes (read-only)',
@@ -127,12 +123,12 @@ export const PLANS = {
     cadence: 'weekly' as const,
     category: 'couples' as const,
     tagline: 'Priority care for both of you',
-    price: '₹7,499',
+    price: '₹5,499',
     per: 'week',
-    amountPaise: 749900,
+    amountPaise: 549900,
     sessionsPerWeek: 1,
     features: [
-      '1 couples session per week (60 min)',
+      '1 couples session per week (50 min)',
       'Unlimited async text for both partners',
       'Priority message response',
       'Foreign therapist access',
@@ -147,12 +143,12 @@ export const PLANS = {
     cadence: 'monthly' as const,
     category: 'couples' as const,
     tagline: 'Priority care for both of you',
-    price: '₹25,000',
+    price: '₹19,499',
     per: 'month',
-    amountPaise: 2500000,
+    amountPaise: 1949900,
     sessionsPerWeek: 1,
     features: [
-      '4 couples sessions per month (60 min each)',
+      '4 couples sessions per month (50 min each)',
       'Unlimited async text for both partners',
       'Priority message response',
       'Foreign therapist access',
@@ -169,6 +165,26 @@ export type PlanCadence = 'weekly' | 'monthly'
 export type PlanCategory = 'individual' | 'couples'
 
 export const PLAN_KEYS = Object.keys(PLANS) as PlanKey[]
+
+/**
+ * Therapist's default revenue share per completed session — 75% of the
+ * per-session value of the client's subscription plan, in rupees.
+ *
+ * Weekly plans bill for 1 session/week, so per-session value = full weekly
+ * charge. Monthly plans bill for 4 sessions/month, so per-session value =
+ * monthly charge ÷ 4.
+ *
+ * Example: client on premium_monthly (₹15,699/mo) → ₹3,925 per session →
+ * therapist gets ₹2,944 per completed session.
+ */
+export const DEFAULT_THERAPIST_SHARE_RATE = 0.75
+
+export function therapistSessionPayout(planKey: PlanKey, shareRate: number = DEFAULT_THERAPIST_SHARE_RATE): number {
+  const plan = PLANS[planKey]
+  const sessionsInPeriod = plan.cadence === 'monthly' ? 4 : 1
+  const perSessionRupees = (plan.amountPaise / 100) / sessionsInPeriod
+  return Math.round(perSessionRupees * shareRate)
+}
 
 /** Returns the Razorpay plan ID from env, or null if not configured. */
 export function getRazorpayPlanId(planKey: PlanKey): string | null {

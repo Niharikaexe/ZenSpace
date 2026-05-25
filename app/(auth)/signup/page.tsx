@@ -3,7 +3,9 @@
 import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { signUp } from '@/app/actions/auth'
+import { signUp, type AuthState } from '@/app/actions/auth'
+import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
+import { OwlLogo } from '@/components/home/OwlLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,10 +36,49 @@ const usps = [
   },
 ]
 
+// Client-side debug wrapper around the server action so we can see in
+// browser DevTools exactly what FormData is sent and what came back.
+async function signUpWithLogging(prev: AuthState, fd: FormData): Promise<AuthState> {
+  // eslint-disable-next-line no-console
+  console.log('[signup] submit →', {
+    fullName: fd.get('fullName'),
+    email: fd.get('email'),
+    password: typeof fd.get('password') === 'string' ? `(${(fd.get('password') as string).length} chars)` : null,
+    role: fd.get('role'),
+    hasQuestionnaire: !!fd.get('questionnaireData'),
+  })
+  try {
+    const result = await signUp(prev, fd)
+    // eslint-disable-next-line no-console
+    console.log('[signup] action returned →', result)
+    return result
+  } catch (err) {
+    // Server-side redirect() throws a NEXT_REDIRECT — that's expected,
+    // it's how Next.js short-circuits out of a server action. We re-throw
+    // so the redirect actually happens.
+    if (err && typeof err === 'object' && 'digest' in err && String((err as { digest?: string }).digest).startsWith('NEXT_REDIRECT')) {
+      // eslint-disable-next-line no-console
+      console.log('[signup] action ended in redirect (success)')
+      throw err
+    }
+    // eslint-disable-next-line no-console
+    console.error('[signup] action threw unexpectedly →', err)
+    return { error: err instanceof Error ? err.message : 'Unexpected error (see DevTools console).' }
+  }
+}
+
 export default function SignupPage() {
-  const [state, action, isPending] = useActionState(signUp, initialState)
+  const [state, action, isPending] = useActionState(signUpWithLogging, initialState)
   const [questionnaireData, setQuestionnaireData] = useState('')
+  const [therapyCategory, setTherapyCategory] = useState<'individual' | 'couples' | 'teen'>('individual')
   const [showPassword, setShowPassword] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [blurred, setBlurred] = useState({ fullName: false, email: false, password: false })
+  // Local copy of server error — cleared as soon as user edits any field
+  const [serverError, setServerError] = useState<string | undefined>()
 
   useEffect(() => {
     const stored = sessionStorage.getItem('mindcanopy_questionnaire')
@@ -45,18 +86,43 @@ export default function SignupPage() {
   }, [])
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[signup] state changed →', state)
+  }, [state])
+
+  useEffect(() => { setServerError(state.error) }, [state.error])
+
+  useEffect(() => {
     if (state.success) {
       sessionStorage.removeItem('mindcanopy_questionnaire')
     }
   }, [state.success])
 
+  function markBlurred(field: keyof typeof blurred) {
+    setBlurred(prev => ({ ...prev, [field]: true }))
+  }
+
+  function clearServerError() { setServerError(undefined) }
+
+  // Inline validation — only shown after the field has been blurred
+  const nameError = blurred.fullName && fullName.trim().length > 0 && fullName.trim().length < 2
+    ? 'Name must be at least 2 characters' : ''
+  const emailError = blurred.email && email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ? 'Enter a valid email address' : ''
+  const passwordError = blurred.password && password.length > 0 && password.length < 8
+    ? 'Must be at least 8 characters' : ''
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword
+
+  const hasInlineErrors = !!nameError || !!emailError || !!passwordError || passwordMismatch
+
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex">
       {/* ── LEFT PANEL ── */}
-      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-y-auto p-10 xl:p-12">
+      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-hidden p-10 xl:p-12">
         {/* Logo */}
         <div className="mb-10">
-          <Link href="/">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <OwlLogo size={28} variant="light" />
             <span
               className="font-black text-2xl tracking-tight text-white"
               style={{ fontFamily: 'var(--font-lato)' }}
@@ -64,7 +130,6 @@ export default function SignupPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         {/* USPs */}
@@ -84,12 +149,7 @@ export default function SignupPage() {
 
         {/* Testimonial */}
         <div className="mt-10">
-          <div className="bg-[#E8926A]/15 border border-[#E8926A]/25 rounded-2xl px-5 py-4">
-            <p className="text-white/90 text-sm leading-relaxed italic">
-              "Changed how I handle anxiety at work."
-            </p>
-            <p className="text-[#E8926A] text-xs font-semibold mt-2">— Priya, 28, Mumbai</p>
-          </div>
+          <RotatingTestimonial />
         </div>
 
         {/* Bottom sign-in link */}
@@ -109,15 +169,15 @@ export default function SignupPage() {
 
           {/* Mobile logo */}
           <div className="md:hidden w-full max-w-md mb-8 text-center">
-            <Link href="/">
+            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+              <OwlLogo size={28} />
               <span
-                className="font-black text-2xl tracking-tight text-[#233551]"
+                className="font-black text-2xl tracking-tight text-[#3D8A80]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">
@@ -156,15 +216,51 @@ export default function SignupPage() {
                   </p>
                 </div>
 
-                {state.error && (
+                {serverError && (
                   <Alert variant="destructive" className="mb-5">
-                    <AlertDescription>{state.error}</AlertDescription>
+                    <AlertDescription>{serverError}</AlertDescription>
                   </Alert>
                 )}
 
-                <form action={action} className="space-y-4">
+                <form
+                  action={action}
+                  onSubmit={(e) => {
+                    if (password !== confirmPassword) {
+                      e.preventDefault()
+                    }
+                  }}
+                  className="space-y-4"
+                >
                   <input type="hidden" name="role" value="client" />
                   <input type="hidden" name="questionnaireData" value={questionnaireData} />
+                  <input type="hidden" name="therapyCategory" value={therapyCategory} />
+
+                  {/* Therapy type selector */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[#233551] font-medium text-sm">
+                      This therapy is for
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'individual', label: 'Individual' },
+                        { value: 'couples',    label: 'Couples' },
+                        { value: 'teen',       label: 'Teen (13–19)' },
+                      ] as const).map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setTherapyCategory(opt.value)}
+                          className={`flex items-center justify-center py-3 px-2 rounded-xl border-2 text-center transition-all ${
+                            therapyCategory === opt.value
+                              ? 'border-[#7EC0B7] bg-[#7EC0B7]/10'
+                              : 'border-slate-200 hover:border-[#7EC0B7]/50'
+                          }`}
+                        >
+                          <span className="font-bold text-sm text-[#233551]">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="fullName" className="text-[#233551] font-medium text-sm">
@@ -177,8 +273,14 @@ export default function SignupPage() {
                       placeholder="Jane Doe"
                       required
                       autoComplete="name"
-                      className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11"
+                      value={fullName}
+                      onChange={(e) => { setFullName(e.target.value); clearServerError() }}
+                      onBlur={() => markBlurred('fullName')}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        nameError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
                     />
+                    {nameError && <p className="text-xs text-red-500">{nameError}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -192,8 +294,14 @@ export default function SignupPage() {
                       placeholder="you@example.com"
                       required
                       autoComplete="email"
-                      className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); clearServerError() }}
+                      onBlur={() => markBlurred('email')}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        emailError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
                     />
+                    {emailError && <p className="text-xs text-red-500">{emailError}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -205,10 +313,15 @@ export default function SignupPage() {
                         id="password"
                         name="password"
                         type={showPassword ? 'text' : 'password'}
-                        placeholder="Min. 8 characters"
+                        placeholder="At least 8 characters"
                         required
                         autoComplete="new-password"
-                        className="rounded-xl border-slate-200 focus:border-[#7EC0B7] focus:ring-[#7EC0B7]/20 h-11 pr-10"
+                        value={password}
+                        onChange={(e) => { setPassword(e.target.value); clearServerError() }}
+                        onBlur={() => markBlurred('password')}
+                        className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 pr-10 ${
+                          passwordError ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-[#7EC0B7]'
+                        }`}
                       />
                       <button
                         type="button"
@@ -219,12 +332,37 @@ export default function SignupPage() {
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
+                    {passwordError && <p className="text-xs text-red-500">{passwordError}</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="confirmPassword" className="text-[#233551] font-medium text-sm">
+                      Confirm password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Re-enter your password"
+                      required
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={(e) => { setConfirmPassword(e.target.value); clearServerError() }}
+                      className={`rounded-xl h-11 focus:ring-[#7EC0B7]/20 ${
+                        passwordMismatch
+                          ? 'border-red-300 focus:border-red-400'
+                          : 'border-slate-200 focus:border-[#7EC0B7]'
+                      }`}
+                    />
+                    {passwordMismatch && (
+                      <p className="text-xs text-red-500">Passwords don't match.</p>
+                    )}
                   </div>
 
                   <Button
                     type="submit"
-                    className="w-full h-11 rounded-full bg-[#7EC0B7] hover:bg-[#3D8A80] text-white font-bold text-sm transition-colors mt-2"
-                    disabled={isPending}
+                    className="w-full h-11 rounded-full bg-[#7EC0B7] hover:bg-[#3D8A80] text-white font-bold text-sm transition-colors mt-2 disabled:opacity-60"
+                    disabled={isPending || hasInlineErrors || password.length === 0}
                   >
                     {isPending ? 'Creating account...' : 'Create account'}
                   </Button>

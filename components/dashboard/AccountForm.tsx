@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { updateProfile, sendPasswordReset, type ProfileActionState } from '@/app/actions/profile'
 import { signOut } from '@/app/actions/auth'
 import { deleteAccount } from '@/app/actions/delete-account'
-import { DashboardNav } from './DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 
 const initialState: ProfileActionState = {}
 
@@ -64,7 +64,7 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={userName} isMatched={isMatched} />
+      <ClientNav userName={userName} isMatched={isMatched} />
 
       <main className="max-w-2xl mx-auto px-4 py-10">
         <Link
@@ -236,17 +236,21 @@ export function AccountForm({ userName, userEmail, isMatched, subscription }: Pr
           )}
         </section>
 
-        {/* Payment */}
+        {/* Payment method */}
         <section className="bg-white border border-slate-100 rounded-3xl p-6 mb-4 shadow-sm">
           <h2 className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-2">
-            Payment
+            Payment method
           </h2>
           <p className="text-sm text-[#233551]/50 mb-4 leading-relaxed">
-            Payment method is managed via Razorpay. Billing history and card details will be available here soon.
+            Card details are processed and stored securely by Razorpay. To update or remove a saved
+            card, manage it from your subscription.
           </p>
-          <div className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center">
-            <p className="text-xs text-[#233551]/30">Payment management coming soon</p>
-          </div>
+          <Link
+            href="/dashboard/subscription"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#3D8A80] hover:underline"
+          >
+            Manage payment method →
+          </Link>
         </section>
 
         {/* Sign out */}

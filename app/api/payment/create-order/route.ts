@@ -2,24 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
-
-export const PLANS = {
-  weekly: {
-    label: 'Weekly',
-    amount: 120000, // ₹1,200 in paise
-    display: '₹1,200 / week',
-    description: 'Flexible weekly access to your therapist',
-  },
-  monthly: {
-    label: 'Monthly',
-    amount: 399900, // ₹3,999 in paise
-    display: '₹3,999 / month',
-    description: 'Best value — save 17% compared to weekly',
-  },
-} as const
+import { PLANS, PLAN_KEYS, type PlanKey } from '@/lib/plans'
 
 const schema = z.object({
-  plan: z.enum(['weekly', 'monthly']),
+  plan: z.enum(PLAN_KEYS as [PlanKey, ...PlanKey[]]),
 })
 
 export async function POST(request: Request) {
@@ -48,8 +34,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
   }
 
-  const { plan } = parsed.data
-  const planData = PLANS[plan]
+  const planKey = parsed.data.plan
+  const planData = PLANS[planKey]
 
   const keyId = process.env.RAZORPAY_KEY_ID
   const keySecret = process.env.RAZORPAY_KEY_SECRET
@@ -67,7 +53,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
       body: JSON.stringify({
-        amount: planData.amount,
+        amount: planData.amountPaise,
         currency: 'INR',
         receipt: `zs_${user.id.slice(0, 8)}_${Date.now()}`,
       }),
@@ -77,7 +63,7 @@ export async function POST(request: Request) {
       const err = await orderRes.json().catch(() => ({}))
       logger.error('api/payment/create-order', 'Razorpay order creation failed', err, {
         userId: user.id,
-        plan,
+        plan: planKey,
         status: orderRes.status,
       })
       return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 })
@@ -93,9 +79,9 @@ export async function POST(request: Request) {
   const admin = createAdminClient()
   const { error: dbErr } = await (admin as any).from('subscriptions').insert({
     client_id: user.id,
-    plan,
+    plan: planKey,
     status: 'pending',
-    amount: planData.amount,
+    amount: planData.amountPaise,
     currency: 'INR',
     razorpay_order_id: order.id,
   })
@@ -109,15 +95,15 @@ export async function POST(request: Request) {
   } else {
     logger.info('api/payment/create-order', 'Pending subscription created', {
       userId: user.id,
-      plan,
+      plan: planKey,
       orderId: order.id,
-      amount: planData.amount,
+      amount: planData.amountPaise,
     })
   }
 
   return NextResponse.json({
     order_id: order.id,
-    amount: planData.amount,
+    amount: planData.amountPaise,
     currency: 'INR',
     key: keyId,
   })

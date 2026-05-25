@@ -1,17 +1,55 @@
 'use client'
 
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useRef } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 import { submitTherapistApplication, type ApplyState } from './actions'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// Therapeutic specialisations: a blend of presenting issues and modalities/approaches
+// so therapists can flag both what they treat and how they work.
 const SPECIALIZATIONS = [
-  'Anxiety', 'Depression', 'Stress', 'Relationships', 'Grief', 'Trauma',
-  'Self-esteem', 'Life transitions', 'PTSD', 'Burnout', 'OCD', 'Addiction',
-  'Family therapy', 'Adolescents', 'LGBTQ+', 'Career', 'Anger management',
-  'Eating disorders', 'Sleep issues', 'Chronic illness',
+  // Modalities / approaches
+  'CBT (Cognitive Behavioral Therapy)',
+  'DBT (Dialectical Behavior Therapy)',
+  'ACT (Acceptance & Commitment Therapy)',
+  'EMDR',
+  'Psychodynamic therapy',
+  'Person-centered / Humanistic',
+  'Mindfulness-based / MBCT',
+  'Solution-focused brief therapy',
+  'Schema therapy',
+  'Internal Family Systems (IFS)',
+  'Narrative therapy',
+  'Gottman method (couples)',
+  'Emotionally Focused Therapy (EFT)',
+  'Trauma-focused CBT',
+  // Presenting issues
+  'Anxiety',
+  'Depression',
+  'Stress & burnout',
+  'Trauma / PTSD',
+  'Grief & loss',
+  'Relationships',
+  'Couples therapy',
+  'Family conflicts',
+  'Self-esteem & identity',
+  'Life transitions',
+  'OCD',
+  'Addiction / substance use',
+  'Adolescents & teens',
+  'LGBTQ+ identity',
+  'Anger management',
+  'Eating disorders',
+  'Sleep issues',
+  'Postpartum / Perinatal',
+  'ADHD / Neurodivergence',
+  'Bipolar disorder',
+  'Chronic illness',
+  'Career counselling',
 ]
 
 const LANGUAGES = [
@@ -21,13 +59,30 @@ const LANGUAGES = [
 
 const STEPS = ['Personal', 'Credentials', 'Practice']
 
+const ACCEPT_DOC = '.pdf,.doc,.docx,.png,.jpg,.jpeg'
+
+const GENDER_OPTIONS = ['Female', 'Male', 'Non-binary', 'Other', 'Prefer not to say']
+
+// Multi-region ethnicity options based on common international demographic surveys
+const ETHNICITY_OPTIONS = [
+  'South Asian',
+  'East Asian',
+  'Southeast Asian',
+  'Middle Eastern / North African',
+  'Black / African / Caribbean',
+  'White / European',
+  'Hispanic / Latino',
+  'Native American / Indigenous',
+  'Pacific Islander',
+  'Mixed / Multiple ethnicities',
+  'Other',
+  'Prefer not to say',
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
   'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30'
-
-const textareaCls =
-  'w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none'
 
 function Field({
   label,
@@ -58,12 +113,24 @@ function Field({
 
 // ─── Step components ──────────────────────────────────────────────────────────
 
+type PersonalValues = {
+  fullName: string
+  email: string
+  phone: string
+  city: string
+  state: string
+  country: string
+  dateOfBirth: string
+  gender: string
+  ethnicity: string
+}
+
 function StepPersonal({
   values,
   onChange,
 }: {
-  values: { fullName: string; email: string; phone: string; city: string }
-  onChange: (key: string, value: string) => void
+  values: PersonalValues
+  onChange: (key: keyof PersonalValues, value: string) => void
 }) {
   return (
     <div className="space-y-5">
@@ -83,55 +150,176 @@ function StepPersonal({
           type="text"
           value={values.fullName}
           onChange={e => onChange('fullName', e.target.value)}
-          placeholder="Dr. Priya Sharma"
-          className={inputCls}
-        />
-      </Field>
-      <Field label="Email address" required>
-        <input
-          type="email"
-          value={values.email}
-          onChange={e => onChange('email', e.target.value)}
-          placeholder="priya@example.com"
+          placeholder="xxxx"
           className={inputCls}
         />
       </Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Phone number" hint="optional">
+        <Field label="Email address" required>
+          <input
+            type="email"
+            value={values.email}
+            onChange={e => onChange('email', e.target.value)}
+            placeholder="abc@example.com"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Phone number" required>
           <input
             type="tel"
             value={values.phone}
             onChange={e => onChange('phone', e.target.value)}
-            placeholder="+91 98765 43210"
-            className={inputCls}
-          />
-        </Field>
-        <Field label="City" hint="optional">
-          <input
-            type="text"
-            value={values.city}
-            onChange={e => onChange('city', e.target.value)}
-            placeholder="Mumbai"
+            placeholder="+91 xxxxxxxxxx"
             className={inputCls}
           />
         </Field>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Field label="City" required>
+          <input
+            type="text"
+            value={values.city}
+            onChange={e => onChange('city', e.target.value)}
+            placeholder="xxxx"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="State" required>
+          <input
+            type="text"
+            value={values.state}
+            onChange={e => onChange('state', e.target.value)}
+            placeholder="xxxx"
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Country" required>
+          <input
+            type="text"
+            value={values.country}
+            onChange={e => onChange('country', e.target.value)}
+            placeholder="xxxx"
+            className={inputCls}
+          />
+        </Field>
+      </div>
+      <Field label="Date of birth" required>
+        <input
+          type="date"
+          value={values.dateOfBirth}
+          onChange={e => onChange('dateOfBirth', e.target.value)}
+          max={new Date().toISOString().slice(0, 10)}
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Gender" required>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {GENDER_OPTIONS.map(g => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => onChange('gender', g)}
+              className={cn(
+                'text-xs px-3 py-1.5 rounded-full border-2 font-medium transition-all',
+                values.gender === g
+                  ? 'bg-[#233551] text-white border-[#233551]'
+                  : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+              )}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Ethnicity" required>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {ETHNICITY_OPTIONS.map(e => (
+            <button
+              key={e}
+              type="button"
+              onClick={() => onChange('ethnicity', e)}
+              className={cn(
+                'text-xs px-3 py-1.5 rounded-full border-2 font-medium transition-all',
+                values.ethnicity === e
+                  ? 'bg-[#233551] text-white border-[#233551]'
+                  : 'bg-white text-[#233551] border-slate-200 hover:border-[#7EC0B7] hover:text-[#3D8A80]',
+              )}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+      </Field>
     </div>
   )
+}
+
+type CredsValues = {
+  yearsExperience: string
+  education: string
+  linkedinUrl: string
+  cvUrl: string
+  cvFilename: string
+  certificates: { url: string; filename: string }[]
 }
 
 function StepCredentials({
   values,
   onChange,
+  onCvUploaded,
+  onCvRemoved,
+  onCertAdded,
+  onCertRemoved,
 }: {
-  values: {
-    licenseNumber: string
-    licenseBody: string
-    yearsExperience: string
-    education: string
-  }
-  onChange: (key: string, value: string) => void
+  values: CredsValues
+  onChange: (key: 'yearsExperience' | 'education' | 'linkedinUrl', value: string) => void
+  onCvUploaded: (url: string, filename: string) => void
+  onCvRemoved: () => void
+  onCertAdded: (url: string, filename: string) => void
+  onCertRemoved: (index: number) => void
 }) {
+  const cvInputRef = useRef<HTMLInputElement>(null)
+  const certInputRef = useRef<HTMLInputElement>(null)
+  const [cvUploading, setCvUploading] = useState(false)
+  const [certUploading, setCertUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  async function uploadFile(file: File, prefix: string): Promise<string | null> {
+    const supabase = createClient()
+    const ext = file.name.split('.').pop() || 'bin'
+    const path = `${prefix}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage
+      .from('therapist-documents')
+      .upload(path, file, { contentType: file.type, upsert: false })
+    if (error) {
+      setUploadError(error.message)
+      return null
+    }
+    return path
+  }
+
+  async function handleCvSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError(null)
+    setCvUploading(true)
+    const path = await uploadFile(file, 'cv')
+    setCvUploading(false)
+    if (path) onCvUploaded(path, file.name)
+    if (cvInputRef.current) cvInputRef.current.value = ''
+  }
+
+  async function handleCertSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError(null)
+    setCertUploading(true)
+    const path = await uploadFile(file, 'certificates')
+    setCertUploading(false)
+    if (path) onCertAdded(path, file.name)
+    if (certInputRef.current) certInputRef.current.value = ''
+  }
+
   return (
     <div className="space-y-5">
       <div>
@@ -145,24 +333,6 @@ function StepCredentials({
           We verify every therapist before they join the platform.
         </p>
       </div>
-      <Field label="License number" required>
-        <input
-          type="text"
-          value={values.licenseNumber}
-          onChange={e => onChange('licenseNumber', e.target.value)}
-          placeholder="RCI/2019/XXXXX or state council number"
-          className={inputCls}
-        />
-      </Field>
-      <Field label="Licensing body" hint="optional">
-        <input
-          type="text"
-          value={values.licenseBody}
-          onChange={e => onChange('licenseBody', e.target.value)}
-          placeholder="e.g. RCI, State Medical Council"
-          className={inputCls}
-        />
-      </Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="Years of experience" required>
           <input
@@ -175,22 +345,99 @@ function StepCredentials({
             className={inputCls}
           />
         </Field>
-        <Field label="Highest qualification" hint="optional">
+        <Field label="Highest qualification" required>
           <input
             type="text"
             value={values.education}
             onChange={e => onChange('education', e.target.value)}
-            placeholder="M.Phil Clinical Psychology"
+            placeholder="xxxx"
             className={inputCls}
           />
         </Field>
       </div>
-      <div className="bg-[#7EC0B7]/10 border border-[#7EC0B7]/30 rounded-xl px-4 py-3">
-        <p className="text-xs text-[#3D8A80] leading-relaxed">
-          <span className="font-semibold">Don&apos;t have your documents handy?</span> That&apos;s fine — fill in what you can.
-          We&apos;ll ask for certificates and a CV during our intro call.
-        </p>
-      </div>
+
+      <Field label="LinkedIn profile" hint="optional but recommended">
+        <input
+          type="url"
+          value={values.linkedinUrl}
+          onChange={e => onChange('linkedinUrl', e.target.value)}
+          placeholder="https://linkedin.com/in/xxxx"
+          className={inputCls}
+        />
+      </Field>
+
+      {/* CV upload */}
+      <Field label="CV" required hint="PDF or Word">
+        {values.cvFilename ? (
+          <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+            <div className="flex items-center gap-2 min-w-0">
+              <svg className="w-4 h-4 text-[#3D8A80] flex-shrink-0" viewBox="0 0 16 16" fill="none">
+                <path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="M10 2v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+              </svg>
+              <span className="text-sm text-[#233551] truncate">{values.cvFilename}</span>
+            </div>
+            <button type="button" onClick={onCvRemoved} className="text-xs font-semibold text-[#E8926A] hover:text-[#233551] transition-colors flex-shrink-0 ml-3">
+              Remove
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={cvUploading}
+            onClick={() => cvInputRef.current?.click()}
+            className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-semibold text-[#3D8A80] hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5 transition-all disabled:opacity-50"
+          >
+            {cvUploading ? 'Uploading...' : '+ Upload CV'}
+          </button>
+        )}
+        <input
+          ref={cvInputRef}
+          type="file"
+          accept={ACCEPT_DOC}
+          onChange={handleCvSelect}
+          className="hidden"
+        />
+      </Field>
+
+      {/* Certificates upload (multiple) */}
+      <Field label="Certificates" hint="optional — degree, licence, training certificates">
+        <div className="space-y-2">
+          {values.certificates.map((c, i) => (
+            <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200 bg-slate-50">
+              <div className="flex items-center gap-2 min-w-0">
+                <svg className="w-4 h-4 text-[#3D8A80] flex-shrink-0" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                  <path d="M10 2v3h3" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-sm text-[#233551] truncate">{c.filename}</span>
+              </div>
+              <button type="button" onClick={() => onCertRemoved(i)} className="text-xs font-semibold text-[#E8926A] hover:text-[#233551] transition-colors flex-shrink-0 ml-3">
+                Remove
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            disabled={certUploading}
+            onClick={() => certInputRef.current?.click()}
+            className="w-full px-4 py-3 rounded-xl border-2 border-dashed border-slate-200 text-sm font-semibold text-[#3D8A80] hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5 transition-all disabled:opacity-50"
+          >
+            {certUploading ? 'Uploading...' : '+ Add a certificate'}
+          </button>
+          <input
+            ref={certInputRef}
+            type="file"
+            accept={ACCEPT_DOC}
+            onChange={handleCertSelect}
+            className="hidden"
+          />
+        </div>
+      </Field>
+
+      {uploadError && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2.5">{uploadError}</p>
+      )}
     </div>
   )
 }
@@ -203,11 +450,12 @@ function StepPractice({
 }: {
   values: {
     specializations: string[]
+    specializationOther: string
     languages: string[]
-    bio: string
+    languageOther: string
     whyMindcanopy: string
   }
-  onChange: (key: string, value: string) => void
+  onChange: (key: 'specializationOther' | 'languageOther' | 'whyMindcanopy', value: string) => void
   toggleSpecialization: (s: string) => void
   toggleLanguage: (l: string) => void
 }) {
@@ -225,7 +473,7 @@ function StepPractice({
         </p>
       </div>
 
-      <Field label="Areas of specialisation" required>
+      <Field label="Areas of specialisation" required hint="modalities and presenting issues — pick all that apply">
         <div className="flex flex-wrap gap-2 mt-1">
           {SPECIALIZATIONS.map(s => (
             <button
@@ -243,8 +491,17 @@ function StepPractice({
             </button>
           ))}
         </div>
-        {values.specializations.length === 0 && (
-          <p className="text-xs text-[#233551]/40 mt-2">Select at least one area.</p>
+        <div className="mt-3">
+          <input
+            type="text"
+            value={values.specializationOther}
+            onChange={e => onChange('specializationOther', e.target.value)}
+            placeholder="Other (please specify)"
+            className={inputCls}
+          />
+        </div>
+        {values.specializations.length === 0 && !values.specializationOther && (
+          <p className="text-xs text-[#233551]/40 mt-2">Select at least one area or write one in &ldquo;Other&rdquo;.</p>
         )}
       </Field>
 
@@ -266,16 +523,18 @@ function StepPractice({
             </button>
           ))}
         </div>
-      </Field>
-
-      <Field label="Brief bio" required hint="2–4 sentences, shown to matched clients">
-        <textarea
-          value={values.bio}
-          onChange={e => onChange('bio', e.target.value)}
-          placeholder="Describe your background, approach, and what clients can expect when working with you..."
-          rows={4}
-          className={textareaCls}
-        />
+        <div className="mt-3">
+          <input
+            type="text"
+            value={values.languageOther}
+            onChange={e => onChange('languageOther', e.target.value)}
+            placeholder="Other language (please specify)"
+            className={inputCls}
+          />
+        </div>
+        {values.languages.length === 0 && !values.languageOther && (
+          <p className="text-xs text-[#233551]/40 mt-2">Select at least one language or write one in &ldquo;Other&rdquo;.</p>
+        )}
       </Field>
 
       <Field label="Why do you want to join MindCanopy?" hint="optional">
@@ -284,7 +543,7 @@ function StepPractice({
           onChange={e => onChange('whyMindcanopy', e.target.value)}
           placeholder="What draws you to online therapy? What kind of clients do you most want to work with?"
           rows={3}
-          className={textareaCls}
+          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
         />
       </Field>
     </div>
@@ -348,18 +607,38 @@ export default function TherapistApplyPage() {
   const [step, setStep] = useState(0)
   const [state, formAction, isPending] = useActionState(submitTherapistApplication, initialState)
 
-  const [personal, setPersonal] = useState({ fullName: '', email: '', phone: '', city: '' })
-  const [creds, setCreds] = useState({ licenseNumber: '', licenseBody: '', yearsExperience: '', education: '' })
+  const [personal, setPersonal] = useState<PersonalValues>({
+    fullName: '', email: '', phone: '', city: '', state: '', country: '',
+    dateOfBirth: '', gender: '', ethnicity: '',
+  })
+  const [creds, setCreds] = useState<CredsValues>({
+    yearsExperience: '',
+    education: '',
+    linkedinUrl: '',
+    cvUrl: '',
+    cvFilename: '',
+    certificates: [],
+  })
   const [practice, setPractice] = useState({
     specializations: [] as string[],
+    specializationOther: '',
     languages: ['English'] as string[],
-    bio: '',
+    languageOther: '',
     whyMindcanopy: '',
   })
 
-  const updatePersonal = (key: string, value: string) => setPersonal(prev => ({ ...prev, [key]: value }))
-  const updateCreds = (key: string, value: string) => setCreds(prev => ({ ...prev, [key]: value }))
-  const updatePractice = (key: string, value: string) => setPractice(prev => ({ ...prev, [key]: value }))
+  const updatePersonal = (key: keyof PersonalValues, value: string) => setPersonal(prev => ({ ...prev, [key]: value }))
+  const updateCreds = (key: 'yearsExperience' | 'education' | 'linkedinUrl', value: string) => setCreds(prev => ({ ...prev, [key]: value }))
+  const updatePractice = (key: 'specializationOther' | 'languageOther' | 'whyMindcanopy', value: string) =>
+    setPractice(prev => ({ ...prev, [key]: value }))
+
+  const onCvUploaded = (url: string, filename: string) =>
+    setCreds(prev => ({ ...prev, cvUrl: url, cvFilename: filename }))
+  const onCvRemoved = () => setCreds(prev => ({ ...prev, cvUrl: '', cvFilename: '' }))
+  const onCertAdded = (url: string, filename: string) =>
+    setCreds(prev => ({ ...prev, certificates: [...prev.certificates, { url, filename }] }))
+  const onCertRemoved = (idx: number) =>
+    setCreds(prev => ({ ...prev, certificates: prev.certificates.filter((_, i) => i !== idx) }))
 
   const toggleSpecialization = (s: string) =>
     setPractice(prev => ({
@@ -379,16 +658,29 @@ export default function TherapistApplyPage() {
 
   function canAdvance(): boolean {
     if (step === 0) {
-      return personal.fullName.trim().length >= 2 && personal.email.includes('@')
+      return (
+        personal.fullName.trim().length >= 2 &&
+        personal.email.includes('@') &&
+        personal.phone.trim().length > 0 &&
+        personal.city.trim().length > 0 &&
+        personal.state.trim().length > 0 &&
+        personal.country.trim().length > 0 &&
+        personal.dateOfBirth.length > 0 &&
+        personal.gender.length > 0 &&
+        personal.ethnicity.length > 0
+      )
     }
     if (step === 1) {
-      return creds.licenseNumber.trim().length > 0 && creds.yearsExperience !== ''
+      return (
+        creds.yearsExperience !== '' &&
+        creds.education.trim().length > 0 &&
+        creds.cvUrl.trim().length > 0
+      )
     }
     if (step === 2) {
       return (
-        practice.bio.trim().length >= 10 &&
-        practice.specializations.length > 0 &&
-        practice.languages.length > 0
+        (practice.specializations.length > 0 || practice.specializationOther.trim().length > 0) &&
+        (practice.languages.length > 0 || practice.languageOther.trim().length > 0)
       )
     }
     return false
@@ -412,13 +704,7 @@ export default function TherapistApplyPage() {
       {/* Top bar */}
       <div className="sticky top-0 z-10 bg-white border-b border-slate-100">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-4">
-          <Link
-            href="/"
-            className="font-black text-lg text-[#233551] flex-shrink-0"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            MindCanopy
-          </Link>
+          <BrandLogo />
           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#7EC0B7] rounded-full transition-all duration-500"
@@ -460,18 +746,34 @@ export default function TherapistApplyPage() {
             <input type="hidden" name="email" value={personal.email} />
             <input type="hidden" name="phone" value={personal.phone} />
             <input type="hidden" name="city" value={personal.city} />
-            <input type="hidden" name="licenseNumber" value={creds.licenseNumber} />
-            <input type="hidden" name="licenseBody" value={creds.licenseBody} />
+            <input type="hidden" name="state" value={personal.state} />
+            <input type="hidden" name="country" value={personal.country} />
+            <input type="hidden" name="dateOfBirth" value={personal.dateOfBirth} />
+            <input type="hidden" name="gender" value={personal.gender} />
+            <input type="hidden" name="ethnicity" value={personal.ethnicity} />
             <input type="hidden" name="yearsExperience" value={creds.yearsExperience} />
             <input type="hidden" name="education" value={creds.education} />
+            <input type="hidden" name="linkedinUrl" value={creds.linkedinUrl} />
+            <input type="hidden" name="cvUrl" value={creds.cvUrl} />
+            <input type="hidden" name="certificateUrls" value={JSON.stringify(creds.certificates.map(c => c.url))} />
             <input type="hidden" name="specializations" value={JSON.stringify(practice.specializations)} />
+            <input type="hidden" name="specializationOther" value={practice.specializationOther} />
             <input type="hidden" name="languages" value={JSON.stringify(practice.languages)} />
-            <input type="hidden" name="bio" value={practice.bio} />
+            <input type="hidden" name="languageOther" value={practice.languageOther} />
             <input type="hidden" name="whyMindcanopy" value={practice.whyMindcanopy} />
 
             {/* Step content */}
             {step === 0 && <StepPersonal values={personal} onChange={updatePersonal} />}
-            {step === 1 && <StepCredentials values={creds} onChange={updateCreds} />}
+            {step === 1 && (
+              <StepCredentials
+                values={creds}
+                onChange={updateCreds}
+                onCvUploaded={onCvUploaded}
+                onCvRemoved={onCvRemoved}
+                onCertAdded={onCertAdded}
+                onCertRemoved={onCertRemoved}
+              />
+            )}
             {step === 2 && (
               <StepPractice
                 values={practice}
@@ -480,6 +782,7 @@ export default function TherapistApplyPage() {
                 toggleLanguage={toggleLanguage}
               />
             )}
+
 
             {/* Server error */}
             {state?.error && isLastStep && (

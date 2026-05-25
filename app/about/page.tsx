@@ -15,7 +15,7 @@ export default function AboutPage() {
       <main>
         {/* Hero */}
         <section className="bg-white pt-20 pb-16 md:pt-28 md:pb-20">
-          <div className="max-w-3xl mx-auto px-6">
+          <div className="max-w-3xl mx-auto px-4 md:px-6">
             <div className="flex items-center gap-3 mb-6">
               <div className="h-px w-10 bg-[#7EC0B7]" />
               <span className="text-[#3D8A80] text-xs font-black uppercase tracking-[0.2em]">About us</span>

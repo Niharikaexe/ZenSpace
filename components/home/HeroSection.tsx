@@ -3,8 +3,9 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import OwlMascot from "@/components/home/OwlMascot"
+import { TreeOwl } from "@/components/home/TreeOwl"
 
-/* ── Floating leaf SVG ── */
+/* ── Floating decorative SVGs (desktop only) ── */
 const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; className?: string }) => (
   <svg viewBox="0 0 36 52" fill="none" className={className}>
     <path d="M18,50 C18,50 0,36 0,18 C0,0 18,0 18,0 C18,0 36,0 36,18 C36,36 18,50 18,50 Z" fill={color} fillOpacity="0.75" />
@@ -12,14 +13,13 @@ const LeafSVG = ({ color = "#7EC0B7", className = "" }: { color?: string; classN
   </svg>
 )
 
-/* ── Star / sparkle SVG ── */
 const StarSVG = ({ color = "#FF8C5A", className = "" }: { color?: string; className?: string }) => (
   <svg viewBox="0 0 24 24" fill={color} className={className}>
     <path d="M12 0L13.8 8.2L22 10L13.8 11.8L12 20L10.2 11.8L2 10L10.2 8.2L12 0Z" />
   </svg>
 )
 
-/* ── Category card icon SVGs ── */
+/* ── Category card icons ── */
 const IndividualIcon = () => (
   <svg viewBox="0 0 40 40" fill="none" className="w-full h-full">
     <circle cx="20" cy="14" r="7" fill="#7EC0B7" />
@@ -93,11 +93,11 @@ const HeroSection = () => {
   return (
     <section className="bg-white relative overflow-hidden min-h-[90vh] flex items-center">
 
-      {/* ── Background wavy peach blob (right side) ── */}
-      <div className="absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
+      {/* Background peach blob — desktop only */}
+      <div className="hidden lg:block mc-anim-bg absolute right-0 top-0 w-[55%] h-full pointer-events-none select-none">
         <svg viewBox="0 0 640 780" fill="none" preserveAspectRatio="xMaxYMid slice" className="w-full h-full">
           <path
-            d="M120,10 C260,-15 520,40 600,180 C680,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
+            d="M120,10 C260,-15 520,40 600,180 C640,320 640,520 520,650 C400,780 200,760 90,640 C-20,520 -40,310 60,180 C90,130 80,25 120,10 Z"
             fill="#FFE8E2"
           />
           <path
@@ -108,11 +108,19 @@ const HeroSection = () => {
         </svg>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-16 md:py-24 w-full relative z-10">
+      {/* Tree + owl animation — mobile background layer */}
+      <div className="lg:hidden absolute inset-0 flex items-center justify-end pointer-events-none overflow-hidden">
+        <div className="w-[280px] h-[360px] opacity-[0.09] -mr-12 mt-8">
+          <TreeOwl />
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24 w-full relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
 
-          {/* ── LEFT: Text content ── */}
-          <div className="flex-1 space-y-7">
+          {/* ── LEFT: Text + category cards ── */}
+          <div className="mc-content flex-1 space-y-7">
+
             {/* Eyebrow badge */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -133,8 +141,8 @@ const HeroSection = () => {
               className="text-4xl md:text-5xl lg:text-[3.6rem] font-black text-[#233551] leading-[1.1] tracking-tight"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
-              Peace isn’t a milestone<br />
-              it’s a practice
+              Peace isn't a milestone<br />
+              it's a practice
             </motion.h1>
 
             {/* Subtitle */}
@@ -144,11 +152,11 @@ const HeroSection = () => {
               transition={{ duration: 0.7, delay: 0.2 }}
               className="text-base text-[#233551]/55 leading-relaxed max-w-md"
             >
-               Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
+              Most of us wait until things are heavy before we reach out. Find someone who understands your world and start the habit of checking in.
             </motion.p>
 
             {/* Therapy type category cards */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-3">
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3 pt-3">
               {therapyTypes.map((t, i) => (
                 <motion.div
                   key={t.label}
@@ -159,26 +167,26 @@ const HeroSection = () => {
                 >
                   <Link
                     href={t.href}
-                    className={`group relative flex flex-col gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-5 py-4 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[152px]`}
+                    className={`group relative flex flex-col items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3 bg-gradient-to-br ${t.bg} ${t.hoverBg} border ${t.border} ${t.hoverBorder} px-2.5 py-3 sm:px-5 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg overflow-hidden h-full min-h-[88px] sm:min-h-[152px]`}
                   >
-                    {/* Subtle corner glow on hover */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
+                    {/* Corner glow on hover */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl sm:rounded-2xl" style={{ background: `radial-gradient(ellipse at 0% 100%, ${t.accent}18 0%, transparent 60%)` }} />
 
                     {/* Icon */}
-                    <div className={`w-10 h-10 ${t.iconBg} rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
+                    <div className={`w-9 h-9 sm:w-10 sm:h-10 ${t.iconBg} rounded-lg sm:rounded-xl flex items-center justify-center p-2 transition-transform duration-300 group-hover:scale-110`}>
                       <t.Icon />
                     </div>
 
                     {/* Label + tagline */}
                     <div>
-                      <p className="text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
+                      <p className="text-xs sm:text-sm font-black text-[#233551] leading-none mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
                         {t.label}
                       </p>
-                      <p className="text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
+                      <p className="hidden sm:block text-xs text-[#233551]/50 leading-tight">{t.tagline}</p>
                     </div>
 
-                    {/* Arrow */}
-                    <div className="flex items-center gap-1 mt-auto">
+                    {/* Arrow — desktop only */}
+                    <div className="hidden sm:flex items-center gap-1 mt-auto">
                       <span className="text-xs font-semibold" style={{ color: t.accent }}>Learn more</span>
                       <svg viewBox="0 0 16 16" fill="none" className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-1" style={{ color: t.accent }}>
                         <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -186,17 +194,16 @@ const HeroSection = () => {
                     </div>
 
                     {/* Active dot */}
-                    <span className={`absolute top-3 right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
+                    <span className={`absolute top-2 right-2 sm:top-3 sm:right-3 w-1.5 h-1.5 rounded-full ${t.dot} opacity-60 group-hover:opacity-100 transition-opacity`} />
                   </Link>
                 </motion.div>
               ))}
             </div>
           </div>
 
-          {/* ── RIGHT: Owl Mascot ── */}
-          <div className="flex-shrink-0 relative w-72 h-72 md:w-[380px] md:h-[380px] lg:w-[440px] lg:h-[440px]">
+          {/* ── RIGHT: Owl Mascot — desktop only ── */}
+          <div className="hidden lg:block flex-shrink-0 relative w-[380px] h-[380px] xl:w-[440px] xl:h-[440px]">
 
-            {/* Owl */}
             <motion.div
               initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -206,60 +213,27 @@ const HeroSection = () => {
               <OwlMascot className="w-full h-full" />
             </motion.div>
 
-            {/* Floating star — top right */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute -top-4 -right-4 float-medium float-delay-1"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 0.8 }} className="absolute -top-4 -right-4 float-medium float-delay-1">
               <StarSVG color="#FF8C5A" className="w-8 h-8" />
             </motion.div>
-
-            {/* Floating star — bottom left */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 1 }}
-              className="absolute -bottom-2 -left-6 float-fast float-delay-2"
-            >
+            <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: 1 }} className="absolute -bottom-2 -left-6 float-fast float-delay-2">
               <StarSVG color="#FF8C5A" className="w-5 h-5" />
             </motion.div>
-
-            {/* Floating leaf — right */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.9 }}
-              className="absolute top-1/3 -right-8 float-slow float-delay-3"
-            >
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.9 }} className="absolute top-1/3 -right-8 float-slow float-delay-3">
               <LeafSVG color="#7EC0B7" className="w-7 h-10 rotate-45" />
             </motion.div>
-
-            {/* Floating small star — mid left */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 1.1 }}
-              className="absolute top-1/4 -left-10 float-medium"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 1.1 }} className="absolute top-1/4 -left-10 float-medium">
               <StarSVG color="#F97B5A" className="w-4 h-4 opacity-70" />
             </motion.div>
-
-            {/* Floating teal leaf — top left */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 1 }}
-              className="absolute -top-6 left-8 float-slow float-delay-1"
-            >
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 1 }} className="absolute -top-6 left-8 float-slow float-delay-1">
               <LeafSVG color="#7EC0B7" className="w-5 h-7 -rotate-12" />
             </motion.div>
           </div>
+
         </div>
       </div>
 
-      {/* ── Bottom organic wave → peach section ── */}
+      {/* Bottom organic wave */}
       <div className="absolute bottom-0 left-0 w-full leading-none pointer-events-none">
         <svg viewBox="0 0 1440 70" preserveAspectRatio="none" className="w-full h-14 md:h-20">
           <path

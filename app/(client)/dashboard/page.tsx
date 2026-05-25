@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import ClientNav from '@/components/client/ClientNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -99,32 +99,45 @@ export default async function ClientDashboard() {
     try {
       const data = questionnaireRow.responses as Record<string, unknown>
       const type = data.type as string
+      const toArray = (v: unknown): string[] =>
+        Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
       if (type === 'individual') {
         const answers = data.answers as Record<string, unknown>
         questionnairePrefs = {
           type: 'individual',
-          concerns: (answers?.q1 as string[] | undefined) ?? [],
-          therapistGender: (answers?.q8 as string | undefined) ?? null,
+          concerns: toArray(answers?.q2),
+          therapistGender: (answers?.q13 as string | undefined) ?? null,
         }
       } else if (type === 'couples') {
-        const shared = data.shared as Record<string, unknown> | undefined
+        const common = data.common as Record<string, unknown> | undefined
         questionnairePrefs = {
           type: 'couples',
-          concerns: (shared?.q3 as string[] | undefined) ?? [],
-          therapistGender: (shared?.q9 as string | undefined) ?? null,
+          concerns: toArray(common?.c6),
+          therapistGender: (common?.c11 as string | undefined) ?? null,
         }
       } else if (type === 'teen') {
         const answers = data.answers as Record<string, unknown>
         questionnairePrefs = {
           type: 'teen',
-          concerns: (answers?.q1 as string[] | undefined) ?? [],
+          concerns: toArray(answers?.q15),
           therapistGender: null,
         }
       }
-    } catch {
-      // Malformed questionnaire JSON — treat as no questionnaire
+    } catch (err) {
+      // Malformed questionnaire JSON — treat as no questionnaire.
+      logger.warn('dashboard/client', 'Failed to parse questionnaire JSON', {
+        clientId: user.id,
+        err: err instanceof Error ? err.message : String(err),
+      })
     }
   }
+
+  // Therapy category: prefer questionnaire type (post-intake), fall back to signup selection
+  const therapyCategory = (
+    (questionnairePrefs?.type) ??
+    (user.user_metadata?.therapy_category as string) ??
+    'individual'
+  ) as 'individual' | 'couples' | 'teen'
 
   const isMatched = !!match
   const hasActiveSubscription = !!subscription
@@ -144,7 +157,7 @@ export default async function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <DashboardNav userName={profile.full_name} isMatched={false} />
+      <ClientNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
         <PendingDashboard
@@ -153,6 +166,7 @@ export default async function ClientDashboard() {
           hasActiveSubscription={hasActiveSubscription}
           hasQuestionnaire={hasQuestionnaire}
           questionnairePrefs={questionnairePrefs}
+          therapyCategory={therapyCategory}
         />
       </main>
     </div>

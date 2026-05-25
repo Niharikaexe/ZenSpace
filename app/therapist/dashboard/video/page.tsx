@@ -7,6 +7,7 @@ import MultiScheduleForm from '@/components/therapist/MultiScheduleForm'
 import NoteEditor from '@/components/shared/NoteEditor'
 import { updateSessionStatus } from '@/app/actions/sessions'
 import { getNotifications } from '@/app/actions/notifications'
+import CompleteSessionButton from '@/components/therapist/CompleteSessionButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,7 @@ export default async function TherapistSessionsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? '📹 Video' : '💬 Chat'} with {s.clientName}
+                          {s.session_type === 'video' ? 'Video' : 'Chat'} with {s.clientName}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           s.status === 'scheduled' ? 'bg-[#233551]/8 text-[#233551]' :
@@ -154,6 +155,7 @@ export default async function TherapistSessionsPage() {
                     <div className="flex-shrink-0">
                       {s.session_type === 'video' ? (
                         <JoinButton
+                          sessionId={s.id}
                           scheduledAt={s.scheduled_at}
                           roomUrl={s.daily_room_url}
                           sessionType={s.session_type}
@@ -171,17 +173,7 @@ export default async function TherapistSessionsPage() {
 
                   {s.status === 'scheduled' && (
                     <div className="flex gap-2 mt-3 pt-3 border-t border-slate-50">
-                      <form action={async () => {
-                        'use server'
-                        await updateSessionStatus(s.id, 'completed')
-                      }}>
-                        <button
-                          type="submit"
-                          className="text-xs px-3 py-1.5 rounded-lg border border-[#7EC0B7]/50 text-[#3D8A80] hover:bg-[#7EC0B7]/10 transition-colors font-medium"
-                        >
-                          Mark completed
-                        </button>
-                      </form>
+                      <CompleteSessionButton sessionId={s.id} clientName={s.clientName} />
                       <form action={async () => {
                         'use server'
                         await updateSessionStatus(s.id, 'cancelled')
@@ -214,7 +206,7 @@ export default async function TherapistSessionsPage() {
                     <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? '📹 Video Session' : '💬 Chat Session'}
+                          {s.session_type === 'video' ? 'Video Session' : 'Chat Session'}
                         </p>
                         <p className="text-xs text-[#233551]/40 mt-0.5">{formatDateTime(s.scheduled_at)}</p>
                       </div>

@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { PLANS, type PlanKey } from '@/lib/plans'
+import { sendAdminNewSubscriptionEmail } from '@/lib/email'
 
 // B-10: plan is NOT accepted from the client — fetched from DB to prevent
 // a user paying weekly then claiming a monthly period end.
@@ -125,6 +126,12 @@ export async function POST(request: Request) {
     paymentId: razorpay_payment_id,
     periodEnd: periodEnd.toISOString(),
   })
+
+  // Notify admin — awaited so the Resend POST completes before Vercel freezes
+  // the function. sendAdminNewSubscriptionEmail catches its own errors.
+  const { data: profile } = await (admin as any).from('profiles').select('full_name').eq('id', user.id).single()
+  const planLabel = `${planData.name} (${planData.cadence})`
+  await sendAdminNewSubscriptionEmail(profile?.full_name ?? user.email ?? 'A client', planLabel)
 
   return NextResponse.json({ success: true })
 }

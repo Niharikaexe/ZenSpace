@@ -95,7 +95,11 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
         }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
-  } catch { /* notification failure must not break message send */ }
+  } catch (err) {
+    // Notification failure must not break message send — but log so we can see
+    // if notifications stop firing in prod.
+    logger.warn('sessions/sendMessage', 'Notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
+  }
 
   return {}
 }
@@ -130,14 +134,19 @@ export async function scheduleSession(
 
   const admin = createAdminClient()
 
-  // B-04: verify caller is the client of this match
+  // B-04: verify caller is the therapist or client of this match
+  // Sessions are typically scheduled by therapists, but client-initiated
+  // requests are also allowed for the same match.
   const { data: matchOwnership } = await (admin as any)
     .from('matches')
-    .select('client_id')
+    .select('client_id, therapist_id')
     .eq('id', matchId)
-    .single() as { data: { client_id: string } | null; error: unknown }
+    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
 
-  if (!matchOwnership || matchOwnership.client_id !== user.id) {
+  if (
+    !matchOwnership ||
+    (matchOwnership.client_id !== user.id && matchOwnership.therapist_id !== user.id)
+  ) {
     return { error: 'Not authorized to schedule this session' }
   }
 
@@ -147,7 +156,8 @@ export async function scheduleSession(
   if (sessionType === 'video' && process.env.DAILY_API_KEY) {
     try {
       const roomName = `mindcanopy-${matchId.slice(0, 8)}-${Date.now()}`
-      const exp = Math.floor(new Date(scheduledAt).getTime() / 1000) + 7200
+      const sessionStart = new Date(scheduledAt).getTime()
+      const exp = Math.floor(Math.max(sessionStart, Date.now()) / 1000) + 7200
 
       const res = await fetch('https://api.daily.co/v1/rooms', {
         method: 'POST',
@@ -166,9 +176,14 @@ export async function scheduleSession(
         const room = await res.json()
         dailyRoomUrl = room.url
         dailyRoomName = room.name
+      } else {
+        const body = await res.text().catch(() => '<no body>')
+        logger.warn('sessions/scheduleSession', 'Daily.co room creation rejected', { matchId, status: res.status, body })
       }
-    } catch {
-      // Daily.co failure is non-fatal — session still gets created without a room URL
+    } catch (err) {
+      // Daily.co failure is non-fatal — session is still created, just without
+      // a room URL. The therapist will see "No video link" in the UI.
+      logger.warn('sessions/scheduleSession', 'Daily.co room creation threw', { matchId, err: err instanceof Error ? err.message : String(err) })
     }
   }
 
@@ -183,29 +198,25 @@ export async function scheduleSession(
 
   if (error) return { error: error.message }
 
-  // Notify the client about the scheduled session
+  // Notify the OTHER party about the scheduled session
   try {
-    const admin = createAdminClient()
-    const { data: match } = await (admin as any)
-      .from('matches')
-      .select('client_id')
-      .eq('id', matchId)
-      .single()
+    const recipientId =
+      user.id === matchOwnership.therapist_id ? matchOwnership.client_id : matchOwnership.therapist_id
 
-    if (match?.client_id) {
-      const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
-        weekday: 'short', day: 'numeric', month: 'short',
-        hour: '2-digit', minute: '2-digit', hour12: true,
-      })
-      createNotification({
-        userId: match.client_id,
-        type: 'session_scheduled',
-        title: 'Session scheduled',
-        body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
-        metadata: { matchId, scheduledAt, sessionType, dateStr },
-      }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
-    }
-  } catch { /* non-fatal */ }
+    const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
+      weekday: 'short', day: 'numeric', month: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    })
+    createNotification({
+      userId: recipientId,
+      type: 'session_scheduled',
+      title: 'Session scheduled',
+      body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
+      metadata: { matchId, scheduledAt, sessionType, dateStr },
+    }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
+  } catch (err) {
+    logger.warn('sessions/scheduleSession', 'Session-scheduled notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
+  }
 
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/sessions')
@@ -285,7 +296,91 @@ export async function updateSessionStatus(
   const { error } = await (admin as any).from('sessions').update(updates).eq('id', sessionId)
   if (error) return { error: error.message }
 
+  // On cancellation, delete the Daily.co room so it can't be joined
+  if (status === 'cancelled') {
+    try {
+      const { data: s } = await (admin as any)
+        .from('sessions')
+        .select('daily_room_name')
+        .eq('id', sessionId)
+        .single() as { data: { daily_room_name: string | null } | null; error: unknown }
+
+      if (s?.daily_room_name && process.env.DAILY_API_KEY) {
+        const res = await fetch(`https://api.daily.co/v1/rooms/${s.daily_room_name}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${process.env.DAILY_API_KEY}` },
+        })
+        if (!res.ok) {
+          logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion rejected', { sessionId, roomName: s.daily_room_name, status: res.status })
+        }
+      }
+    } catch (err) {
+      // Non-fatal but log — a cancelled room left up means the join URL still
+      // works until Daily.co's expiry timestamp kicks in.
+      logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion threw', { sessionId, err: err instanceof Error ? err.message : String(err) })
+    }
+  }
+
   revalidatePath('/therapist/dashboard/video')
   revalidatePath('/dashboard/sessions')
   return {}
+}
+
+// ─── Video Join URL ───────────────────────────────────────────────────────────
+
+export async function getSessionJoinUrl(sessionId: string): Promise<{ url?: string; error?: string }> {
+  const { user } = await getAuthUser()
+  const admin = createAdminClient()
+
+  const { data: session } = await (admin as any)
+    .from('sessions')
+    .select('daily_room_url, daily_room_name, match_id, scheduled_at')
+    .eq('id', sessionId)
+    .single() as { data: { daily_room_url: string | null; daily_room_name: string | null; match_id: string; scheduled_at: string } | null; error: unknown }
+
+  if (!session?.daily_room_name || !session?.daily_room_url) return { error: 'No room configured for this session' }
+
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('client_id, therapist_id')
+    .eq('id', session.match_id)
+    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
+
+  const isTherapist = match?.therapist_id === user.id
+  const isClient = match?.client_id === user.id
+  if (!isTherapist && !isClient) return { error: 'Not authorized to join this session' }
+
+  const apiKey = process.env.DAILY_API_KEY
+  if (!apiKey) return { error: 'Video calling is not configured' }
+
+  const exp = Math.floor(Math.max(new Date(session.scheduled_at).getTime(), Date.now()) / 1000) + 7200
+
+  try {
+    const res = await fetch('https://api.daily.co/v1/meeting-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        properties: {
+          room_name: session.daily_room_name,
+          is_owner: isTherapist,
+          exp,
+          user_name: isTherapist ? 'Therapist' : 'Client',
+        },
+      }),
+    })
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '<no body>')
+      logger.error('sessions/getSessionJoinUrl', 'Daily.co meeting-token rejected', null, { sessionId, status: res.status, body })
+      return { error: 'Failed to generate join link' }
+    }
+    const { token } = await res.json()
+    return { url: `${session.daily_room_url}?t=${token}` }
+  } catch (err) {
+    logger.error('sessions/getSessionJoinUrl', 'Failed to reach video service', err, { sessionId })
+    return { error: 'Failed to reach video service' }
+  }
 }

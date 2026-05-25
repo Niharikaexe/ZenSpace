@@ -146,23 +146,75 @@ export default async function AdminPage() {
     used_by: inv.used_by ?? null,
   }))
 
-  const applications: TherapistApplication[] = (rawApplications ?? []).map((a: any) => ({
-    id: a.id,
-    full_name: a.full_name,
-    email: a.email,
-    phone: a.phone ?? null,
-    city: a.city ?? null,
-    license_number: a.license_number,
-    license_body: a.license_body ?? null,
-    years_experience: a.years_experience ?? 0,
-    education: a.education ?? null,
-    specializations: a.specializations ?? [],
-    languages: a.languages ?? [],
-    bio: a.bio,
-    why_mindcanopy: a.why_mindcanopy ?? null,
-    status: a.status,
-    submitted_at: a.submitted_at,
-  }))
+  // Generate signed URLs for CVs + certificates so admin can view private files.
+  // 1-hour expiry — admin re-fetches the page if links go stale.
+  // Two URLs per file: view (inline) and download (Content-Disposition: attachment).
+  const SIGNED_URL_TTL = 60 * 60
+  async function signDoc(
+    path: string | null | undefined,
+    downloadAs?: string,
+  ): Promise<string | null> {
+    if (!path) return null
+    const options = downloadAs ? { download: downloadAs } : undefined
+    const { data, error } = await admin.storage
+      .from('therapist-documents')
+      .createSignedUrl(path, SIGNED_URL_TTL, options)
+    if (error || !data?.signedUrl) return null
+    return data.signedUrl
+  }
+
+  function safeName(name: string) {
+    return name.replace(/[^a-zA-Z0-9._-]+/g, '_')
+  }
+
+  const applications: TherapistApplication[] = await Promise.all(
+    (rawApplications ?? []).map(async (a: any) => {
+      const nameSlug = safeName(a.full_name ?? 'applicant')
+      const cvExt = (a.cv_url as string | null)?.split('.').pop() ?? 'pdf'
+      const cvSignedUrl = await signDoc(a.cv_url)
+      const cvDownloadUrl = await signDoc(a.cv_url, `${nameSlug}_CV.${cvExt}`)
+
+      const certificateSignedUrls: string[] = []
+      const certificateDownloadUrls: string[] = []
+      for (let i = 0; i < (a.certificate_urls ?? []).length; i++) {
+        const path = (a.certificate_urls as string[])[i]
+        const ext = path.split('.').pop() ?? 'pdf'
+        const view = await signDoc(path)
+        const download = await signDoc(path, `${nameSlug}_Certificate_${i + 1}.${ext}`)
+        if (view) certificateSignedUrls.push(view)
+        if (download) certificateDownloadUrls.push(download)
+      }
+
+      return {
+        id: a.id,
+        full_name: a.full_name,
+        email: a.email,
+        phone: a.phone ?? null,
+        city: a.city ?? null,
+        state: a.state ?? null,
+        country: a.country ?? null,
+        gender: a.gender ?? null,
+        ethnicity: a.ethnicity ?? null,
+        date_of_birth: a.date_of_birth ?? null,
+        linkedin_url: a.linkedin_url ?? null,
+        license_number: a.license_number ?? null,
+        license_body: a.license_body ?? null,
+        years_experience: a.years_experience ?? 0,
+        education: a.education ?? null,
+        specializations: a.specializations ?? [],
+        specialization_other: a.specialization_other ?? null,
+        languages: a.languages ?? [],
+        bio: a.bio ?? null,
+        why_mindcanopy: a.why_mindcanopy ?? null,
+        cv_signed_url: cvSignedUrl,
+        cv_download_url: cvDownloadUrl,
+        certificate_signed_urls: certificateSignedUrls,
+        certificate_download_urls: certificateDownloadUrls,
+        status: a.status,
+        submitted_at: a.submitted_at,
+      }
+    })
+  )
 
   // ── Build switch requests with client + therapist names ──────────────────────
   const switchRequestClientIds: string[] = (rawSwitchRequests ?? []).map((r: any) => r.client_id)

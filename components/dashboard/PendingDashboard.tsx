@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { SubscriptionPlans } from './SubscriptionPlans'
+import { PLANS, type PlanCategory } from '@/lib/plans'
 
 const SAMPLE_THERAPISTS = [
   {
@@ -84,58 +85,7 @@ interface Props {
   hasActiveSubscription: boolean
   hasQuestionnaire: boolean
   questionnairePrefs: QuestionnairePrefs
-}
-
-function CategoryPopup({ onClose }: { onClose: () => void }) {
-  const categories = [
-    { label: 'Individual therapy', sub: 'Just for you', href: '/questionnaire/individual', color: '#7EC0B7' },
-    { label: 'Couples therapy', sub: 'For both partners', href: '/questionnaire/couples', color: '#E8926A' },
-    { label: 'Teen therapy', sub: 'Ages 14–20', href: '/questionnaire/teen', color: '#F97B5A' },
-  ]
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <h3 className="text-lg font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-              Which type of therapy?
-            </h3>
-            <p className="text-xs text-[#233551]/50 mt-0.5">Pick the right questionnaire for you.</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 text-xl leading-none"
-          >
-            ×
-          </button>
-        </div>
-        <div className="space-y-2">
-          {categories.map(c => (
-            <Link
-              key={c.label}
-              href={c.href}
-              onClick={onClose}
-              className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 hover:border-[#7EC0B7] hover:bg-[#7EC0B7]/5 transition-all group"
-            >
-              <div>
-                <p className="text-sm font-semibold text-[#233551]">{c.label}</p>
-                <p className="text-xs text-[#233551]/45 mt-0.5">{c.sub}</p>
-              </div>
-              <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4 text-[#7EC0B7] group-hover:translate-x-0.5 transition-transform">
-                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  therapyCategory: 'individual' | 'couples' | 'teen'
 }
 
 function CheckIcon({ ok }: { ok: boolean }) {
@@ -259,9 +209,10 @@ export function PendingDashboard({
   hasActiveSubscription,
   hasQuestionnaire,
   questionnairePrefs,
+  therapyCategory,
 }: Props) {
-  const [showCategoryPopup, setShowCategoryPopup] = useState(false)
   const firstName = userName.split(' ')[0]
+  const planCategory: PlanCategory = (therapyCategory === 'couples' || questionnairePrefs?.type === 'couples') ? 'couples' : 'individual'
 
   function buildPreferencesList(): string[] {
     if (!questionnairePrefs) return []
@@ -324,13 +275,13 @@ export function PendingDashboard({
                 You haven&apos;t answered the intake questionnaire yet. It takes about 5 minutes and helps us match you accurately.
               </p>
             </div>
-            <button
-              onClick={() => setShowCategoryPopup(true)}
+            <Link
+              href={`/questionnaire/${therapyCategory}`}
               className="flex-shrink-0 bg-[#E8926A] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#d4784f] transition-colors"
               style={{ fontFamily: 'var(--font-lato)' }}
             >
               Answer now →
-            </button>
+            </Link>
           </div>
         </div>
       )}
@@ -426,38 +377,32 @@ export function PendingDashboard({
         </p>
       </section>
 
-      {/* What if I don't like my therapist */}
-      <section className="mb-8">
-        <h2 className="text-lg font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
-          What if the therapist isn&apos;t the right fit?
-        </h2>
-        <p className="text-sm text-[#233551]/60 leading-relaxed">
-          You can ask to be matched with a different therapist. No explanation needed — if it&apos;s not working, we&apos;ll find someone else. Just reach out to us from the{' '}
-          <Link href="/dashboard/change-therapist" className="text-[#3D8A80] hover:underline">
-            Change Therapist
-          </Link>{' '}
-          page.
-        </p>
-      </section>
-
       {/* How much does it cost */}
       <section className="mb-8">
         <h2 className="text-lg font-black text-[#233551] mb-2" style={{ fontFamily: 'var(--font-lato)' }}>
           How much does it cost?
         </h2>
         <p className="text-sm text-[#233551]/60 mb-5 leading-relaxed">
-          MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.
+          {planCategory === 'couples'
+            ? 'MindCanopy offers two couples plans — Essentials and Premium — available weekly or monthly.'
+            : 'MindCanopy offers two plans — Essentials and Premium — available weekly or monthly.'}
         </p>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
-          {[
-            { tier: 'Essentials', weekly: '₹2,999/week', monthly: '₹9,999/month', note: '1 video session (50 min) + unlimited async text' },
-            { tier: 'Premium', weekly: '₹4,499/week', monthly: '₹14,999/month', note: '1 session + priority text + foreign therapist access' },
-          ].map(plan => (
+          {(planCategory === 'couples'
+            ? [
+                { tier: 'Essentials', weekly: PLANS.couples_basic_weekly, monthly: PLANS.couples_basic_monthly, note: '1 couples session (50 min) + unlimited chat for both partners' },
+                { tier: 'Premium', weekly: PLANS.couples_premium_weekly, monthly: PLANS.couples_premium_monthly, note: '1 session + priority chat + international therapist access' },
+              ]
+            : [
+                { tier: 'Essentials', weekly: PLANS.basic_weekly, monthly: PLANS.basic_monthly, note: '1 video session (50 min) + unlimited chat' },
+                { tier: 'Premium', weekly: PLANS.premium_weekly, monthly: PLANS.premium_monthly, note: '1 session + priority chat + international therapist access' },
+              ]
+          ).map(plan => (
             <div key={plan.tier} className="bg-white border border-slate-200 rounded-2xl p-4">
               <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-wider mb-1">{plan.tier}</p>
-              <p className="text-base font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.weekly}</p>
-              <p className="text-xs text-[#233551]/40 mb-1">or {plan.monthly}</p>
+              <p className="text-base font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{plan.weekly.price}/week</p>
+              <p className="text-xs text-[#233551]/40 mb-1">or {plan.monthly.price}/month</p>
               <p className="text-xs text-[#233551]/55 leading-relaxed">{plan.note}</p>
             </div>
           ))}
@@ -523,11 +468,10 @@ export function PendingDashboard({
           <p className="text-sm text-[#233551]/55 mb-5">
             Subscribe now so you&apos;re ready the moment you&apos;re matched.
           </p>
-          <SubscriptionPlans userName={userName} userEmail={userEmail} />
+          <SubscriptionPlans userName={userName} userEmail={userEmail} category={planCategory} />
         </section>
       )}
 
-      {showCategoryPopup && <CategoryPopup onClose={() => setShowCategoryPopup(false)} />}
     </div>
   )
 }

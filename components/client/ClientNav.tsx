@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 
 interface Props {
   userName: string
+  isMatched?: boolean
 }
 
-export default function ClientNav({ userName }: Props) {
+export default function ClientNav({ userName, isMatched = true }: Props) {
   const pathname = usePathname()
   const [helpOpen, setHelpOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -33,17 +35,11 @@ export default function ClientNav({ userName }: Props) {
       <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/dashboard/chat">
-          <span
-            className="font-black text-xl tracking-tight text-[#233551]"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo href="/dashboard/chat" />
 
-        {/* Center nav tabs */}
-        <nav className="flex items-center gap-1">
+        {/* Center nav tabs — desktop only */}
+        {isMatched ? (
+        <nav className="hidden md:flex items-center gap-1">
           <Link
             href="/dashboard/chat"
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -84,6 +80,23 @@ export default function ClientNav({ userName }: Props) {
             Notes
           </Link>
         </nav>
+        ) : (
+        <nav className="hidden md:flex items-center gap-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+              pathname === '/dashboard'
+                ? 'bg-[#233551] text-white'
+                : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Home
+          </Link>
+        </nav>
+        )}
 
         {/* Right: Help + Account dropdowns */}
         <div className="flex items-center gap-1">
@@ -142,11 +155,11 @@ export default function ClientNav({ userName }: Props) {
                   <p className="text-sm font-semibold text-[#233551] truncate">{userName}</p>
                 </div>
                 {[
-                  { label: 'My Account', href: '/dashboard/account' },
-                  { label: 'My Therapist', href: '/dashboard/my-therapist' },
-                  { label: 'Change Therapist', href: '/dashboard/change-therapist' },
-                  { label: 'Subscription', href: '/dashboard/subscription' },
-                ].map(item => (
+                  { label: 'My Account', href: '/dashboard/account', always: true },
+                  { label: 'My Therapist', href: '/dashboard/my-therapist', always: false },
+                  { label: 'Change Therapist', href: '/dashboard/change-therapist', always: false },
+                  { label: 'Subscription', href: '/dashboard/subscription', always: true },
+                ].filter(item => item.always || isMatched).map(item => (
                   <Link
                     key={item.label}
                     href={item.href}
@@ -170,6 +183,32 @@ export default function ClientNav({ userName }: Props) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Mobile nav strip */}
+      <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
+        {(isMatched
+          ? [
+              { href: '/dashboard/chat',     label: 'Chat' },
+              { href: '/dashboard/sessions', label: 'Sessions' },
+              { href: '/dashboard/notes',    label: 'Notes' },
+            ]
+          : [
+              { href: '/dashboard', label: 'Home' },
+            ]
+        ).map(link => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold min-h-[44px] flex items-center transition-colors whitespace-nowrap ${
+              pathname === link.href
+                ? 'bg-[#233551] text-white'
+                : 'text-[#233551]/55 hover:bg-slate-100'
+            }`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
     </header>
   )

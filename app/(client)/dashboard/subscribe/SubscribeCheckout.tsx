@@ -192,7 +192,13 @@ export default function SubscribeCheckout({ userName, userEmail, activeSubscript
               return
             }
             router.push('/dashboard?subscribed=1')
-          } catch {
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[subscribe/verify-throw]', {
+              paymentId: response.razorpay_payment_id,
+              subscriptionId: response.razorpay_subscription_id,
+              err: err instanceof Error ? err.message : String(err),
+            })
             setError('Something went wrong after payment. Contact support with payment ID: ' + response.razorpay_payment_id)
             setLoading(false)
           }
@@ -205,7 +211,12 @@ export default function SubscribeCheckout({ userName, userEmail, activeSubscript
       })
 
       rzp.open()
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[subscribe/checkout-open-throw]', {
+        planKey: selectedPlanKey,
+        err: err instanceof Error ? err.message : String(err),
+      })
       setError('Something went wrong. Please try again.')
       setLoading(false)
     }

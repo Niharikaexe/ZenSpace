@@ -81,9 +81,9 @@ function cellToTimeLabel(ci: number) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-interface Props { initialData: WeeklyAvailability }
+interface Props { initialData: WeeklyAvailability; therapistTimezone?: string | null }
 
-export function WeeklyAvailabilityEditor({ initialData }: Props) {
+export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Props) {
   // sel[dayKey] = Set of selected cell indices
   const [sel, setSel] = useState<Record<string, Set<number>>>(() => {
     const r: Record<string, Set<number>> = {}
@@ -172,6 +172,11 @@ export function WeeklyAvailabilityEditor({ initialData }: Props) {
           <p className="text-xs text-[#233551]/40 mt-0.5">
             Click or drag to mark available ranges — each generates 50-min slots for clients
           </p>
+          {therapistTimezone && (
+            <p className="text-[10px] text-[#3D8A80] font-semibold mt-0.5">
+              Times are in your timezone: {therapistTimezone}
+            </p>
+          )}
         </div>
         <button
           type="button"

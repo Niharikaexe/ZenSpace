@@ -80,7 +80,7 @@ export default function ScheduleSessionForm({ matchId }: Props) {
                     : 'border-slate-200 text-slate-600 hover:border-slate-300'
                 }`}
               >
-                {type === 'video' ? '📹 Video' : '💬 Chat'}
+                {type === 'video' ? 'Video' : 'Chat'}
               </button>
             ))}
           </div>

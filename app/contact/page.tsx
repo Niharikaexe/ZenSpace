@@ -4,7 +4,7 @@ import { useActionState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/home/Navbar'
 import Footer from '@/components/home/Footer'
-import { Mail, MapPin, Instagram, Linkedin } from 'lucide-react'
+import { Mail, MapPin, Phone, Instagram, Linkedin } from 'lucide-react'
 import { sendContactEmail, type ContactState } from '@/app/actions/contact'
 
 const initialState: ContactState = {}
@@ -18,7 +18,7 @@ export default function ContactPage() {
 
       <main>
         <section className="bg-white pt-20 pb-16 md:pt-28 md:pb-24">
-          <div className="max-w-5xl mx-auto px-6">
+          <div className="max-w-5xl mx-auto px-4 md:px-6">
 
             {/* Header */}
             <div className="max-w-xl mb-14">
@@ -49,12 +49,28 @@ export default function ContactPage() {
                     <div>
                       <p className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-1">Email</p>
                       <a
-                        href="mailto:hello@mindcanopy.in"
+                        href="mailto:admin@mindcanopy.in"
                         className="text-sm font-semibold text-[#233551] hover:text-[#3D8A80] transition-colors"
                       >
-                        hello@mindcanopy.in
+                        admin@mindcanopy.in
                       </a>
-                      <p className="text-xs text-[#233551]/40 mt-0.5">For general enquiries and support</p>
+                      <p className="text-xs text-[#233551]/40 mt-0.5">For clients, therapists, and general enquiries</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#7EC0B7]/15 flex items-center justify-center flex-shrink-0">
+                      <Phone size={18} className="text-[#3D8A80]" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-[#233551]/40 uppercase tracking-widest mb-1">Phone</p>
+                      <a
+                        href="tel:+917981275418"
+                        className="text-sm font-semibold text-[#233551] hover:text-[#3D8A80] transition-colors"
+                      >
+                        +91 79812 75418
+                      </a>
+                      <p className="text-xs text-[#233551]/40 mt-0.5">Mon–Fri, 10am–6pm IST</p>
                     </div>
                   </div>
 

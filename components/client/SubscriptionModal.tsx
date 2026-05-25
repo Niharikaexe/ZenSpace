@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { PLANS } from '@/lib/plans'
 
 interface Props {
   onClose: () => void
@@ -8,36 +9,44 @@ interface Props {
   therapyType?: string | null // 'individual' | 'couples' | 'teen' | null
 }
 
-const INDIVIDUAL_PLANS = [
+type DisplayPlan = {
+  name: string
+  price: string
+  per: string
+  features: string[]
+  highlight: boolean
+}
+
+const INDIVIDUAL_PLANS: DisplayPlan[] = [
   {
-    name: 'Basic',
-    price: '₹1,799',
-    per: 'week',
-    features: ['1 video session (50 min)', 'Unlimited async text messaging'],
+    name: 'Essentials',
+    price: PLANS.basic_weekly.price,
+    per: PLANS.basic_weekly.per,
+    features: ['1 video session (50 min)', 'Unlimited chat with your therapist'],
     highlight: false,
   },
   {
     name: 'Premium',
-    price: '₹4,499',
-    per: 'week',
-    features: ['Priority text response', 'Foreign therapist access'],
+    price: PLANS.premium_weekly.price,
+    per: PLANS.premium_weekly.per,
+    features: ['Priority chat response', 'International therapist access'],
     highlight: true,
   },
 ]
 
-const COUPLES_PLANS = [
+const COUPLES_PLANS: DisplayPlan[] = [
   {
-    name: 'Couples Basic',
-    price: '₹3,200',
-    per: 'week',
-    features: ['1 couples session (60 min)', 'Text for both partners'],
+    name: 'Couples Essentials',
+    price: PLANS.couples_basic_weekly.price,
+    per: PLANS.couples_basic_weekly.per,
+    features: ['1 couples session (50 min)', 'Chat for both partners'],
     highlight: false,
   },
   {
     name: 'Couples Premium',
-    price: '₹7,499',
-    per: 'week',
-    features: ['Priority text response', 'Foreign therapist access'],
+    price: PLANS.couples_premium_weekly.price,
+    per: PLANS.couples_premium_weekly.per,
+    features: ['Priority chat response', 'International therapist access'],
     highlight: true,
   },
 ]

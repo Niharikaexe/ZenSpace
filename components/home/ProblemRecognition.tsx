@@ -12,23 +12,23 @@ const items = [
 const ProblemRecognition = () => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF5F2] via-white to-[#F0FAF9] py-24">
-      {/* Asymmetric color blobs */}
+      {/* Asymmetric color blobs — mc-anim-bg fades them to 12% on mobile */}
       <span
         aria-hidden
-        className="pointer-events-none absolute -left-24 -top-24 h-[420px] w-[520px] bg-[rgba(126,192,183,0.40)]"
+        className="mc-anim-bg pointer-events-none absolute -left-24 -top-24 h-[420px] w-[520px] bg-[rgba(126,192,183,0.40)]"
         style={{ borderRadius: "62% 38% 54% 46% / 48% 60% 40% 52%" }}
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute -bottom-40 -right-28 h-[480px] w-[480px] bg-[rgba(232,146,106,0.30)]"
+        className="mc-anim-bg pointer-events-none absolute -bottom-40 -right-28 h-[480px] w-[480px] bg-[rgba(232,146,106,0.30)]"
         style={{ borderRadius: "48% 52% 38% 62% / 60% 44% 56% 40%" }}
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute right-[20%] top-[30%] h-44 w-44 rounded-full bg-[rgba(249,123,90,0.22)]"
+        className="mc-anim-bg pointer-events-none absolute right-[20%] top-[30%] h-44 w-44 rounded-full bg-[rgba(249,123,90,0.22)]"
       />
 
-      <div className="relative z-10 mx-auto max-w-3xl px-6 text-center">
+      <div className="mc-content mx-auto max-w-3xl px-4 md:px-6 text-center">
         <motion.span
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { signOut } from '@/app/actions/auth'
+import { BrandLogo } from '@/components/shared/BrandLogo'
 
 interface Props {
   userName: string
@@ -31,14 +32,7 @@ export function DashboardNav({ userName, isMatched }: Props) {
     <header className="bg-white border-b border-slate-100 sticky top-0 z-30">
       <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/dashboard">
-          <span
-            className="font-black text-xl tracking-tight text-[#233551]"
-            style={{ fontFamily: 'var(--font-lato)' }}
-          >
-            MindCanopy
-          </span>
-        </Link>
+        <BrandLogo href="/dashboard" />
 
         {/* Right side */}
         <div className="flex items-center gap-1">

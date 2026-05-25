@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, Lora, Lato } from "next/font/google";
 import "./globals.css";
+import { PLANS } from "@/lib/plans";
+
+const STARTING_PRICE = `${PLANS.basic_weekly.price}/${PLANS.basic_weekly.per}`;
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s | MindCanopy",
   },
   description:
-    "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions. Starting ₹2,999/week.",
+    `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions. Starting ${STARTING_PRICE}.`,
   keywords: [
     "online therapy India",
     "online therapist India",
@@ -50,7 +53,7 @@ export const metadata: Metadata = {
     siteName: "MindCanopy",
     title: "MindCanopy — Online Therapy for India",
     description:
-      "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. Starting ₹2,999/week.",
+      `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. Starting ${STARTING_PRICE}.`,
     images: [
       {
         url: "/og-image.png",

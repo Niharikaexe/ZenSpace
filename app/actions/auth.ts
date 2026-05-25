@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
+import { sendAdminNewClientSignupEmail } from '@/lib/email'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -30,57 +31,149 @@ export type AuthState = {
 }
 
 export async function signUp(_: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = signUpSchema.safeParse({
+  const validation = signUpSchema.safeParse({
     fullName: formData.get('fullName'),
     email: formData.get('email'),
     password: formData.get('password'),
     role: formData.get('role') ?? 'client',
   })
 
-  if (!parsed.success) {
-    logger.warn('auth/signUp', 'Validation failed', { reason: parsed.error.issues[0].message })
-    return { error: parsed.error.issues[0].message }
+  if (!validation.success) {
+    logger.warn('auth/signUp', 'Validation failed', { reason: validation.error.issues[0].message })
+    return { error: validation.error.issues[0].message }
   }
 
-  const { fullName, email, password, role } = parsed.data
+  const { fullName, email, password, role } = validation.data
+  const therapyCategory = (formData.get('therapyCategory') as string) || 'individual'
   const supabase = await createClient()
+  const admin = createAdminClient()
 
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name: fullName, role },
+      data: { full_name: fullName, role, therapy_category: therapyCategory },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })
 
+  // userId and sessionCreatedImmediately may be set by either the normal path
+  // or the email-delivery-failure bypass below.
+  let userId = signUpData?.user?.id
+  let sessionCreatedImmediately = !!signUpData?.session
+
   if (error) {
-    logger.error('auth/signUp', 'Supabase signUp failed', error, { email, role })
-    // Surface a clearer message for the most common config issue
-    const message = error.message.toLowerCase().includes('confirmation email')
-      ? 'Account creation is temporarily unavailable. Please try again later.'
-      : error.message
-    return { error: message }
+    const err = error as unknown as Record<string, unknown>
+    const raw = error.message || ''
+    const lower = raw.toLowerCase()
+    const code = err.code as string | undefined
+    const status = (err.status ?? err.statusCode) as number | string | undefined
+
+    // Full structured log — keep this verbose so when prod breaks we have
+    // enough to diagnose without needing to reproduce.
+    logger.error('auth/signUp', 'Supabase signUp failed', error, {
+      email, role, message: raw, code, status,
+    })
+    // eslint-disable-next-line no-console
+    console.error('[auth/signUp] raw error fields', { message: raw, code, status })
+
+    // No bypass — if Supabase couldn't create the user or send the email,
+    // surface that to the user instead of silently auto-confirming them.
+    // Categorize the failure so the surfaced message is actionable.
+    const isEmailDeliveryError =
+      !raw || raw === '{}' || lower.includes('sending') ||
+      lower.includes('confirmation email') || lower.includes('error sending confirmation')
+    const isRateLimit = lower.includes('rate limit') || lower.includes('email rate')
+    const isAlreadyRegistered =
+      lower.includes('already registered') ||
+      lower.includes('user already') ||
+      lower.includes('already exists')
+
+    if (isEmailDeliveryError) {
+      logger.warn('auth/signUp', 'Email delivery failure surfaced to user', { email, code, status })
+    } else if (isRateLimit) {
+      logger.warn('auth/signUp', 'Rate-limited by Supabase', { email, code, status })
+    } else if (isAlreadyRegistered) {
+      logger.warn('auth/signUp', 'Duplicate signup attempt', { email })
+    } else {
+      logger.warn('auth/signUp', 'Uncategorized signUp failure', { email, code, status, message: raw })
+    }
+
+    let surfaced = raw
+    if (isEmailDeliveryError) {
+      surfaced = "We couldn't send your confirmation email right now. Please try again in a few minutes, or contact admin@mindcanopy.in if it keeps happening."
+    } else if (isRateLimit) {
+      surfaced = 'Too many signup attempts. Please wait a few minutes and try again.'
+    } else if (isAlreadyRegistered) {
+      surfaced = 'An account with this email already exists. Try signing in instead.'
+    } else if (!raw) {
+      surfaced = `Sign-up failed (${code ?? status ?? 'unknown'}). Please contact admin@mindcanopy.in.`
+    }
+    return { error: surfaced }
   }
 
-  logger.info('auth/signUp', 'Account created', { userId: signUpData?.user?.id, email, role })
+  // ── Post-signUp verification ────────────────────────────────────────────────
+  // supabase.auth.signUp can return { error: null } while either (a) the email
+  // is already registered — Supabase obfuscates and returns a user object with
+  // an empty `identities` array to prevent enumeration — or (b) the user was
+  // never actually persisted. In both cases the old code returned success,
+  // showing the success screen to a user who has no DB row and no email. We
+  // explicitly verify here and surface a real error if anything is off.
 
-  // Detect whether Supabase immediately created a session (email confirmation disabled)
-  // vs sent a confirmation email (confirmation enabled).
-  // When a session is returned immediately, signUpData.session is non-null.
-  const sessionCreatedImmediately = !!signUpData?.session
+  if (!userId) {
+    logger.error('auth/signUp', 'signUp returned no user ID despite no error', null, { email, role })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  // Empty identities array → existing-email obfuscation.
+  const identities = signUpData?.user?.identities
+  if (Array.isArray(identities) && identities.length === 0) {
+    logger.warn('auth/signUp', 'Empty identities array — email already registered (obfuscated)', { email, userId })
+    return { error: 'An account with this email already exists. Try signing in instead.' }
+  }
+
+  // Confirm the auth.users row actually persisted.
+  const { data: verifyAuth, error: verifyAuthErr } = await admin.auth.admin.getUserById(userId)
+  if (verifyAuthErr || !verifyAuth?.user) {
+    logger.error('auth/signUp', 'auth.users row missing after signUp', verifyAuthErr, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  // Confirm the profiles row exists. handle_new_user trigger runs on auth.users
+  // INSERT, so it should already be there. Missing row → trigger failed.
+  const { data: profileRow, error: profileLookupErr } = await (admin as any)
+    .from('profiles')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (profileLookupErr) {
+    logger.error('auth/signUp', 'Failed to look up profile after signUp', profileLookupErr, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+  if (!profileRow) {
+    logger.error('auth/signUp', 'profiles row missing after signUp — handle_new_user trigger may have failed', null, { email, userId })
+    return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  logger.info('auth/signUp', 'Account created', { userId, email, role })
+
+  if (role === 'client') {
+    // Awaited so the request stays alive long enough for the Resend POST to
+    // complete on Vercel serverless. The function itself catches its own
+    // errors, so failure here is logged but does not block the signup.
+    await sendAdminNewClientSignupEmail(fullName, email)
+  }
 
   // Save questionnaire data if present (client sign-ups only)
-  // Stored in questionnaire_responses table only — not duplicated in client_profiles
   const questionnaireRaw = formData.get('questionnaireData')
-  if (role === 'client' && questionnaireRaw && signUpData?.user) {
+  if (role === 'client' && questionnaireRaw && userId) {
     try {
-      const parsed = JSON.parse(String(questionnaireRaw))
-      const admin = createAdminClient()
+      const questionnaireJson = JSON.parse(String(questionnaireRaw))
 
       const questionnairePayload: QuestionnaireInsert = {
-        client_id: signUpData.user.id,
-        responses: parsed as Json,
+        client_id: userId,
+        responses: questionnaireJson as Json,
       }
 
       const { error: qErr } = await (admin as any)
@@ -88,29 +181,20 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
         .insert(questionnairePayload)
 
       if (qErr) {
-        logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, {
-          userId: signUpData.user.id,
-        })
+        logger.error('auth/signUp', 'Failed to save questionnaire_responses', qErr, { userId })
       } else {
-        logger.info('auth/signUp', 'Questionnaire saved', { userId: signUpData.user.id })
-        // B-12/B-13: backfill client_profiles so admin match modal has structured data
-        await backfillClientProfile(signUpData.user.id, parsed as { type: string; answers: Record<string, unknown> })
+        logger.info('auth/signUp', 'Questionnaire saved', { userId })
+        await backfillClientProfile(userId, questionnaireJson as { type: string; answers: Record<string, unknown> })
       }
     } catch (err) {
-      logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, {
-        userId: signUpData.user.id,
-      })
+      logger.error('auth/signUp', 'Questionnaire save threw unexpected error', err, { userId })
     }
   }
 
-  // If Supabase gave us a session immediately (email confirmation off),
-  // redirect straight to the dashboard — no "check your email" needed.
   if (sessionCreatedImmediately) {
-    const userRole = signUpData?.user?.user_metadata?.role ?? role
-    logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', {
-      userId: signUpData?.user?.id,
-      role: userRole,
-    })
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    const userRole = currentUser?.user_metadata?.role ?? role
+    logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', { userId, role: userRole })
     redirect(
       userRole === 'admin' ? '/admin' :
       userRole === 'therapist' ? '/therapist/dashboard' :
@@ -138,8 +222,26 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    logger.warn('auth/signIn', 'Sign in failed', { email, reason: error.message })
-    return { error: error.message }
+    const err = error as unknown as Record<string, unknown>
+    const diag = {
+      message: error.message,
+      code: err.code,
+      status: err.status ?? err.statusCode,
+    }
+    logger.warn('auth/signIn', 'Sign in failed', { email, ...diag })
+    // eslint-disable-next-line no-console
+    console.error('[auth/signIn] raw error fields', diag)
+
+    const lower = (error.message || '').toLowerCase()
+    let surfaced = error.message
+    if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
+      surfaced = "We've sent you a confirmation email — please click the link in it before signing in. Check spam, or contact admin@mindcanopy.in if it never arrived."
+    } else if (lower.includes('invalid login')) {
+      surfaced = 'Email or password is incorrect.'
+    } else if (!error.message) {
+      surfaced = `Sign-in failed (${(err.code as string) ?? (err.status as string) ?? 'unknown'}). Please contact admin@mindcanopy.in.`
+    }
+    return { error: surfaced }
   }
 
   const { data: { user } } = await supabase.auth.getUser()

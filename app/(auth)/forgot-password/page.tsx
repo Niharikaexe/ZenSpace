@@ -16,7 +16,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex">
       {/* ── LEFT PANEL ── */}
-      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-y-auto p-10 xl:p-12">
+      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-hidden p-10 xl:p-12">
         <div className="mb-10">
           <Link href="/">
             <span
@@ -26,7 +26,6 @@ export default function ForgotPasswordPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         <div className="flex-1 flex flex-col justify-center">
@@ -68,7 +67,6 @@ export default function ForgotPasswordPage() {
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">

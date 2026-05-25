@@ -1,9 +1,11 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
-import { signIn } from '@/app/actions/auth'
+import { signIn, type AuthState } from '@/app/actions/auth'
+import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
+import { OwlLogo } from '@/components/home/OwlLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,16 +36,47 @@ const usps = [
   },
 ]
 
+// Client-side debug wrapper around the server action — logs every submit
+// and response so we can see auth flow end-to-end in browser DevTools.
+async function signInWithLogging(prev: AuthState, fd: FormData): Promise<AuthState> {
+  // eslint-disable-next-line no-console
+  console.log('[login] submit →', {
+    email: fd.get('email'),
+    password: typeof fd.get('password') === 'string' ? `(${(fd.get('password') as string).length} chars)` : null,
+  })
+  try {
+    const result = await signIn(prev, fd)
+    // eslint-disable-next-line no-console
+    console.log('[login] action returned →', result)
+    return result
+  } catch (err) {
+    if (err && typeof err === 'object' && 'digest' in err && String((err as { digest?: string }).digest).startsWith('NEXT_REDIRECT')) {
+      // eslint-disable-next-line no-console
+      console.log('[login] action ended in redirect (success)')
+      throw err
+    }
+    // eslint-disable-next-line no-console
+    console.error('[login] action threw unexpectedly →', err)
+    return { error: err instanceof Error ? err.message : 'Unexpected error (see DevTools console).' }
+  }
+}
+
 export default function LoginPage() {
-  const [state, action, isPending] = useActionState(signIn, initialState)
+  const [state, action, isPending] = useActionState(signInWithLogging, initialState)
   const [showPassword, setShowPassword] = useState(false)
+
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[login] state changed →', state)
+  }, [state])
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-white flex">
       {/* ── LEFT PANEL ── */}
-      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-y-auto p-10 xl:p-12">
+      <div className="hidden md:flex flex-col w-[40%] flex-shrink-0 bg-[#233551] sticky top-0 h-screen overflow-hidden p-10 xl:p-12">
         <div className="mb-10">
-          <Link href="/">
+          <Link href="/" className="inline-flex items-center gap-2">
+            <OwlLogo size={28} variant="light" />
             <span
               className="font-black text-2xl tracking-tight text-white"
               style={{ fontFamily: 'var(--font-lato)' }}
@@ -51,7 +84,6 @@ export default function LoginPage() {
               MindCanopy
             </span>
           </Link>
-          <p className="text-sm text-[#7EC0B7] mt-1">Therapy that treats you like an adult.</p>
         </div>
 
         <div className="space-y-6 flex-1">
@@ -69,12 +101,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-10">
-          <div className="bg-[#E8926A]/15 border border-[#E8926A]/25 rounded-2xl px-5 py-4">
-            <p className="text-white/90 text-sm leading-relaxed italic">
-              &quot;Changed how I handle anxiety at work.&quot;
-            </p>
-            <p className="text-[#E8926A] text-xs font-semibold mt-2">— Priya, 28, Mumbai</p>
-          </div>
+          <RotatingTestimonial />
         </div>
 
         <div className="mt-8">
@@ -93,15 +120,15 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="md:hidden w-full max-w-md mb-8 text-center">
-            <Link href="/">
+            <Link href="/" className="inline-flex items-center gap-2 justify-center">
+              <OwlLogo size={28} />
               <span
-                className="font-black text-2xl tracking-tight text-[#233551]"
+                className="font-black text-2xl tracking-tight text-[#3D8A80]"
                 style={{ fontFamily: 'var(--font-lato)' }}
               >
                 MindCanopy
               </span>
             </Link>
-            <p className="text-sm text-[#3D8A80] mt-1">Therapy that treats you like an adult.</p>
           </div>
 
           <div className="w-full max-w-md">

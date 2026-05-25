@@ -1,16 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getSessionJoinUrl } from '@/app/actions/sessions'
 
 interface Props {
+  sessionId: string
   scheduledAt: string
   roomUrl: string | null
   sessionType: string
 }
 
-export default function JoinButton({ scheduledAt, roomUrl, sessionType }: Props) {
+export default function JoinButton({ sessionId, scheduledAt, roomUrl, sessionType }: Props) {
   const [label, setLabel] = useState<string | null>(null)
   const [canJoin, setCanJoin] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
     function compute() {
@@ -20,15 +24,12 @@ export default function JoinButton({ scheduledAt, roomUrl, sessionType }: Props)
       const diffMins = Math.floor(diffMs / 60000)
 
       if (diffMs < -3600000) {
-        // More than 1 hour past — session likely ended
         setLabel('Session ended')
         setCanJoin(false)
       } else if (diffMs <= 0) {
-        // Started — join available
         setLabel('Join Now')
         setCanJoin(true)
       } else if (diffMins <= 15) {
-        // Within 15 minutes
         setLabel(`Starts in ${diffMins}m`)
         setCanJoin(true)
       } else if (diffMins < 60) {
@@ -58,20 +59,40 @@ export default function JoinButton({ scheduledAt, roomUrl, sessionType }: Props)
   }
 
   if (canJoin && roomUrl) {
-    const isSafeDailyUrl = /^https:\/\/[a-zA-Z0-9-]+\.daily\.co\//.test(roomUrl)
-    if (!isSafeDailyUrl) {
-      return <span className="text-xs text-red-400 italic">Invalid session link</span>
+    if (joinError) {
+      return <span className="text-xs text-red-500 italic">{joinError}</span>
     }
+
     return (
-      <a
-        href={roomUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors"
+      <button
+        onClick={async () => {
+          setLoading(true)
+          setJoinError(null)
+          const result = await getSessionJoinUrl(sessionId)
+          setLoading(false)
+          if (result.error) {
+            setJoinError(result.error)
+            return
+          }
+          if (result.url) {
+            window.open(result.url, '_blank', 'noopener,noreferrer')
+          }
+        }}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
       >
-        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-        Join Now
-      </a>
+        {loading ? (
+          <>
+            <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+            Joining...
+          </>
+        ) : (
+          <>
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            Join Now
+          </>
+        )}
+      </button>
     )
   }
 

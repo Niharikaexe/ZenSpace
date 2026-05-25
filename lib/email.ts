@@ -2,10 +2,32 @@
 // Set RESEND_API_KEY in .env.local to enable emails.
 // Without it, emails are silently skipped (non-fatal).
 
-const FROM = 'MindCanopy <notifications@mindcanopy.in>'
+import { logger } from '@/lib/logger'
+
+const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
+const FROM_ADMIN = process.env.RESEND_FROM_ADMIN ?? 'MindCanopy Admin <admin@mindcanopy.in>'
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@mindcanopy.in'
 
 // ── Template helpers ─────────────────────────────────────────────────────────
+
+const LOGO_URL = `${SITE}/icon.svg`
+
+function brandHeader() {
+  // Owl mark + wordmark in the navy header bar.
+  // Email clients that strip SVG (some Outlook variants) fall back to the
+  // alt text "MindCanopy".
+  return `<td style="background:#233551;padding:20px 32px;">
+    <table cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="padding-right:12px;vertical-align:middle;">
+        <img src="${LOGO_URL}" width="32" height="32" alt="MindCanopy" style="display:block;border-radius:6px;background:#FFF5F2;" />
+      </td>
+      <td style="vertical-align:middle;">
+        <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
+      </td>
+    </tr></table>
+  </td>`
+}
 
 function base(content: string) {
   return `<!DOCTYPE html>
@@ -21,9 +43,7 @@ function base(content: string) {
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
         <!-- Header -->
         <tr>
-          <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
-          </td>
+          ${brandHeader()}
         </tr>
         <!-- Body -->
         <tr><td style="padding:32px;">${content}</td></tr>
@@ -32,7 +52,7 @@ function base(content: string) {
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
               You&rsquo;re receiving this because you&rsquo;re a verified therapist on MindCanopy.
-              <br/>Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
+              <br/>Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a>
             </p>
           </td>
         </tr>
@@ -140,7 +160,7 @@ function tplSwitchRequest(adminName: string, clientName: string, reason: string)
 
 // ── Application invite template ──────────────────────────────────────────────
 
-function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: string) {
+function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: string, adminNotes: string) {
   const notesBlock = adminNotes
     ? `<div style="margin-top:20px;padding:16px;background:#f0faf9;border-left:3px solid #7EC0B7;border-radius:4px;">
         <p style="margin:0;font-size:13px;color:#4a5568;font-style:italic;">${adminNotes}</p>
@@ -158,9 +178,7 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
         <tr>
-          <td style="background:#233551;padding:24px 32px;">
-            <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span>
-          </td>
+          ${brandHeader()}
         </tr>
         <tr><td style="padding:32px;">
           <span style="display:inline-block;padding:4px 12px;border-radius:100px;background:#7EC0B722;color:#7EC0B7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Application Approved</span>
@@ -169,12 +187,17 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
           <p style="margin:8px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your application has been reviewed and approved. Use the link below to complete your onboarding and set up your therapist profile.</p>
           ${notesBlock}
           <a href="${inviteUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Complete Onboarding →</a>
-          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This link contains a one-time invite code. Don't share it.</p>
+          <div style="margin-top:24px;padding:14px 16px;background:#f8f9fa;border:1px dashed #cbd5e0;border-radius:8px;">
+            <p style="margin:0;font-size:12px;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Your invite code</p>
+            <p style="margin:6px 0 0;font-size:18px;color:#233551;font-weight:900;letter-spacing:0.1em;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${inviteCode}</p>
+            <p style="margin:8px 0 0;font-size:12px;color:#9aa3ad;line-height:1.5;">If the button above doesn't work, go to <a href="${SITE}/therapist/onboard" style="color:#3D8A80;">${SITE}/therapist/onboard</a> and paste this code on the first step.</p>
+          </div>
+          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This code is one-time use. Don't share it.</p>
         </td></tr>
         <tr>
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">
-              Questions? Email us at <a href="mailto:hello@mindcanopy.in" style="color:#3D8A80;">hello@mindcanopy.in</a>
+              Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a>
             </p>
           </td>
         </tr>
@@ -185,20 +208,25 @@ function tplApplicationApproved(name: string, inviteUrl: string, adminNotes: str
 </html>`
 }
 
-export async function sendApplicationInviteEmail({
-  to,
-  name,
-  inviteUrl,
-  adminNotes = '',
-}: {
-  to: string
-  name: string
-  inviteUrl: string
-  adminNotes?: string
-}): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+// ── New application — admin notification ────────────────────────────────────
+
+function tplNewApplication(fullName: string) {
+  return base(`
+    ${tag('New Application', '#E8926A')}
+    <br/><br/>
+    ${h1(`${fullName} applied to join MindCanopy.`)}
+    ${p('Head to your admin dashboard to review the application.')}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+export async function sendNewApplicationAdminEmail(fullName: string): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('email/new-application', 'RESEND_API_KEY not set — email skipped')
+    return false
+  }
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -206,14 +234,235 @@ export async function sendApplicationInviteEmail({
       },
       body: JSON.stringify({
         from: FROM,
-        to,
-        subject: 'Your MindCanopy therapist application has been approved',
-        html: tplApplicationApproved(name, inviteUrl, adminNotes),
+        to: ADMIN_EMAIL,
+        subject: `New therapist application — ${fullName}`,
+        html: tplNewApplication(fullName),
       }),
     })
-  } catch {
-    // best-effort
+    if (!res.ok) {
+      const body = await res.text()
+      logger.error('email/new-application', 'Resend rejected', null, { status: res.status, body })
+      return false
+    }
+    return true
+  } catch (err) {
+    logger.error('email/new-application', 'Send failed', err)
+    return false
   }
+}
+
+export async function sendApplicationInviteEmail({
+  to,
+  name,
+  inviteCode,
+  inviteUrl,
+  adminNotes = '',
+}: {
+  to: string
+  name: string
+  inviteCode: string
+  inviteUrl: string
+  adminNotes?: string
+}): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn('email/application-invite', 'RESEND_API_KEY not set — email skipped', { to })
+    return false
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: FROM_ADMIN,
+        to,
+        subject: 'Your MindCanopy therapist application has been approved',
+        html: tplApplicationApproved(name, inviteUrl, inviteCode, adminNotes),
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      logger.error('email/application-invite', 'Resend rejected', null, { to, status: res.status, body })
+      return false
+    }
+    return true
+  } catch (err) {
+    logger.error('email/application-invite', 'Send failed', err, { to })
+    return false
+  }
+}
+
+// ── Admin notification templates ─────────────────────────────────────────────
+
+function tplAdminNewClientSignup(clientName: string, email: string) {
+  return base(`
+    ${tag('New Client Signup', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${clientName} just signed up.`)}
+    ${p(`Email: <strong>${email}</strong><br/>They are now in the pending match queue. Review their questionnaire and assign a therapist.`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminNewSubscription(clientName: string, planName: string) {
+  return base(`
+    ${tag('New Subscription', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${clientName} subscribed.`)}
+    ${p(`Plan: <strong>${planName}</strong>`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminTherapistOnboarded(therapistName: string) {
+  return base(`
+    ${tag('Therapist Onboarded', '#7EC0B7')}
+    <br/><br/>
+    ${h1(`${therapistName} has completed onboarding.`)}
+    ${p('Their profile is ready for review. Verify their credentials and start assigning clients.')}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+function tplAdminContactForm(senderName: string, senderEmail: string, message: string) {
+  return base(`
+    ${tag('Contact Form', '#E8926A')}
+    <br/><br/>
+    ${h1(`Message from ${senderName}`)}
+    ${p(`Email: <strong>${senderEmail}</strong>`)}
+    <div style="margin:16px 0;padding:14px 16px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${message}</div>
+  `)
+}
+
+function tplPayoutRequest({
+  therapistName,
+  sessionsCompleted,
+  pendingPayout,
+  paypalEmail,
+  bankAccountName,
+  bankAccountNumber,
+  bankIfsc,
+}: {
+  therapistName: string
+  sessionsCompleted: number
+  pendingPayout: string
+  paypalEmail: string | null
+  bankAccountName: string | null
+  bankAccountNumber: string | null
+  bankIfsc: string | null
+}) {
+  const paymentRows = [
+    paypalEmail        && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">PayPal</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${paypalEmail}</td></tr>`,
+    bankAccountName    && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">Account name</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankAccountName}</td></tr>`,
+    bankAccountNumber  && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">Account number</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankAccountNumber}</td></tr>`,
+    bankIfsc           && `<tr><td style="padding:6px 12px 6px 0;font-size:13px;color:#9aa3ad;white-space:nowrap;">IFSC</td><td style="padding:6px 0;font-size:13px;color:#233551;font-weight:600;">${bankIfsc}</td></tr>`,
+  ].filter(Boolean).join('')
+
+  const paymentBlock = paymentRows
+    ? `<div style="margin:20px 0;padding:16px;background:#f8f9fa;border:1px solid #e8ecef;border-radius:10px;">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:700;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">Payment details</p>
+        <table cellpadding="0" cellspacing="0" border="0">${paymentRows}</table>
+       </div>`
+    : `<p style="color:#E8926A;font-size:13px;margin:16px 0;">⚠️ No payment details on file. Ask the therapist to update their account settings.</p>`
+
+  return base(`
+    ${tag('Payout Request', '#E8926A')}
+    <br/><br/>
+    ${h1(`${therapistName} has requested a payout.`)}
+    ${p(`<strong>${sessionsCompleted}</strong> completed session${sessionsCompleted !== 1 ? 's' : ''} in the last 7 days · Amount due: <strong>${pendingPayout}</strong>`)}
+    ${paymentBlock}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `)
+}
+
+// ── Admin send helpers ────────────────────────────────────────────────────────
+
+/**
+ * Send an admin notification email. Returns true on success so callers can
+ * surface failure to the user (e.g. the contact form).
+ *
+ * Callers that don't need the boolean can safely ignore it; this function
+ * never throws.
+ */
+async function sendAdminEmail(subject: string, html: string, ctx: string): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn(`email/${ctx}`, 'RESEND_API_KEY not set — email skipped', { subject })
+    return false
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from: FROM, to: ADMIN_EMAIL, subject, html }),
+    })
+    if (!res.ok) {
+      const body = await res.text()
+      logger.error(`email/${ctx}`, 'Resend rejected', null, { subject, status: res.status, body })
+      return false
+    }
+    return true
+  } catch (err) {
+    logger.error(`email/${ctx}`, 'Send failed', err, { subject })
+    return false
+  }
+}
+
+export async function sendAdminNewClientSignupEmail(clientName: string, email: string): Promise<boolean> {
+  return sendAdminEmail(
+    `New client signup — ${clientName}`,
+    tplAdminNewClientSignup(clientName, email),
+    'admin-client-signup',
+  )
+}
+
+export async function sendAdminNewSubscriptionEmail(clientName: string, planName: string): Promise<boolean> {
+  return sendAdminEmail(
+    `New subscription — ${clientName} (${planName})`,
+    tplAdminNewSubscription(clientName, planName),
+    'admin-new-subscription',
+  )
+}
+
+export async function sendAdminTherapistOnboardedEmail(therapistName: string): Promise<boolean> {
+  return sendAdminEmail(
+    `Therapist onboarded — ${therapistName}`,
+    tplAdminTherapistOnboarded(therapistName),
+    'admin-therapist-onboarded',
+  )
+}
+
+export async function sendAdminContactFormEmail(senderName: string, senderEmail: string, message: string): Promise<boolean> {
+  return sendAdminEmail(
+    `Contact form — ${senderName}`,
+    tplAdminContactForm(senderName, senderEmail, message),
+    'admin-contact-form',
+  )
+}
+
+export async function sendPayoutRequestEmail({
+  therapistName,
+  sessionsCompleted,
+  pendingPayout,
+  paypalEmail,
+  bankAccountName,
+  bankAccountNumber,
+  bankIfsc,
+}: {
+  therapistName: string
+  sessionsCompleted: number
+  pendingPayout: string
+  paypalEmail: string | null
+  bankAccountName: string | null
+  bankAccountNumber: string | null
+  bankIfsc: string | null
+}): Promise<boolean> {
+  return sendAdminEmail(
+    `Payout request — ${therapistName}`,
+    tplPayoutRequest({ therapistName, sessionsCompleted, pendingPayout, paypalEmail, bankAccountName, bankAccountNumber, bankIfsc }),
+    'payout-request',
+  )
 }
 
 // ── Send helper ──────────────────────────────────────────────────────────────
@@ -272,7 +521,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
   }
 
   try {
-    await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -280,7 +529,12 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     })
-  } catch {
-    // Email is best-effort — never block the main action
+    if (!res.ok) {
+      const body = await res.text()
+      logger.warn('email/notification', 'Resend rejected', { to, type, status: res.status, body })
+    }
+  } catch (err) {
+    // Best-effort — never block the main action, but log so we can see failures
+    logger.warn('email/notification', 'Send failed', { to, type, err: err instanceof Error ? err.message : String(err) })
   }
 }
