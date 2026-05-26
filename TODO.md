@@ -11,6 +11,98 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 - [ ] **Subscription.** Razorpay plan IDs wired in env, webhook idempotency live, cancel semantics correct (audit B-14), enum mismatch fixed (B-15), tested end to end with live Razorpay.
 - [ ] **Client email templates (build + wire).** Build the two new client-facing emails (welcome on signup, match-made when admin creates the match) as Resend templates. Wire the triggers in the server actions. Brand-voice copy comes from marketing.
 - [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` becomes the personalized blurb in the match-made email to the client. Label or hint the field so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email."
+
+---
+
+## QA and Testing
+
+Things to verify end to end before (and after) launch. None are coding tasks per se, all are hands-on checks. Tackle these once features are built and before any spend goes live.
+
+### Mobile and responsive
+
+- [ ] **Dashboard mobile audit.** Walk every client-dashboard page on a 375px viewport (iPhone SE size). `PendingDashboard.tsx`, `AccountForm.tsx`, `TherapistSidePanel.tsx`, and most page wrappers have zero responsive classes today, so likely break. Fix list comes from this audit.
+- [ ] **Therapist dashboard mobile audit.** Same exercise on the `/therapist/dashboard/*` routes. Therapists will check messages on phone.
+- [ ] **Admin dashboard mobile audit.** Niharika uses this to match clients. Almost certainly not mobile-ready today.
+- [ ] **Questionnaire on mobile.** Long forms with many tap targets. Verify keyboard doesn't cover the next button, progress bar stays visible.
+- [ ] **Signup, login, forgot-password on mobile.** Side-panel testimonials should hide or stack.
+- [ ] **Chat interface on mobile.** Keyboard behavior, scroll position when message sent, attachment uploads.
+- [ ] **Video session on mobile.** Daily.co handles most of this but verify the join screen, mic/camera permissions prompt, ending a call.
+
+### Cross-browser
+
+- [ ] **Chrome desktop + Android.** Baseline.
+- [ ] **Safari desktop + iOS.** Different behaviour around dates, sticky positioning, autofill.
+- [ ] **Samsung Internet.** Popular in India, often missed.
+- [ ] **Firefox.** Lower priority but a sanity pass.
+
+### Functional end-to-end (test each from scratch with fresh users)
+
+- [ ] **Client happy path.** Land on `/` → pick category → questionnaire → signup → email confirms → dashboard pending → subscribe via Razorpay → admin matches → match email → chat with therapist → session scheduled → join video → therapist writes notes → client reads notes.
+- [ ] **Therapist happy path.** Land on `/therapist/join` → apply → receive verify email → click verify → admin approves → invite code email → onboard → first client matched → reply to chat → schedule session → conduct session → write notes.
+- [ ] **Switch therapist flow.** Client requests new therapist → admin sees in panel → actions request → match ends → client re-queued → admin re-matches.
+- [ ] **Cancel subscription flow.** Active sub → click cancel → still active until period_end → after period end, status flips to cancelled → chat and sessions properly gated.
+- [ ] **Delete account flow.** Two-step confirmation → all data cascades correctly → redirect to home → can't log back in.
+- [ ] **Forgot password flow.** Submit email → reset email arrives → click link → land on reset page → enter new password → log in successfully.
+
+### Payments (Razorpay)
+
+- [ ] **Test-mode end-to-end with real Razorpay.** Confirm success, failure, webhook delivery.
+- [ ] **Webhook idempotency.** Replay the same webhook event, confirm no double-extend of `current_period_end`.
+- [ ] **Webhook signature verification.** Send a fake event with bad signature, confirm 401.
+- [ ] **Subscription cancel via Razorpay.** Confirm `cancel_at_cycle_end` works as expected, no surprise charge after cancel date.
+- [ ] **Currency display.** Verify ₹ formatting everywhere, no `$` or other accidental currency.
+
+### Email deliverability
+
+- [ ] **Inbox vs spam test.** Send each of the 17 templates to a Gmail, Yahoo, Outlook, ProtonMail, and a corporate Gmail Workspace address. Note which land in spam.
+- [ ] **DKIM, SPF, DMARC records.** Confirm Resend records are configured for `mindcanopy.in`. Check at mxtoolbox.
+- [ ] **From-address sanity.** `marketing@mindcanopy.in` and `admin@mindcanopy.in` resolve correctly, replies route somewhere a human reads.
+- [ ] **Session reminder cron timing.** Run the cron manually with a fixture session 25 hours away; confirm both client and therapist get the email.
+
+### Accessibility (a11y)
+
+- [ ] **Keyboard navigation.** Tab through every page; nothing trapped, focus states visible.
+- [ ] **Screen reader pass.** VoiceOver on Safari and NVDA on Chrome. Form labels read correctly, button text describes action.
+- [ ] **Color contrast.** Run an automated check (axe DevTools or Lighthouse) on every public page. Brand teal on white can be borderline.
+- [ ] **Form labels.** Every input has an associated `<label>` or `aria-label`.
+
+### Security
+
+- [ ] **RLS policy verification.** Try (as user A) to fetch user B's match, message, session, subscription, profile. Confirm Supabase rejects.
+- [ ] **Rate limiting actually fires.** Run 20 signup attempts in 60s from one IP. Confirm middleware returns 429.
+- [ ] **XSS attempts.** Paste `<script>alert(1)</script>` into free-text fields (questionnaire, chat, therapist bio, contact form). Confirm rendered as text, not executed.
+- [ ] **Auth bypass attempts.** Hit `/api/payment/verify` and `/api/cron/session-reminders` without auth/cron secret. Confirm rejected.
+- [ ] **TEST_CODE backdoor scope.** Confirm whether `ZENSPACE2026` works in production or only in dev. Decide if it should be removed entirely.
+
+### Performance
+
+- [ ] **Lighthouse on every public page.** Target 90+ on Performance, SEO, Accessibility, Best Practices. Capture current baseline.
+- [ ] **Realistic data load test.** Seed the dev DB with 100 clients, 20 therapists, 200 messages, 50 sessions. Verify admin dashboard still renders quickly.
+- [ ] **Bundle size on landing.** Run `npm run build` and check the route bundle sizes. Anything over 200kb gets investigated.
+- [ ] **Image rendering.** Confirm `next/image` `remotePatterns` for Supabase storage works (avatars).
+
+### Error states
+
+- [ ] **Offline behavior.** Disable network mid-flow. Does the UI handle gracefully?
+- [ ] **500 from server.** Force an error in a server action. Does `error.tsx` render with brand voice, not a stack trace?
+- [ ] **404.** Visit `/this-page-doesnt-exist`. Does `not-found.tsx` render correctly?
+- [ ] **Empty states.** New therapist with zero clients, new client with no match yet, admin with zero pending applications. All render cleanly?
+- [ ] **Broken images.** Force avatar URLs to 404. Do initials show as fallback?
+- [ ] **Daily.co room URL invalid.** What does the client see if a room is malformed? (Audit B-45 said this was fixed, verify.)
+
+### Form input edge cases
+
+- [ ] **Very long inputs.** Paste 5000 characters into name, bio, message. Anything break?
+- [ ] **Special characters.** Try emoji, RTL text, smart quotes, currency symbols.
+- [ ] **Copy-paste hazards.** Paste a URL with tracking params into a textarea. Anything blow up?
+- [ ] **Duplicate submission.** Double-click submit on signup, on payment, on apply form. Confirm only one row written.
+
+### Content / SEO
+
+- [ ] **OG tags render correctly.** Share each public URL on WhatsApp, LinkedIn, X. Verify thumbnail, title, description.
+- [ ] **Sitemap.xml is valid.** Hit `/sitemap.xml` and validate the XML.
+- [ ] **Robots.txt.** Confirm allow rules are correct, no accidental blocks on public pages.
+- [ ] **Canonical tags.** Every public page has a `<link rel="canonical">` pointing to itself.
 - [ ] **CRM of all users + mobile version.** Admin can see every client, therapist, admin in one view. Mobile responsive layout for admin dashboard.
 - [ ] **Google Ads tracking link.** gtag installed in layout, UTM convention defined, conversion events on questionnaire submit and signup complete.
 - [ ] **Meta Ads tracking link.** Meta Pixel installed, Conversion API for server-side events, UTM convention shared with Google Ads.
