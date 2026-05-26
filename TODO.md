@@ -25,11 +25,25 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 
 ### Email
 
-- [ ] **Client email templates (build + wire).** Build all approved new client-facing email templates as Resend functions inside `lib/email.ts`. Wire triggers in the server actions. Copy lives as standalone HTML in `email-templates/`.
-- [ ] **Bug: session-scheduled email CTA hardcodes therapist URL.** `tplSessionScheduled` in `lib/email.ts:131` hardcodes `View Sessions →` to `${SITE}/therapist/dashboard/video`. The notification fires to whichever party didn't schedule (so when therapist schedules, the CLIENT gets the email). Clients clicking that button hit a route they have no access to. Fix: branch the CTA URL by recipient role inside the template, or pass it in from the dispatcher (`sendNotificationEmail` in `lib/email.ts:615`).
-- [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` becomes the personalized blurb in the match-made email to the client. Label or hint the field so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email."
-- [ ] **Therapist new-message email: change timing to 3 hours, only if unread.** Today `lib/notifications.ts` debounces by 5 minutes (`shouldNotifyMessage`). Change to: do NOT send immediately. Schedule a check 3 hours after the first unread message. If therapist has read the message by then, skip the email. If new messages arrive, reset the timer. Also include the full message body in the email (currently just says "you have a message").
-- [ ] **Therapist availability nudge cron.** Recurring nudge when a verified therapist hasn't set `weekly_availability` or `weekly_capacity`. Fire 3 days after verification, then every 3 days, max 5 sends. Stop immediately when both are set. Needs: tracking column (e.g. `availability_nudge_count`) on `therapist_profiles`, and a daily cron route to scan.
+**Status as of this push:** 27 templates wired in `lib/email.ts`. 18 trigger on events (signup, match, message, schedule, etc.). 5 cron routes added for recurring nudges. HTML previews live in `email-templates/`. Three templates still need admin-UI hooks (listed below).
+
+**Done in this batch:**
+- [x] Templates: all 27 written in `lib/email.ts` with founder-approved copy + audience-aware base() footer.
+- [x] Welcome email wired on signup (`app/actions/auth.ts`).
+- [x] Match-made email wired to client on admin `createMatch` (`app/admin/actions.ts`). Passes `matches.notes` as the personalized blurb.
+- [x] Session-scheduled split into client + therapist variants. Each gets the right CTA URL for their dashboard. Fixes the hardcoded-therapist-URL bug from earlier.
+- [x] Session-reminder split into client + therapist variants in the daily cron.
+- [x] Full message body now included in `tplTherapistClientMessage` via metadata.
+- [x] 5 new cron routes: availability-nudge, chat-not-started, no-subscribe-nudge, reply-overdue, missed-sessions. All in `app/api/cron/`. All auth via `CRON_SECRET`. All dedupe via `notifications` table.
+- [x] `vercel.json` updated with all six cron schedules.
+
+**Still pending:**
+- [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` is now sent as the personalised blurb in the client's match-made email. Add a visible label or hint so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email." Pure frontend tweak in `components/admin/MatchModal.tsx`.
+- [ ] **Therapist new-message email: 3-hour-unread gate.** Today the immediate email still fires within a 5-min debounce. The desired behaviour is: do not send immediately. Wait 3 hours, then check if the message is still unread (`messages.is_read = false`). If still unread, send. If already read, skip. Implementation: either move the email-fire out of `createNotification` for this type and into a new cron route at `/api/cron/message-overdue-3h` (similar to the existing 48h reply-overdue cron), OR refactor `shouldNotifyMessage` to defer sends.
+- [ ] **Cancellation-pattern detection.** `tplTherapistCancellationPattern` exists and is dispatchable via `sendNotificationEmail({type:'therapist_cancellation_pattern'})`, but nothing in the codebase counts cancellations or fires it. Wire into the session-cancel action (`updateSessionStatus` in `app/actions/sessions.ts`): after cancelling a session, count `status='cancelled'` rows for this therapist within the last 30 days. If count >= 3, dispatch the email.
+- [ ] **Account paused admin UI.** `tplTherapistAccountPaused` exists. Needs: (a) a `is_paused` boolean column on `therapist_profiles` (or use `accepts_new_clients=false` as proxy), (b) a "Pause therapist" button + textarea (reason) in the admin therapists tab, (c) a `pauseTherapist(therapistId, adminNote)` server action that flips the flag and dispatches the email. Should also block new matches when paused.
+- [ ] **Concern raised admin UI.** `tplTherapistConcernRaised` exists. Needs: (a) a `concerns` table tracking client → therapist → reason → status, (b) an admin flow to log a concern (probably from the match detail view), (c) the dispatch on log. Also needs the auto-pause logic: if therapist doesn't respond within 2 days of the concern, pause their interaction with this client.
+- [ ] **Vercel cron deployment.** Once dev2 is merged to main and deployed, confirm `CRON_SECRET` is set in Vercel env (production + preview). Confirm all six cron schedules are registered in the Vercel dashboard. Manually invoke each route once with the bearer header to smoke-test.
 
 ---
 
