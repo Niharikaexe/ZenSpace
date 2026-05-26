@@ -10,6 +10,7 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 - [ ] **User journey audit.** Walk every flow end to end: signup, questionnaire, match, subscribe, chat, session, notes. Find broken links, dead ends, missing states.
 - [ ] **Subscription.** Razorpay plan IDs wired in env, webhook idempotency live, cancel semantics correct (audit B-14), enum mismatch fixed (B-15), tested end to end with live Razorpay.
 - [ ] **Client email templates (build + wire).** Build the two new client-facing emails (welcome on signup, match-made when admin creates the match) as Resend templates. Wire the triggers in the server actions. Brand-voice copy comes from marketing.
+- [ ] **Bug: session-scheduled email CTA hardcodes therapist URL.** `tplSessionScheduled` in `lib/email.ts:131` hardcodes `View Sessions →` to `${SITE}/therapist/dashboard/video`. The notification fires to whichever party didn't schedule (so when therapist schedules, the CLIENT gets the email). Clients clicking that button hit a route they have no access to. Fix: branch the CTA URL by recipient role inside the template, or pass it in from the dispatcher (`sendNotificationEmail` in `lib/email.ts:615`).
 - [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` becomes the personalized blurb in the match-made email to the client. Label or hint the field so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email."
 
 ---
