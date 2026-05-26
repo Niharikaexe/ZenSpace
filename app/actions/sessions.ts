@@ -97,6 +97,10 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
             clientName: senderName,
             messageBody: trimmed,
           },
+          // Skip the immediate email. The 3-hour-unread cron at
+          // /api/cron/message-overdue-3h fires the email only when the
+          // recipient hasn't read the message by then.
+          skipEmail: true,
         }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
@@ -340,6 +344,63 @@ export async function updateSessionStatus(
       // Non-fatal but log — a cancelled room left up means the join URL still
       // works until Daily.co's expiry timestamp kicks in.
       logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion threw', { sessionId, err: err instanceof Error ? err.message : String(err) })
+    }
+
+    // Pattern detection: if the THERAPIST cancelled, check whether they've
+    // cancelled too many sessions in the last 30 days. If so, dispatch the
+    // cancellation-pattern email. Dedupes by checking that no
+    // cancellation-pattern notification has been sent in the last 30 days.
+    if (user.id === matchRow.therapist_id) {
+      try {
+        const windowStart = new Date(Date.now() - 30 * 86_400_000).toISOString()
+        const PATTERN_THRESHOLD = 3
+
+        // Count cancelled sessions for this therapist in the window.
+        // We need to join through matches.therapist_id since sessions don't
+        // carry the therapist directly. Cheaper: fetch matches first.
+        const { data: therapistMatches } = await (admin as any)
+          .from('matches')
+          .select('id')
+          .eq('therapist_id', user.id)
+
+        const matchIds = (therapistMatches ?? []).map((m: { id: string }) => m.id)
+
+        let cancelCount = 0
+        if (matchIds.length) {
+          const { count } = await (admin as any)
+            .from('sessions')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'cancelled')
+            .in('match_id', matchIds)
+            .gte('ended_at', windowStart)
+          cancelCount = count ?? 0
+        }
+
+        if (cancelCount >= PATTERN_THRESHOLD) {
+          // Have we already sent the pattern email recently?
+          const { count: alreadySent } = await (admin as any)
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('type', 'therapist_cancellation_pattern')
+            .gte('created_at', windowStart)
+
+          if ((alreadySent ?? 0) === 0) {
+            await createNotification({
+              userId: user.id,
+              type: 'therapist_cancellation_pattern',
+              title: 'Pattern of cancellations',
+              body: `You've cancelled ${cancelCount} sessions in the last 30 days.`,
+              metadata: {
+                cancelCount: String(cancelCount),
+                timeWindow: '30 days',
+              },
+            })
+          }
+        }
+      } catch (err) {
+        logger.warn('sessions/updateSessionStatus', 'Cancellation-pattern check failed', { err: err instanceof Error ? err.message : String(err) })
+      }
     }
   }
 

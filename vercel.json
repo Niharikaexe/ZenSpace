@@ -17,6 +17,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/message-overdue-3h",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/cron/reply-overdue",
       "schedule": "0 * * * *"
     },

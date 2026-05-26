@@ -13,6 +13,10 @@ export interface CreateNotificationParams {
   title: string
   body: string
   metadata?: Record<string, unknown>
+  // When true, the in-app notification row is still written but the email
+  // is NOT sent. Used by message notifications, which fire the email via
+  // a cron (3hr-unread gate) instead of immediately.
+  skipEmail?: boolean
 }
 
 export async function createNotification({
@@ -21,6 +25,7 @@ export async function createNotification({
   title,
   body,
   metadata = {},
+  skipEmail = false,
 }: CreateNotificationParams): Promise<void> {
   const admin = createAdminClient()
 
@@ -38,6 +43,8 @@ export async function createNotification({
     logger.error('notifications/create', 'Failed to insert notification', dbErr, { userId, type })
     return
   }
+
+  if (skipEmail) return
 
   // 2. Fetch recipient email + name for the email
   try {

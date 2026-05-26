@@ -186,13 +186,16 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
 
           {/* Notes */}
           <div className="px-6 pb-6">
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
               Match Notes <span className="font-normal text-slate-400 normal-case">(optional)</span>
             </label>
+            <p className="text-xs text-slate-500 mb-2">
+              The client will see this in their match-made email. Write one or two lines explaining why this therapist feels right for them. Leave blank to send the email without a personalised note.
+            </p>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Why is this therapist a good fit for this client?"
+              placeholder="e.g. She specifically called out family-system pressure in her own training, and you mentioned in-laws coming up a few times. Felt right."
               rows={3}
               className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-slate-400"
             />

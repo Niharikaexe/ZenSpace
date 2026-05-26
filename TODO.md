@@ -25,25 +25,27 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 
 ### Email
 
-**Status as of this push:** 27 templates wired in `lib/email.ts`. 18 trigger on events (signup, match, message, schedule, etc.). 5 cron routes added for recurring nudges. HTML previews live in `email-templates/`. Three templates still need admin-UI hooks (listed below).
+**Status as of this push:** 27 templates wired in `lib/email.ts`. 18 trigger on events. 6 cron routes added. HTML previews live in `email-templates/`. Two templates still need admin-UI hooks + schema migrations (deferred for founder approval before touching DB).
 
-**Done in this batch:**
+**Done:**
 - [x] Templates: all 27 written in `lib/email.ts` with founder-approved copy + audience-aware base() footer.
 - [x] Welcome email wired on signup (`app/actions/auth.ts`).
 - [x] Match-made email wired to client on admin `createMatch` (`app/admin/actions.ts`). Passes `matches.notes` as the personalized blurb.
 - [x] Session-scheduled split into client + therapist variants. Each gets the right CTA URL for their dashboard. Fixes the hardcoded-therapist-URL bug from earlier.
 - [x] Session-reminder split into client + therapist variants in the daily cron.
 - [x] Full message body now included in `tplTherapistClientMessage` via metadata.
-- [x] 5 new cron routes: availability-nudge, chat-not-started, no-subscribe-nudge, reply-overdue, missed-sessions. All in `app/api/cron/`. All auth via `CRON_SECRET`. All dedupe via `notifications` table.
-- [x] `vercel.json` updated with all six cron schedules.
+- [x] **Admin match-notes UI label.** Added hint copy to the textarea in `components/admin/MatchModal.tsx`: "The client will see this in their match-made email. Write one or two lines explaining why this therapist feels right for them."
+- [x] **Therapist new-message email: 3-hour-unread gate.** Decoupled the email from `createNotification` via a new `skipEmail` flag. `sendMessage` now writes only the in-app notification (no immediate email). New cron route `/api/cron/message-overdue-3h` (hourly) finds messages unread 3+ hours old and fires the email then. Dedupes via a `client_message_email_sent` marker row in `notifications`.
+- [x] **Cancellation-pattern detection.** `updateSessionStatus` in `app/actions/sessions.ts` now counts cancellations per therapist in the last 30 days. If >= 3 and no pattern email already sent in that window, dispatches `therapist_cancellation_pattern`.
+- [x] 6 cron routes total: availability-nudge, chat-not-started, no-subscribe-nudge, message-overdue-3h, reply-overdue, missed-sessions. All in `app/api/cron/`. All auth via `CRON_SECRET`. All dedupe via `notifications` table.
+- [x] `vercel.json` updated with all seven cron schedules.
 
-**Still pending:**
-- [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` is now sent as the personalised blurb in the client's match-made email. Add a visible label or hint so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email." Pure frontend tweak in `components/admin/MatchModal.tsx`.
-- [ ] **Therapist new-message email: 3-hour-unread gate.** Today the immediate email still fires within a 5-min debounce. The desired behaviour is: do not send immediately. Wait 3 hours, then check if the message is still unread (`messages.is_read = false`). If still unread, send. If already read, skip. Implementation: either move the email-fire out of `createNotification` for this type and into a new cron route at `/api/cron/message-overdue-3h` (similar to the existing 48h reply-overdue cron), OR refactor `shouldNotifyMessage` to defer sends.
-- [ ] **Cancellation-pattern detection.** `tplTherapistCancellationPattern` exists and is dispatchable via `sendNotificationEmail({type:'therapist_cancellation_pattern'})`, but nothing in the codebase counts cancellations or fires it. Wire into the session-cancel action (`updateSessionStatus` in `app/actions/sessions.ts`): after cancelling a session, count `status='cancelled'` rows for this therapist within the last 30 days. If count >= 3, dispatch the email.
-- [ ] **Account paused admin UI.** `tplTherapistAccountPaused` exists. Needs: (a) a `is_paused` boolean column on `therapist_profiles` (or use `accepts_new_clients=false` as proxy), (b) a "Pause therapist" button + textarea (reason) in the admin therapists tab, (c) a `pauseTherapist(therapistId, adminNote)` server action that flips the flag and dispatches the email. Should also block new matches when paused.
-- [ ] **Concern raised admin UI.** `tplTherapistConcernRaised` exists. Needs: (a) a `concerns` table tracking client → therapist → reason → status, (b) an admin flow to log a concern (probably from the match detail view), (c) the dispatch on log. Also needs the auto-pause logic: if therapist doesn't respond within 2 days of the concern, pause their interaction with this client.
-- [ ] **Vercel cron deployment.** Once dev2 is merged to main and deployed, confirm `CRON_SECRET` is set in Vercel env (production + preview). Confirm all six cron schedules are registered in the Vercel dashboard. Manually invoke each route once with the bearer header to smoke-test.
+**Still pending (need founder go-ahead):**
+- [ ] **Account paused admin UI + schema.** `tplTherapistAccountPaused` template exists and is dispatchable via `sendNotificationEmail({type:'therapist_account_paused'})`, but no code path fires it. Needs: (a) new migration adding `is_paused boolean default false` + `paused_at timestamptz` to `therapist_profiles`, (b) a "Pause therapist" button + textarea in the admin therapists tab, (c) a `pauseTherapist(therapistId, adminNote)` server action that flips the flag and dispatches the email, (d) block new matches when paused (check `is_paused` in `createMatch`).
+- [ ] **Concern raised admin UI + schema.** `tplTherapistConcernRaised` template exists. Needs: (a) new migration creating a `concerns` table (client_id, therapist_id, match_id, reason, status, raised_at, responded_at), (b) admin UI to log a concern (probably from the match detail view), (c) server action that inserts the row and dispatches the email, (d) follow-up logic: if therapist doesn't respond within 2 days, auto-pause their interaction with this client.
+
+**Founder action required (skipped from this push):**
+- [ ] **Vercel cron deployment.** Once dev2 is merged to main and deployed, set `CRON_SECRET` in Vercel env (production + preview). Confirm all seven cron schedules show up in the Vercel dashboard. Manually invoke each route once with the bearer header to smoke-test.
 
 ---
 
