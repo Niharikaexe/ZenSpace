@@ -4,6 +4,37 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 
 ---
 
+## Session log (last updated 2026-05-26)
+
+Active branch: **`dev2`** (tracks `origin/main` semantically; founder will merge to main manually).
+
+**Reference docs in this repo (read these first):**
+- `CLAUDE.md` — project brief, tone of voice rules, banned words list.
+- `TODO.md` — this file. Current state of every workstream.
+- `USER-JOURNEY.md` — full sitemap + 7 Mermaid diagrams of every user flow + email matrix.
+- `SEO-CONTENT-PLAN.md` — 90-day content plan, 16 articles, 103-keyword target set.
+- `CONTENT-CLEANUP.md` — full audit of brand-rebrand misses, "15-minute" leftovers, em-dashes, contrast patterns. ~870 lines, file:line precision. Founder fixes manually.
+- `email-templates/README.md` — status of all 27 emails + tone-of-voice audit notes.
+- `email-templates/*.html` — standalone previews of every email. Open in a browser.
+- `scripts/render-emails.js` — regenerates email previews. Run with `node scripts/render-emails.js`.
+
+**Done this session:**
+- Branch hygiene: synced `main` to `asu` (force-pushed), created `dev2` from `origin/main` as the new clean working branch. Tone-sweep work and `TONE-OF-VOICE.md` live on `asu` only and were intentionally NOT carried to `dev2`.
+- Therapist apply form: country-code picker with search, DOB 18+ validation, years-experience cap of 40 (enforced in canAdvance, not just HTML max), success screen rewritten to lead with email verification.
+- Email system: 17 templates expanded to 27, all wired in `lib/email.ts` with audience-aware footer. Welcome on signup, match-made to client, session emails split by recipient role (fixes CTA bug), message email includes full body. Admin match-modal hint added.
+- 6 new cron routes: `availability-nudge`, `chat-not-started`, `no-subscribe-nudge`, `message-overdue-3h`, `reply-overdue`, `missed-sessions`. All scheduled in `vercel.json`.
+- Cancellation-pattern detection wired into `updateSessionStatus`.
+- New planning docs: `SEO-CONTENT-PLAN.md`, `USER-JOURNEY.md`, `CONTENT-CLEANUP.md`.
+- Quality review of email work: 4 introduced issues + 2 pre-existing logged under Dev > Email below.
+
+**Branches:**
+- `main` — production. Not touched directly this session.
+- `dev2` — current working branch. All today's code work is here.
+- `asu` — corrupted branch. Contains the tone-sweep + `TONE-OF-VOICE.md` (founder decided not to merge this work, see `CONTENT-CLEANUP.md` for the manual fix list instead).
+- `claude/tender-knuth-3Uja6` — automated session branch. Ignore.
+
+---
+
 ## Dev
 
 ### General
