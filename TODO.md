@@ -18,7 +18,7 @@ Active branch: **`dev2`** (tracks `origin/main` semantically; founder will merge
 - `email-templates/*.html` — standalone previews of every email. Open in a browser.
 - `scripts/render-emails.js` — regenerates email previews. Run with `node scripts/render-emails.js`.
 
-**Done this session:**
+**Done in the previous session (still applies):**
 - Branch hygiene: synced `main` to `asu` (force-pushed), created `dev2` from `origin/main` as the new clean working branch. Tone-sweep work and `TONE-OF-VOICE.md` live on `asu` only and were intentionally NOT carried to `dev2`.
 - Therapist apply form: country-code picker with search, DOB 18+ validation, years-experience cap of 40 (enforced in canAdvance, not just HTML max), success screen rewritten to lead with email verification.
 - Email system: 17 templates expanded to 27, all wired in `lib/email.ts` with audience-aware footer. Welcome on signup, match-made to client, session emails split by recipient role (fixes CTA bug), message email includes full body. Admin match-modal hint added.
@@ -27,11 +27,26 @@ Active branch: **`dev2`** (tracks `origin/main` semantically; founder will merge
 - New planning docs: `SEO-CONTENT-PLAN.md`, `USER-JOURNEY.md`, `CONTENT-CLEANUP.md`.
 - Quality review of email work: 4 introduced issues + 2 pre-existing logged under Dev > Email below.
 
+**Done THIS session (SEO indexing + low-risk fixes pass):**
+- `/contact` page now has its own metadata (title, description, canonical, OG) via `app/contact/layout.tsx`. Page itself is a client component so metadata couldn't live on it directly; layout wrapper follows the same pattern `app/admin/login/layout.tsx` already uses.
+- Sitemap converted from static `public/sitemap.xml` to dynamic `app/sitemap.ts`. Auto-updates per build, served at `/sitemap.xml` by Next.js. Added `/privacy`, `/terms`, `/help`, `/market-reports` to the URL list (were missing before). One file to maintain when content ships.
+- Auth pages (`/login`, `/signup`, `/forgot-password`) now carry `robots: { index: false, follow: false }` via `app/(auth)/layout.tsx`. Stops Google from indexing thin transactional pages; doesn't change anything user-facing.
+- Welcome-email + admin-notification on signup are now dispatched in parallel via `Promise.all` instead of two sequential `await`s. Saves ~500ms to ~1s on the signup response on Vercel serverless. From the known-issues list.
+- `escapeHtml()` helper added to `lib/email.ts` and applied to every template that interpolates user- or admin-supplied text into HTML: `tplAdminContactForm` (visitor-supplied message + sender name + email), `tplApplicationApproved` (applicant name + admin notes + invite code), `tplApplicationReceived` (applicant name), `tplClientWelcome` (signup name), `tplClientMatchMade` (admin match note + therapist full name), `tplTherapistAccountPaused` (admin note + therapist name), `tplAdminNewApplication` (applicant name), `tplAdminNewClientSignup` (client name + email), `tplAdminTherapistOnboarded` (therapist name), `tplAdminSwitchRequest` (client name + reason). Pre-existing message-body escape in `tplTherapistClientMessage` left as-is, it already does the right thing including newline-to-`<br/>`. Closes the HTML-injection items on Dev > Email known issues and the pre-existing high-severity contact form item.
+- `OG image` task added to Marketing > Content + planning; tracks the missing `/public/og-image.png` referenced by `app/layout.tsx`.
+
+**Founder action items from THIS session (you do, not me):**
+- Confirm `mindcanopy.in` is live and the sitemap at `https://mindcanopy.in/sitemap.xml` returns the new dynamic XML.
+- Set up Google Search Console: add `mindcanopy.in` as a Domain property, verify via TXT DNS record at the registrar, submit `sitemap.xml`, then use the URL inspector to request indexing on `/`, `/for/individuals`, `/for/couples`, `/for/adolescents`, `/about`. Repeat on Bing Webmaster Tools.
+- Produce `/public/og-image.png` (1200x630) — Figma export or similar.
+- The Vercel deployment on PR #18 (which has the same SEO commit cherry-picked here) failed; local `next build` passes cleanly. Likely an env-var issue on Vercel, not a code regression. Worth checking the Vercel deployment logs from the dashboard once.
+
 **Branches:**
 - `main` — production. Not touched directly this session.
-- `dev2` — current working branch. All today's code work is here.
+- `dev2` — current working branch. All today's code work is here, on top of yesterday's.
+- `claude/jolly-shannon-nYTRB` — earlier-this-session branch that PR #18 targets. Same SEO commit as the first commit here on dev2; you'll merge dev2 manually so PR #18 can probably be closed unmerged.
 - `asu` — corrupted branch. Contains the tone-sweep + `TONE-OF-VOICE.md` (founder decided not to merge this work, see `CONTENT-CLEANUP.md` for the manual fix list instead).
-- `claude/tender-knuth-3Uja6` — automated session branch. Ignore.
+- `claude/tender-knuth-3Uja6` — older automated session branch. Ignore.
 
 ---
 
@@ -50,7 +65,7 @@ Active branch: **`dev2`** (tracks `origin/main` semantically; founder will merge
 - [ ] **Profile picture uploads.** Audit client and therapist photo upload flow. Confirm Supabase storage bucket, RLS, and image rendering via `next/image` remotePatterns.
 - [ ] **Therapist availability conflict logic.** When a therapist has a scheduled session for a slot, that slot disappears from the available-slots list shown to all clients.
 - [ ] **Therapist monitoring.** Admin can see: which therapists are active, last login, session count, response latency to client messages, complaint history. Probably a new tab on the admin dashboard.
-- [ ] **Page indexing.** Submit sitemap.xml to Google Search Console and Bing Webmaster Tools, confirm robots.txt allows indexing, request indexing on priority pages, verify canonical tags and OG metadata on every public route.
+- [~] **Page indexing.** Foundation work done in code: `app/sitemap.ts` (dynamic, auto-includes all listed routes), `robots.txt` correctly allows public and blocks dashboards/API, `app/(auth)/layout.tsx` carries `noindex` for `/login`, `/signup`, `/forgot-password`, `app/contact/layout.tsx` carries per-page metadata. **Still on founder:** verify `mindcanopy.in` is live, set up Google Search Console (verify via DNS TXT, submit `sitemap.xml`, request indexing on `/`, `/for/*`, `/about`), repeat on Bing Webmaster Tools, confirm canonical and OG metadata on every public route once you have the live URL.
 - [ ] **AI content pipeline (build).** Build the pipeline that takes a writer brief + brand-voice rules and outputs draft blog posts and market reports for founder editing. Decide model, template structure, fact-checking step.
 - [ ] **`/pricing` page routing.** The `PricingPlans.tsx` component exists in code but isn't routed. Route it as `/pricing` so it's publicly accessible. Copy comes from marketing.
 
@@ -80,15 +95,15 @@ Active branch: **`dev2`** (tracks `origin/main` semantically; founder will merge
 
 **Known issues to fix (from the quality review of this session's email work):**
 
-- [ ] **Marker rows pollute NotificationBell.** Severity: medium. The `message-overdue-3h` cron writes `client_message_email_sent` rows to the `notifications` table to dedupe email sends. `components/therapist/NotificationBell.tsx` doesn't filter by type, so the user sees a literal "New message email sent" entry with body "Internal marker; user does not see this" in their bell dropdown. The markers also push real notifications out of the 30-row buffer faster. **Fix options:** (a) move marker tracking to a separate `email_send_log` table, OR (b) add `type NOT IN (...)` filter in `app/actions/notifications.ts` (the loader used by NotificationBell) AND in the realtime subscription channel. Option (a) is cleaner long-term.
-- [ ] **Welcome email blocks signup form by ~1 second.** Severity: low. `app/actions/auth.ts` signUp does two serial `await` calls to Resend after a client signs up (admin notification + client welcome). Each adds 200–500ms. **Fix:** wrap both in `await Promise.all([sendAdminNewClientSignupEmail(...), sendNotificationEmail({type:'client_welcome', ...})])`.
-- [ ] **HTML injection in new email templates (account-paused, match-made).** Severity: low (admin trusted) but real. `tplTherapistAccountPaused` interpolates `${adminNote}` directly into HTML. `tplClientMatchMade` interpolates `${adminMatchNote}`. Either could render unexpected formatting if admin pastes HTML, or be a phishing vector if an admin account is ever compromised. **Fix:** add an `escapeHtml(s)` helper to `lib/email.ts` and wrap both interpolations. Apply the same to `tplAdminContactForm` (visitor-supplied `${message}`, higher severity) and `tplApplicationApproved` (`${name}`, lower) while you're in there.
-- [ ] **Cancellation-pattern undercounts null `ended_at` rows.** Severity: low-medium. The check in `app/actions/sessions.ts updateSessionStatus()` uses `gte('ended_at', windowStart)`. Pre-existing session rows where `ended_at IS NULL` (set by a different code path, never set) are silently excluded from the threshold count. **Fix:** swap `ended_at` for `updated_at` (which is always set), OR coalesce: filter on `COALESCE(ended_at, updated_at) >= windowStart`. The second avoids changing semantics for existing healthy rows.
+- [ ] **Marker rows pollute NotificationBell.** Severity: medium. The `message-overdue-3h` cron writes `client_message_email_sent` rows to the `notifications` table to dedupe email sends. `components/therapist/NotificationBell.tsx` doesn't filter by type, so the user sees a literal "New message email sent" entry with body "Internal marker; user does not see this" in their bell dropdown. The markers also push real notifications out of the 30-row buffer faster. **Fix options:** (a) move marker tracking to a separate `email_send_log` table, OR (b) add `type NOT IN (...)` filter in `app/actions/notifications.ts` (the loader used by NotificationBell) AND in the realtime subscription channel. Option (a) is cleaner long-term. *Not done — touches user-facing UI + realtime channel, needs a careful test.*
+- [x] ~~**Welcome email blocks signup form by ~1 second.**~~ Fixed 2026-05-26: `app/actions/auth.ts` signUp now dispatches both emails in parallel via `Promise.all`.
+- [x] ~~**HTML injection in new email templates (account-paused, match-made).**~~ Fixed 2026-05-26: `escapeHtml()` helper added to `lib/email.ts` and wrapped across `tplAdminContactForm`, `tplApplicationApproved`, `tplApplicationReceived`, `tplClientWelcome`, `tplClientMatchMade`, `tplTherapistAccountPaused`, `tplAdminNewApplication`, `tplAdminNewClientSignup`, `tplAdminTherapistOnboarded`, and `tplAdminSwitchRequest`. Pre-existing `tplTherapistClientMessage` was already escaping. Closes both this and the pre-existing high-severity contact form item below.
+- [ ] **Cancellation-pattern undercounts null `ended_at` rows.** Severity: low-medium. The check in `app/actions/sessions.ts updateSessionStatus()` uses `gte('ended_at', windowStart)`. Pre-existing session rows where `ended_at IS NULL` (set by a different code path, never set) are silently excluded from the threshold count. **Fix:** swap `ended_at` for `updated_at` (which is always set), OR coalesce: filter on `COALESCE(ended_at, updated_at) >= windowStart`. The second avoids changing semantics for existing healthy rows. *Not done — changes a query semantic, founder picks which option.*
 
 **Known pre-existing bugs flagged during the review (not introduced this session, but worth a separate cleanup):**
 
 - [ ] **Session-reminders cron dedup keyed only on sessionId.** Severity: medium. The dedup query in `app/api/cron/session-reminders/route.ts` checks any notification with `type IN (session_reminder_client, session_reminder_therapist)` for the same sessionId. If the first cron run's `Promise.all` partially fails (e.g. client notif written, therapist notif write errors silently inside `createNotification`), the next run finds the successful one and skips both. The party that didn't get a notification the first time never gets a reminder for that session. **Fix:** dedup per `(sessionId, recipient_role)`, e.g. two separate dedup checks before each `createNotification`.
-- [ ] **Multiple email templates interpolate untrusted input as HTML.** Severity: high (contact form), medium (others). `tplAdminContactForm` interpolates visitor-supplied `${message}`. `tplApplicationApproved` interpolates `${name}` and `${inviteCode}`. None are escaped. **Fix:** the same `escapeHtml(s)` helper from the previous item, applied across all template interpolations of user input.
+- [x] ~~**Multiple email templates interpolate untrusted input as HTML.**~~ Fixed 2026-05-26 in the same pass — see the entry above.
 
 ---
 
@@ -188,18 +203,23 @@ Things to verify end to end before (and after) launch. None are coding tasks per
 
 ### Emails
 
-We don't bombard. One purposeful email per real moment. Tackle one at a time.
+We don't bombard. One purposeful email per real moment. All template + trigger work has shifted to Dev > Email (lib/email.ts is the source of truth). This section now only tracks copy / voice work that the marketing side still needs to weigh in on.
 
-**To ship (copy):**
-- [ ] **Welcome email.** Sent post-signup. Sets expectation for what happens next, surfaces the free intro chat path, brand voice.
-- [ ] **Match-made email.** Sent when admin matches the client to a therapist. Introduces the therapist (name, photo, approach), links to dashboard, brand voice.
+**Open marketing decisions:**
+- [ ] **Tone-of-voice review of all 27 templates.** `email-templates/README.md` flags which templates have had a founder voice pass. Walk through the remaining ones and tighten copy. Especially the 6 cron-triggered ones added late.
+- [ ] **Marketing emails beyond operational.** Currently we send purely operational emails (welcome, match-made, session reminder, payment failed, etc.). No drip, no newsletters, no re-engagement. Decide if and when to add: monthly mental-health note from the founder, content digest, anything else. Default: stay parked.
 
-**Already in the system (no work needed):**
+**Already in the system (shipped, no work needed):**
+- [x] All 27 templates wired in `lib/email.ts` with audience-aware footer (client / therapist / admin / applicant)
+- [x] Welcome email on signup → client (in `app/actions/auth.ts`)
+- [x] Match-made email on admin match → client (in `app/admin/actions.ts`)
 - [x] Email confirmation on signup (Supabase, automatic)
 - [x] Password reset (Supabase, automatic)
-- [x] Session reminder, 25h before session (cron, exists)
+- [x] Session reminder, 25h before → both client and therapist (cron)
 - [x] Therapist application received + verify email
 - [x] Therapist application approved + invite code
+- [x] 6 nudge / warning cron emails: availability, chat-not-started, no-subscribe, message-overdue-3h, reply-overdue, missed-session
+- [x] HTML escape across all user-input-bearing templates (XSS / injection hardening, 2026-05-26)
 
 ### Content + planning
 
