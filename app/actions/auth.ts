@@ -159,19 +159,19 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   logger.info('auth/signUp', 'Account created', { userId, email, role })
 
   if (role === 'client') {
-    // Awaited so the request stays alive long enough for the Resend POST to
-    // complete on Vercel serverless. Both functions catch their own errors,
-    // so failure here is logged but does not block the signup.
-    await sendAdminNewClientSignupEmail(fullName, email)
-
-    // Brand welcome email to the new client
+    // Both emails are dispatched in parallel so the signup form returns ~1s
+    // faster on Vercel serverless. Each function catches its own errors, so
+    // failure here is logged but does not block the signup.
     const firstName = fullName.split(' ')[0] || 'there'
-    await sendNotificationEmail({
-      to: email,
-      name: firstName,
-      type: 'client_welcome',
-      meta: {},
-    })
+    await Promise.all([
+      sendAdminNewClientSignupEmail(fullName, email),
+      sendNotificationEmail({
+        to: email,
+        name: firstName,
+        type: 'client_welcome',
+        meta: {},
+      }),
+    ])
   }
 
   // Save questionnaire data if present (client sign-ups only)

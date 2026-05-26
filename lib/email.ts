@@ -15,6 +15,15 @@ const LOGO_URL = `${SITE}/icon.svg`
 
 type Audience = 'client' | 'therapist' | 'admin' | 'applicant'
 
+function escapeHtml(s: string | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function brandHeader() {
   return `<td style="background:#233551;padding:20px 32px;">
     <table cellpadding="0" cellspacing="0" border="0"><tr>
@@ -94,7 +103,7 @@ const signOff = `
 
 function tplClientWelcome(firstName: string) {
   return base(`
-    ${h1(`Welcome to MindCanopy, ${firstName}.`)}
+    ${h1(`Welcome to MindCanopy, ${escapeHtml(firstName)}.`)}
     ${p('Glad you came our way. We hope MindCanopy can be the home your mind has been looking for.')}
     ${p(`When we have a therapist for you, we&rsquo;ll write back with a short introduction. You&rsquo;ll have an intro chat with them first. If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     ${p('You can log in any time.')}
@@ -110,9 +119,9 @@ function tplClientMatchMade(
   adminMatchNote: string,
 ) {
   return base(`
-    ${h1(`Meet ${therapistFullName}.`)}
+    ${h1(`Meet ${escapeHtml(therapistFullName)}.`)}
     ${p(`We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.`)}
-    ${adminMatchNote ? p(adminMatchNote) : ''}
+    ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
     ${p(`Your next step is an intro chat. Say hi when you&rsquo;re ready.`)}
     ${btn(`Say hi →`, `${SITE}/dashboard/chat`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
@@ -339,13 +348,13 @@ function tplTherapistAccountPaused(
   adminNote: string,
 ) {
   const noteBlock = adminNote
-    ? `<div style="margin:20px 0;padding:14px 16px;background:#fff8f5;border-left:3px solid #E8926A;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${adminNote}</div>`
+    ? `<div style="margin:20px 0;padding:14px 16px;background:#fff8f5;border-left:3px solid #E8926A;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${escapeHtml(adminNote)}</div>`
     : ''
   return base(`
     ${tag('Account Paused', '#E8926A')}
     <br/><br/>
     ${h1('Your account has been paused.')}
-    ${p(`Hi ${therapistFirstName},`)}
+    ${p(`Hi ${escapeHtml(therapistFirstName)},`)}
     ${p('Your therapist account on MindCanopy has been paused. You won&rsquo;t be matched with new clients, and your existing matches are under review.')}
     ${noteBlock}
     ${p('If you have questions or want to discuss next steps, write to admin@mindcanopy.in. We&rsquo;re happy to talk.')}
@@ -386,7 +395,7 @@ function tplApplicationReceived(name: string, verifyUrl: string) {
         <tr><td style="padding:32px;">
           ${tag('Application Received', '#7EC0B7')}
           <br/><br/>
-          ${h1(`Thanks for applying, ${name}.`)}
+          ${h1(`Thanks for applying, ${escapeHtml(name)}.`)}
           ${p(`We&rsquo;ve received your application and our team is taking a look. Before we move forward, please verify your email so we know we can reach you.`)}
 
           <a href="${verifyUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Verify my email →</a>
@@ -459,7 +468,7 @@ function tplApplicationReceived(name: string, verifyUrl: string) {
 function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: string, adminNotes: string) {
   const notesBlock = adminNotes
     ? `<div style="margin-top:20px;padding:16px;background:#f0faf9;border-left:3px solid #7EC0B7;border-radius:4px;">
-        <p style="margin:0;font-size:13px;color:#4a5568;font-style:italic;">${adminNotes}</p>
+        <p style="margin:0;font-size:13px;color:#4a5568;font-style:italic;">${escapeHtml(adminNotes)}</p>
        </div>`
     : ''
   return `<!DOCTYPE html>
@@ -479,13 +488,13 @@ function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: str
         <tr><td style="padding:32px;">
           <span style="display:inline-block;padding:4px 12px;border-radius:100px;background:#7EC0B722;color:#7EC0B7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Application Approved</span>
           <br/><br/>
-          <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;">Welcome to MindCanopy, ${name}.</h1>
+          <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;">Welcome to MindCanopy, ${escapeHtml(name)}.</h1>
           <p style="margin:8px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your application has been reviewed and approved. Use the link below to complete your onboarding and set up your therapist profile.</p>
           ${notesBlock}
           <a href="${inviteUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Complete Onboarding →</a>
           <div style="margin-top:24px;padding:14px 16px;background:#f8f9fa;border:1px dashed #cbd5e0;border-radius:8px;">
             <p style="margin:0;font-size:12px;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Your invite code</p>
-            <p style="margin:6px 0 0;font-size:18px;color:#233551;font-weight:900;letter-spacing:0.1em;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${inviteCode}</p>
+            <p style="margin:6px 0 0;font-size:18px;color:#233551;font-weight:900;letter-spacing:0.1em;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(inviteCode)}</p>
             <p style="margin:8px 0 0;font-size:12px;color:#9aa3ad;line-height:1.5;">If the button above doesn&rsquo;t work, go to <a href="${SITE}/therapist/onboard" style="color:#3D8A80;">${SITE}/therapist/onboard</a> and paste this code on the first step.</p>
           </div>
           <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This code is one-time use. Don&rsquo;t share it.</p>
@@ -510,7 +519,7 @@ function tplAdminNewApplication(fullName: string) {
   return base(`
     ${tag('New Application', '#E8926A')}
     <br/><br/>
-    ${h1(`${fullName} applied to join MindCanopy.`)}
+    ${h1(`${escapeHtml(fullName)} applied to join MindCanopy.`)}
     ${p('Head to your admin dashboard to review the application.')}
     ${btn('Open Admin Panel →', `${SITE}/admin`)}
   `, 'admin')
@@ -520,8 +529,8 @@ function tplAdminNewClientSignup(clientName: string, email: string) {
   return base(`
     ${tag('New Client Signup', '#7EC0B7')}
     <br/><br/>
-    ${h1(`${clientName} just signed up.`)}
-    ${p(`Email: <strong>${email}</strong><br/>They are now in the pending match queue. Review their questionnaire and assign a therapist.`)}
+    ${h1(`${escapeHtml(clientName)} just signed up.`)}
+    ${p(`Email: <strong>${escapeHtml(email)}</strong><br/>They are now in the pending match queue. Review their questionnaire and assign a therapist.`)}
     ${btn('Open Admin Panel →', `${SITE}/admin`)}
   `, 'admin')
 }
@@ -540,30 +549,31 @@ function tplAdminTherapistOnboarded(therapistName: string) {
   return base(`
     ${tag('Therapist Onboarded', '#7EC0B7')}
     <br/><br/>
-    ${h1(`${therapistName} has completed onboarding.`)}
+    ${h1(`${escapeHtml(therapistName)} has completed onboarding.`)}
     ${p('Their profile is ready for review. Verify their credentials and start assigning clients.')}
     ${btn('Open Admin Panel →', `${SITE}/admin`)}
   `, 'admin')
 }
 
 function tplAdminContactForm(senderName: string, senderEmail: string, message: string) {
+  const messageHtml = escapeHtml(message).replace(/\n/g, '<br/>')
   return base(`
     ${tag('Contact Form', '#E8926A')}
     <br/><br/>
-    ${h1(`Message from ${senderName}`)}
-    ${p(`Email: <strong>${senderEmail}</strong>`)}
-    <div style="margin:16px 0;padding:14px 16px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${message}</div>
+    ${h1(`Message from ${escapeHtml(senderName)}`)}
+    ${p(`Email: <strong>${escapeHtml(senderEmail)}</strong>`)}
+    <div style="margin:16px 0;padding:14px 16px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#4a5568;line-height:1.7;">${messageHtml}</div>
   `, 'admin')
 }
 
 function tplAdminSwitchRequest(clientName: string, reason: string) {
   const reasonBlock = reason
-    ? `<div style="margin:16px 0;padding:12px 16px;background:#fff8f5;border-left:3px solid #E8926A;border-radius:4px;font-size:14px;color:#4a5568;font-style:italic;">${reason}</div>`
+    ? `<div style="margin:16px 0;padding:12px 16px;background:#fff8f5;border-left:3px solid #E8926A;border-radius:4px;font-size:14px;color:#4a5568;font-style:italic;">${escapeHtml(reason)}</div>`
     : ''
   return base(`
     ${tag('Switch Request', '#E8926A')}
     <br/><br/>
-    ${h1(`${clientName} wants a new therapist.`)}
+    ${h1(`${escapeHtml(clientName)} wants a new therapist.`)}
     ${p(`A client on MindCanopy has requested a different therapist match.`)}
     ${reasonBlock}
     ${p(`Log in to the admin panel, end their current match, and re-queue them for matching.`)}
