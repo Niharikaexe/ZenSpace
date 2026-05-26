@@ -6,12 +6,30 @@ Working list. Tackle one at a time. Status: `[ ]` not started, `[~]` in progress
 
 ## Dev
 
+### General
+
 - [ ] **Therapist verification.** Credential checks (RCI status, license number, degree), document upload, admin verify toggle wiring, public verified badge on therapist cards.
 - [ ] **User journey audit.** Walk every flow end to end: signup, questionnaire, match, subscribe, chat, session, notes. Find broken links, dead ends, missing states.
 - [ ] **Subscription.** Razorpay plan IDs wired in env, webhook idempotency live, cancel semantics correct (audit B-14), enum mismatch fixed (B-15), tested end to end with live Razorpay.
-- [ ] **Client email templates (build + wire).** Build the two new client-facing emails (welcome on signup, match-made when admin creates the match) as Resend templates. Wire the triggers in the server actions. Brand-voice copy comes from marketing.
+- [ ] **CRM of all users + mobile version.** Admin can see every client, therapist, admin in one view. Mobile responsive layout for admin dashboard.
+- [ ] **Google Ads tracking link.** gtag installed in layout, UTM convention defined, conversion events on questionnaire submit and signup complete.
+- [ ] **Meta Ads tracking link.** Meta Pixel installed, Conversion API for server-side events, UTM convention shared with Google Ads.
+- [ ] **Supabase account audit.** List every real user, drop test data, verify RLS policies hold, confirm admin role assignments.
+- [ ] **Mobile UI redesign.** Better mobile layout for the whole product, driven by a Claude / Figma design pass. Audit every public page on a 375px viewport.
+- [ ] **Profile picture uploads.** Audit client and therapist photo upload flow. Confirm Supabase storage bucket, RLS, and image rendering via `next/image` remotePatterns.
+- [ ] **Therapist availability conflict logic.** When a therapist has a scheduled session for a slot, that slot disappears from the available-slots list shown to all clients.
+- [ ] **Therapist monitoring.** Admin can see: which therapists are active, last login, session count, response latency to client messages, complaint history. Probably a new tab on the admin dashboard.
+- [ ] **Page indexing.** Submit sitemap.xml to Google Search Console and Bing Webmaster Tools, confirm robots.txt allows indexing, request indexing on priority pages, verify canonical tags and OG metadata on every public route.
+- [ ] **AI content pipeline (build).** Build the pipeline that takes a writer brief + brand-voice rules and outputs draft blog posts and market reports for founder editing. Decide model, template structure, fact-checking step.
+- [ ] **`/pricing` page routing.** The `PricingPlans.tsx` component exists in code but isn't routed. Route it as `/pricing` so it's publicly accessible. Copy comes from marketing.
+
+### Email
+
+- [ ] **Client email templates (build + wire).** Build all approved new client-facing email templates as Resend functions inside `lib/email.ts`. Wire triggers in the server actions. Copy lives as standalone HTML in `email-templates/`.
 - [ ] **Bug: session-scheduled email CTA hardcodes therapist URL.** `tplSessionScheduled` in `lib/email.ts:131` hardcodes `View Sessions →` to `${SITE}/therapist/dashboard/video`. The notification fires to whichever party didn't schedule (so when therapist schedules, the CLIENT gets the email). Clients clicking that button hit a route they have no access to. Fix: branch the CTA URL by recipient role inside the template, or pass it in from the dispatcher (`sendNotificationEmail` in `lib/email.ts:615`).
 - [ ] **Admin match-notes UI label.** The `matches.notes` textarea in the match modal at `/admin` becomes the personalized blurb in the match-made email to the client. Label or hint the field so the admin knows what they're writing for. Example: "Tell the client why this match feels right. They'll see this in their email."
+- [ ] **Therapist new-message email: change timing to 3 hours, only if unread.** Today `lib/notifications.ts` debounces by 5 minutes (`shouldNotifyMessage`). Change to: do NOT send immediately. Schedule a check 3 hours after the first unread message. If therapist has read the message by then, skip the email. If new messages arrive, reset the timer. Also include the full message body in the email (currently just says "you have a message").
+- [ ] **Therapist availability nudge cron.** Recurring nudge when a verified therapist hasn't set `weekly_availability` or `weekly_capacity`. Fire 3 days after verification, then every 3 days, max 5 sends. Stop immediately when both are set. Needs: tracking column (e.g. `availability_nudge_count`) on `therapist_profiles`, and a daily cron route to scan.
 
 ---
 
@@ -104,17 +122,6 @@ Things to verify end to end before (and after) launch. None are coding tasks per
 - [ ] **Sitemap.xml is valid.** Hit `/sitemap.xml` and validate the XML.
 - [ ] **Robots.txt.** Confirm allow rules are correct, no accidental blocks on public pages.
 - [ ] **Canonical tags.** Every public page has a `<link rel="canonical">` pointing to itself.
-- [ ] **CRM of all users + mobile version.** Admin can see every client, therapist, admin in one view. Mobile responsive layout for admin dashboard.
-- [ ] **Google Ads tracking link.** gtag installed in layout, UTM convention defined, conversion events on questionnaire submit and signup complete.
-- [ ] **Meta Ads tracking link.** Meta Pixel installed, Conversion API for server-side events, UTM convention shared with Google Ads.
-- [ ] **Supabase account audit.** List every real user, drop test data, verify RLS policies hold, confirm admin role assignments.
-- [ ] **Mobile UI redesign.** Better mobile layout for the whole product, driven by a Claude / Figma design pass. Audit every public page on a 375px viewport.
-- [ ] **Profile picture uploads.** Audit client and therapist photo upload flow. Confirm Supabase storage bucket, RLS, and image rendering via `next/image` remotePatterns.
-- [ ] **Therapist availability conflict logic.** When a therapist has a scheduled session for a slot, that slot disappears from the available-slots list shown to all clients.
-- [ ] **Therapist monitoring.** Admin can see: which therapists are active, last login, session count, response latency to client messages, complaint history. Probably a new tab on the admin dashboard.
-- [ ] **Page indexing.** Submit sitemap.xml to Google Search Console and Bing Webmaster Tools, confirm robots.txt allows indexing, request indexing on priority pages, verify canonical tags and OG metadata on every public route.
-- [ ] **AI content pipeline (build).** Build the pipeline that takes a writer brief + brand-voice rules and outputs draft blog posts and market reports for founder editing. Decide model, template structure, fact-checking step.
-- [ ] **`/pricing` page routing.** The `PricingPlans.tsx` component exists in code but isn't routed. Route it as `/pricing` so it's publicly accessible. Copy comes from marketing.
 
 ---
 
