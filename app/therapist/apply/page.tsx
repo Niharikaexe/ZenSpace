@@ -636,21 +636,20 @@ function SuccessScreen() {
           className="text-2xl font-black text-[#233551]"
           style={{ fontFamily: 'var(--font-lato)' }}
         >
-          Application received.
+          One last step.
         </h2>
         <p className="text-sm text-[#233551]/60 leading-relaxed max-w-sm mx-auto">
-          We review every application personally. If your profile looks like a good fit,
-          we&apos;ll reach out within <span className="font-semibold text-[#233551]">3–5 working days</span> to
-          set up a short intro call.
+          We&apos;ve sent a verification link to your email. Open it, and we&apos;ll start reviewing your application.
+          Check spam if it doesn&apos;t show up in a few minutes.
         </p>
       </div>
       <div className="bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-left space-y-3">
         <p className="text-xs font-bold text-[#233551]/40 uppercase tracking-widest">What happens next</p>
         {[
-          { step: '1', text: 'We review your application and credentials' },
-          { step: '2', text: 'We schedule a 15-minute intro call' },
-          { step: '3', text: 'If it\'s a fit, we share your invite code' },
-          { step: '4', text: 'You complete onboarding and go live' },
+          { step: '1', text: 'Verify your email' },
+          { step: '2', text: 'We review your application and credentials' },
+          { step: '3', text: 'If it\'s a fit, we set up a short intro call' },
+          { step: '4', text: 'You complete onboarding and join the platform' },
         ].map(({ step, text }) => (
           <div key={step} className="flex items-start gap-3">
             <span className="w-5 h-5 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
