@@ -91,7 +91,12 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
           type: 'client_message',
           title: 'New message',
           body: `${senderName} sent you a message.`,
-          metadata: { matchId, senderId: user.id, clientName: senderName },
+          metadata: {
+            matchId,
+            senderId: user.id,
+            clientName: senderName,
+            messageBody: trimmed,
+          },
         }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
@@ -198,21 +203,38 @@ export async function scheduleSession(
 
   if (error) return { error: error.message }
 
-  // Notify the OTHER party about the scheduled session
+  // Notify the OTHER party about the scheduled session.
+  // The notification type branches by recipient role so each side gets the
+  // right copy (and a CTA URL that points to their dashboard).
   try {
-    const recipientId =
-      user.id === matchOwnership.therapist_id ? matchOwnership.client_id : matchOwnership.therapist_id
+    const recipientIsTherapist = user.id !== matchOwnership.therapist_id
+    const recipientId = recipientIsTherapist
+      ? matchOwnership.therapist_id
+      : matchOwnership.client_id
 
     const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
       weekday: 'short', day: 'numeric', month: 'short',
       hour: '2-digit', minute: '2-digit', hour12: true,
     })
+
+    // Look up the OTHER party's first name for the email body
+    const { data: otherProfiles } = await (admin as any)
+      .from('profiles').select('id, full_name')
+      .in('id', [matchOwnership.therapist_id, matchOwnership.client_id])
+    const therapistProfile = (otherProfiles ?? []).find((p: any) => p.id === matchOwnership.therapist_id)
+    const clientProfile = (otherProfiles ?? []).find((p: any) => p.id === matchOwnership.client_id)
+    const therapistFirstName = (therapistProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
+    const clientFirstName = (clientProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
+
     createNotification({
       userId: recipientId,
-      type: 'session_scheduled',
+      type: recipientIsTherapist ? 'session_scheduled_therapist' : 'session_scheduled_client',
       title: 'Session scheduled',
       body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
-      metadata: { matchId, scheduledAt, sessionType, dateStr },
+      metadata: {
+        matchId, scheduledAt, sessionType, dateStr,
+        therapistFirstName, clientFirstName,
+      },
     }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
   } catch (err) {
     logger.warn('sessions/scheduleSession', 'Session-scheduled notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })

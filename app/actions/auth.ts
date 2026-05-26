@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
-import { sendAdminNewClientSignupEmail } from '@/lib/email'
+import { sendAdminNewClientSignupEmail, sendNotificationEmail } from '@/lib/email'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -160,9 +160,18 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
 
   if (role === 'client') {
     // Awaited so the request stays alive long enough for the Resend POST to
-    // complete on Vercel serverless. The function itself catches its own
-    // errors, so failure here is logged but does not block the signup.
+    // complete on Vercel serverless. Both functions catch their own errors,
+    // so failure here is logged but does not block the signup.
     await sendAdminNewClientSignupEmail(fullName, email)
+
+    // Brand welcome email to the new client
+    const firstName = fullName.split(' ')[0] || 'there'
+    await sendNotificationEmail({
+      to: email,
+      name: firstName,
+      type: 'client_welcome',
+      meta: {},
+    })
   }
 
   // Save questionnaire data if present (client sign-ups only)

@@ -48,18 +48,37 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
 
   if (error) throw new Error(error.message)
 
-  // Notify the therapist (reuse admin client from above)
-  const { data: clientProfile } = await (admin as any)
-    .from('profiles').select('full_name').eq('id', clientId).single()
-  const clientName = clientProfile?.full_name ?? 'A new client'
+  // Look up names so both emails can be personalized
+  const { data: profiles } = await (admin as any)
+    .from('profiles').select('id, full_name').in('id', [clientId, therapistId])
+  const clientProfile = (profiles ?? []).find((p: any) => p.id === clientId)
+  const therapistProfile = (profiles ?? []).find((p: any) => p.id === therapistId)
+  const clientName = (clientProfile?.full_name as string | undefined) ?? 'A new client'
+  const therapistFullName = (therapistProfile?.full_name as string | undefined) ?? 'Your therapist'
+  const therapistFirstName = therapistFullName.split(' ')[0]
 
+  // Notify the therapist (fire-and-forget)
   createNotification({
     userId: therapistId,
     type: 'client_matched',
     title: 'New client matched',
     body: `${clientName} has been assigned to you. Check their profile and reach out.`,
     metadata: { clientId, clientName },
-  }).catch(() => {}) // fire-and-forget
+  }).catch(() => {})
+
+  // Notify the client (fire-and-forget) with the admin's match note as the blurb
+  createNotification({
+    userId: clientId,
+    type: 'client_match_made',
+    title: `Meet ${therapistFirstName}`,
+    body: 'We have matched you with someone we think will be a good fit.',
+    metadata: {
+      therapistId,
+      therapistFirstName,
+      therapistFullName,
+      adminMatchNote: notes || '',
+    },
+  }).catch(() => {})
 
   revalidatePath('/admin')
 }
