@@ -731,6 +731,9 @@ function StepCredentials({
             placeholder="5"
             className={inputCls}
           />
+          {values.yearsExperience !== '' && parseInt(values.yearsExperience, 10) > 40 && (
+            <p className="text-xs text-[#E8926A] mt-1.5">Please enter 40 or fewer years.</p>
+          )}
         </Field>
         <Field label="Highest qualification" required>
           <input
@@ -1077,8 +1080,12 @@ export default function TherapistApplyPage() {
       )
     }
     if (step === 1) {
+      const years = parseInt(creds.yearsExperience, 10)
       return (
         creds.yearsExperience !== '' &&
+        !isNaN(years) &&
+        years >= 0 &&
+        years <= 40 &&
         creds.education.trim().length > 0 &&
         creds.cvUrl.trim().length > 0
       )
