@@ -217,6 +217,7 @@ We don't bombard. One purposeful email per real moment. Tackle one at a time.
 - [ ] **Launch Meta.** Decide objective: traffic, lead form, or website conversion. Start small. First spend.
 - [ ] **Launch Google.** First spend on the drafted Couples + Individual campaign.
 - [ ] **Moodboard.** Visual reference deck for the brand. Lives in Figma or Notion.
+- [ ] **OG image (`/public/og-image.png`).** 1200x630 PNG with MindCanopy mark and tagline. Referenced in `app/layout.tsx` for social previews (WhatsApp, LinkedIn, X, Facebook). Currently the file is missing so shares render with a broken image. Either export from Figma or commission a quick design.
 - [ ] **AI content (production).** Once the pipeline is live, run articles from `SEO-CONTENT-PLAN.md` through it, founder edits, publish.
 
 ---
