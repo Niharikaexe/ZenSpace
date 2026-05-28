@@ -8,7 +8,7 @@ import { sendAdminTherapistOnboardedEmail } from '@/lib/email'
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-const TEST_CODE = 'ZENSPACE2026'
+const TEST_CODE = 'MINDCANOPY2026'
 
 // ─── Invite lookup (called from client during onboarding) ─────────────────────
 

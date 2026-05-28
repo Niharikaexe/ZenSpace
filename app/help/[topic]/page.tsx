@@ -131,7 +131,7 @@ export default async function HelpTopicPage({ params }: Props) {
             Still have a question?
           </p>
           <p className="text-white/55 text-sm mb-6">
-            You can also start with a free 15-minute call with a potential therapist. No commitment, no invoice.
+            You can also start with a free intro chat with a potential therapist. No commitment, no invoice.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link

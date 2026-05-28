@@ -62,7 +62,7 @@ const PrivacySection = () => {
             Your space is strictly yours.
           </h2>
           <p className="text-[#233551]/50 text-base leading-relaxed">
-          Therapy works best when you know you’re in a room where no one else can see in. We’ve built Zen Space to ensure it stays that way.
+          Therapy works best when you know you’re in a room where no one else can see in. We’ve built MindCanopy to ensure it stays that way.
           </p>
         </motion.div>
 

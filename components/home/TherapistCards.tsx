@@ -141,7 +141,7 @@ const TherapistCards = () => {
             </h2>
 
             <p className="text-white/55 text-base leading-relaxed max-w-md">
-            Finding someone to talk to shouldn’t feel like a research project. We’ve already had the initial conversations with every therapist on Zen Space to make sure they’re the right fit for this environment. We keep their profiles simple and honest, so you can spend less time scrolling and more time finding the person who understands your world.
+            Finding someone to talk to shouldn’t feel like a research project. We’ve already had the initial conversations with every therapist on MindCanopy to make sure they’re the right fit for this environment. We keep their profiles simple and honest, so you can spend less time scrolling and more time finding the person who understands your world.
             </p>
 
             <div className="flex flex-wrap gap-8 pt-2">
