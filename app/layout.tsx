@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Inter, Lora, Lato } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { PLANS } from "@/lib/plans";
 
 const STARTING_PRICE = `${PLANS.basic_weekly.price}/${PLANS.basic_weekly.per}`;
+
+const GOOGLE_ADS_ID = "AW-18156017345";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -118,6 +121,18 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${lora.variable} ${lato.variable} antialiased`}>
         {children}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="gtag-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GOOGLE_ADS_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );
