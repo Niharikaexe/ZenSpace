@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { CategoryPricing } from '@/components/shared/CategoryPricing'
 import { PLANS } from '@/lib/plans'
 
 const COUPLES_STARTING_PRICE = `${PLANS.couples_basic_weekly.price} / ${PLANS.couples_basic_weekly.per}`
@@ -473,6 +474,8 @@ export default function CouplesPageClient() {
       </section>
 
       {/* ── FINAL CTA ── */}
+      <CategoryPricing category="couples" ctaHref="/questionnaire/couples" />
+
       <section className="bg-[#233551] py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <motion.h2

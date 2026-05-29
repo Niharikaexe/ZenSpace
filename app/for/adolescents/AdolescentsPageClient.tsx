@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { CategoryPricing } from '@/components/shared/CategoryPricing'
 import { PLANS } from '@/lib/plans'
 
 const STARTING_PRICE = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
@@ -425,6 +426,12 @@ export default function AdolescentsPageClient() {
       </section>
 
       {/* ── FINAL CTA ── */}
+      <CategoryPricing
+        category="individual"
+        ctaHref="/questionnaire/teen"
+        subheading="Teen sessions are billed as an individual plan. Start with a free intro chat before you pay anything. Switch therapist anytime."
+      />
+
       <section className="bg-[#233551] py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <motion.h2
