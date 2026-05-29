@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useActionState, useRef } from 'react'
+import { useState, useActionState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -117,6 +117,204 @@ const ETHNICITY_OPTIONS = [
   'Prefer not to say',
 ]
 
+// Country dial codes for the phone input. ISO E.164 prefixes, India first then alphabetical.
+const COUNTRY_CODES: { name: string; dial: string }[] = [
+  { name: 'India', dial: '+91' },
+  { name: 'Afghanistan', dial: '+93' },
+  { name: 'Albania', dial: '+355' },
+  { name: 'Algeria', dial: '+213' },
+  { name: 'Andorra', dial: '+376' },
+  { name: 'Angola', dial: '+244' },
+  { name: 'Argentina', dial: '+54' },
+  { name: 'Armenia', dial: '+374' },
+  { name: 'Australia', dial: '+61' },
+  { name: 'Austria', dial: '+43' },
+  { name: 'Azerbaijan', dial: '+994' },
+  { name: 'Bahamas', dial: '+1' },
+  { name: 'Bahrain', dial: '+973' },
+  { name: 'Bangladesh', dial: '+880' },
+  { name: 'Barbados', dial: '+1' },
+  { name: 'Belarus', dial: '+375' },
+  { name: 'Belgium', dial: '+32' },
+  { name: 'Belize', dial: '+501' },
+  { name: 'Benin', dial: '+229' },
+  { name: 'Bhutan', dial: '+975' },
+  { name: 'Bolivia', dial: '+591' },
+  { name: 'Bosnia and Herzegovina', dial: '+387' },
+  { name: 'Botswana', dial: '+267' },
+  { name: 'Brazil', dial: '+55' },
+  { name: 'Brunei', dial: '+673' },
+  { name: 'Bulgaria', dial: '+359' },
+  { name: 'Burkina Faso', dial: '+226' },
+  { name: 'Burundi', dial: '+257' },
+  { name: 'Cambodia', dial: '+855' },
+  { name: 'Cameroon', dial: '+237' },
+  { name: 'Canada', dial: '+1' },
+  { name: 'Cape Verde', dial: '+238' },
+  { name: 'Central African Republic', dial: '+236' },
+  { name: 'Chad', dial: '+235' },
+  { name: 'Chile', dial: '+56' },
+  { name: 'China', dial: '+86' },
+  { name: 'Colombia', dial: '+57' },
+  { name: 'Comoros', dial: '+269' },
+  { name: 'Congo', dial: '+242' },
+  { name: 'Costa Rica', dial: '+506' },
+  { name: 'Croatia', dial: '+385' },
+  { name: 'Cuba', dial: '+53' },
+  { name: 'Cyprus', dial: '+357' },
+  { name: 'Czech Republic', dial: '+420' },
+  { name: 'Denmark', dial: '+45' },
+  { name: 'Djibouti', dial: '+253' },
+  { name: 'Dominica', dial: '+1' },
+  { name: 'Dominican Republic', dial: '+1' },
+  { name: 'East Timor', dial: '+670' },
+  { name: 'Ecuador', dial: '+593' },
+  { name: 'Egypt', dial: '+20' },
+  { name: 'El Salvador', dial: '+503' },
+  { name: 'Equatorial Guinea', dial: '+240' },
+  { name: 'Eritrea', dial: '+291' },
+  { name: 'Estonia', dial: '+372' },
+  { name: 'Eswatini', dial: '+268' },
+  { name: 'Ethiopia', dial: '+251' },
+  { name: 'Fiji', dial: '+679' },
+  { name: 'Finland', dial: '+358' },
+  { name: 'France', dial: '+33' },
+  { name: 'Gabon', dial: '+241' },
+  { name: 'Gambia', dial: '+220' },
+  { name: 'Georgia', dial: '+995' },
+  { name: 'Germany', dial: '+49' },
+  { name: 'Ghana', dial: '+233' },
+  { name: 'Greece', dial: '+30' },
+  { name: 'Grenada', dial: '+1' },
+  { name: 'Guatemala', dial: '+502' },
+  { name: 'Guinea', dial: '+224' },
+  { name: 'Guinea-Bissau', dial: '+245' },
+  { name: 'Guyana', dial: '+592' },
+  { name: 'Haiti', dial: '+509' },
+  { name: 'Honduras', dial: '+504' },
+  { name: 'Hong Kong', dial: '+852' },
+  { name: 'Hungary', dial: '+36' },
+  { name: 'Iceland', dial: '+354' },
+  { name: 'Indonesia', dial: '+62' },
+  { name: 'Iran', dial: '+98' },
+  { name: 'Iraq', dial: '+964' },
+  { name: 'Ireland', dial: '+353' },
+  { name: 'Israel', dial: '+972' },
+  { name: 'Italy', dial: '+39' },
+  { name: 'Ivory Coast', dial: '+225' },
+  { name: 'Jamaica', dial: '+1' },
+  { name: 'Japan', dial: '+81' },
+  { name: 'Jordan', dial: '+962' },
+  { name: 'Kazakhstan', dial: '+7' },
+  { name: 'Kenya', dial: '+254' },
+  { name: 'Kiribati', dial: '+686' },
+  { name: 'Kuwait', dial: '+965' },
+  { name: 'Kyrgyzstan', dial: '+996' },
+  { name: 'Laos', dial: '+856' },
+  { name: 'Latvia', dial: '+371' },
+  { name: 'Lebanon', dial: '+961' },
+  { name: 'Lesotho', dial: '+266' },
+  { name: 'Liberia', dial: '+231' },
+  { name: 'Libya', dial: '+218' },
+  { name: 'Liechtenstein', dial: '+423' },
+  { name: 'Lithuania', dial: '+370' },
+  { name: 'Luxembourg', dial: '+352' },
+  { name: 'Madagascar', dial: '+261' },
+  { name: 'Malawi', dial: '+265' },
+  { name: 'Malaysia', dial: '+60' },
+  { name: 'Maldives', dial: '+960' },
+  { name: 'Mali', dial: '+223' },
+  { name: 'Malta', dial: '+356' },
+  { name: 'Marshall Islands', dial: '+692' },
+  { name: 'Mauritania', dial: '+222' },
+  { name: 'Mauritius', dial: '+230' },
+  { name: 'Mexico', dial: '+52' },
+  { name: 'Micronesia', dial: '+691' },
+  { name: 'Moldova', dial: '+373' },
+  { name: 'Monaco', dial: '+377' },
+  { name: 'Mongolia', dial: '+976' },
+  { name: 'Montenegro', dial: '+382' },
+  { name: 'Morocco', dial: '+212' },
+  { name: 'Mozambique', dial: '+258' },
+  { name: 'Myanmar', dial: '+95' },
+  { name: 'Namibia', dial: '+264' },
+  { name: 'Nauru', dial: '+674' },
+  { name: 'Nepal', dial: '+977' },
+  { name: 'Netherlands', dial: '+31' },
+  { name: 'New Zealand', dial: '+64' },
+  { name: 'Nicaragua', dial: '+505' },
+  { name: 'Niger', dial: '+227' },
+  { name: 'Nigeria', dial: '+234' },
+  { name: 'North Korea', dial: '+850' },
+  { name: 'North Macedonia', dial: '+389' },
+  { name: 'Norway', dial: '+47' },
+  { name: 'Oman', dial: '+968' },
+  { name: 'Pakistan', dial: '+92' },
+  { name: 'Palau', dial: '+680' },
+  { name: 'Palestine', dial: '+970' },
+  { name: 'Panama', dial: '+507' },
+  { name: 'Papua New Guinea', dial: '+675' },
+  { name: 'Paraguay', dial: '+595' },
+  { name: 'Peru', dial: '+51' },
+  { name: 'Philippines', dial: '+63' },
+  { name: 'Poland', dial: '+48' },
+  { name: 'Portugal', dial: '+351' },
+  { name: 'Qatar', dial: '+974' },
+  { name: 'Romania', dial: '+40' },
+  { name: 'Russia', dial: '+7' },
+  { name: 'Rwanda', dial: '+250' },
+  { name: 'Saint Kitts and Nevis', dial: '+1' },
+  { name: 'Saint Lucia', dial: '+1' },
+  { name: 'Saint Vincent and the Grenadines', dial: '+1' },
+  { name: 'Samoa', dial: '+685' },
+  { name: 'San Marino', dial: '+378' },
+  { name: 'Saudi Arabia', dial: '+966' },
+  { name: 'Senegal', dial: '+221' },
+  { name: 'Serbia', dial: '+381' },
+  { name: 'Seychelles', dial: '+248' },
+  { name: 'Sierra Leone', dial: '+232' },
+  { name: 'Singapore', dial: '+65' },
+  { name: 'Slovakia', dial: '+421' },
+  { name: 'Slovenia', dial: '+386' },
+  { name: 'Solomon Islands', dial: '+677' },
+  { name: 'Somalia', dial: '+252' },
+  { name: 'South Africa', dial: '+27' },
+  { name: 'South Korea', dial: '+82' },
+  { name: 'South Sudan', dial: '+211' },
+  { name: 'Spain', dial: '+34' },
+  { name: 'Sri Lanka', dial: '+94' },
+  { name: 'Sudan', dial: '+249' },
+  { name: 'Suriname', dial: '+597' },
+  { name: 'Sweden', dial: '+46' },
+  { name: 'Switzerland', dial: '+41' },
+  { name: 'Syria', dial: '+963' },
+  { name: 'Taiwan', dial: '+886' },
+  { name: 'Tajikistan', dial: '+992' },
+  { name: 'Tanzania', dial: '+255' },
+  { name: 'Thailand', dial: '+66' },
+  { name: 'Togo', dial: '+228' },
+  { name: 'Tonga', dial: '+676' },
+  { name: 'Trinidad and Tobago', dial: '+1' },
+  { name: 'Tunisia', dial: '+216' },
+  { name: 'Turkey', dial: '+90' },
+  { name: 'Turkmenistan', dial: '+993' },
+  { name: 'Tuvalu', dial: '+688' },
+  { name: 'Uganda', dial: '+256' },
+  { name: 'Ukraine', dial: '+380' },
+  { name: 'United Arab Emirates', dial: '+971' },
+  { name: 'United Kingdom', dial: '+44' },
+  { name: 'United States', dial: '+1' },
+  { name: 'Uruguay', dial: '+598' },
+  { name: 'Uzbekistan', dial: '+998' },
+  { name: 'Vanuatu', dial: '+678' },
+  { name: 'Vatican City', dial: '+39' },
+  { name: 'Venezuela', dial: '+58' },
+  { name: 'Vietnam', dial: '+84' },
+  { name: 'Yemen', dial: '+967' },
+  { name: 'Zambia', dial: '+260' },
+  { name: 'Zimbabwe', dial: '+263' },
+]
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inputCls =
@@ -145,6 +343,150 @@ function Field({
         )}
       </label>
       {children}
+    </div>
+  )
+}
+
+// Date math for the 18+ check on date of birth.
+function eighteenYearsAgo(): string {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - 18)
+  return d.toISOString().slice(0, 10)
+}
+
+function ageFromDob(dob: string): number {
+  if (!dob) return 0
+  const birth = new Date(dob)
+  if (isNaN(birth.getTime())) return 0
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
+// Splits a stored combined phone string like "+91 9876543210" back into dial code + national number.
+function parsePhone(v: string): { dial: string; national: string } {
+  if (!v) return { dial: '+91', national: '' }
+  const match = v.match(/^(\+\d{1,4})\s+(.*)$/)
+  if (match) return { dial: match[1], national: match[2] }
+  return { dial: '+91', national: v }
+}
+
+// PhoneInput: dial-code selector with search + national number input.
+// Bubbles up a single combined string (e.g. "+91 9876543210") to the parent.
+function PhoneInput({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (combined: string) => void
+}) {
+  const initial = parsePhone(value)
+  const [dial, setDial] = useState(initial.dial)
+  const [national, setNational] = useState(initial.national)
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  function emit(d: string, n: string) {
+    const t = n.trim()
+    onChange(t ? `${d} ${t}` : '')
+  }
+
+  function pickDial(d: string) {
+    setDial(d)
+    emit(d, national)
+    setOpen(false)
+    setSearch('')
+  }
+
+  function updateNational(n: string) {
+    setNational(n)
+    emit(dial, n)
+  }
+
+  const filtered = COUNTRY_CODES.filter(c => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.dial.includes(q) ||
+      c.dial.replace('+', '').includes(q)
+    )
+  })
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(o => !o)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-3 border border-slate-200 rounded-xl text-sm font-medium text-[#233551] hover:border-[#7EC0B7] transition-colors min-w-[92px] justify-center',
+            open && 'border-[#7EC0B7]',
+          )}
+        >
+          {dial}
+          <svg className="w-3 h-3 text-[#233551]/50" viewBox="0 0 12 8" fill="none">
+            <path d="M1 1.5l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={national}
+          onChange={e => updateNational(e.target.value)}
+          placeholder="9876543210"
+          className={cn(inputCls, 'flex-1')}
+        />
+      </div>
+      {open && (
+        <div className="absolute z-20 top-full mt-1 left-0 w-72 max-w-full bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          <div className="px-3 py-2 border-b border-slate-100">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search country or code"
+              className="w-full text-sm text-[#233551] focus:outline-none placeholder:text-[#233551]/30"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-[#233551]/40 text-center">No matches</p>
+            ) : (
+              filtered.map(c => (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => pickDial(c.dial)}
+                  className={cn(
+                    'w-full px-3 py-2.5 text-left text-sm hover:bg-slate-50 flex justify-between items-center transition-colors',
+                    dial === c.dial && c.name === 'India' && 'bg-[#7EC0B7]/10',
+                  )}
+                >
+                  <span className="text-[#233551] truncate pr-2">{c.name}</span>
+                  <span className="text-[#233551]/50 flex-shrink-0">{c.dial}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -203,13 +545,7 @@ function StepPersonal({
           />
         </Field>
         <Field label="Phone number" required>
-          <input
-            type="tel"
-            value={values.phone}
-            onChange={e => onChange('phone', e.target.value)}
-            placeholder="+91 xxxxxxxxxx"
-            className={inputCls}
-          />
+          <PhoneInput value={values.phone} onChange={v => onChange('phone', v)} />
         </Field>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -254,12 +590,12 @@ function StepPersonal({
           </select>
         </Field>
       </div>
-      <Field label="Date of birth" required>
+      <Field label="Date of birth" required hint="must be 18 or older">
         <input
           type="date"
           value={values.dateOfBirth}
           onChange={e => onChange('dateOfBirth', e.target.value)}
-          max={new Date().toISOString().slice(0, 10)}
+          max={eighteenYearsAgo()}
           className={inputCls}
         />
       </Field>
@@ -389,12 +725,15 @@ function StepCredentials({
           <input
             type="number"
             min={0}
-            max={60}
+            max={40}
             value={values.yearsExperience}
             onChange={e => onChange('yearsExperience', e.target.value)}
             placeholder="5"
             className={inputCls}
           />
+          {values.yearsExperience !== '' && parseInt(values.yearsExperience, 10) > 40 && (
+            <p className="text-xs text-[#E8926A] mt-1.5">Please enter 40 or fewer years.</p>
+          )}
         </Field>
         <Field label="Highest qualification" required>
           <input
@@ -636,21 +975,20 @@ function SuccessScreen() {
           className="text-2xl font-black text-[#233551]"
           style={{ fontFamily: 'var(--font-lato)' }}
         >
-          Application received.
+          One last step.
         </h2>
         <p className="text-sm text-[#233551]/60 leading-relaxed max-w-sm mx-auto">
-          We review every application personally. If your profile looks like a good fit,
-          we&apos;ll reach out within <span className="font-semibold text-[#233551]">3–5 working days</span> to
-          set up a short intro call.
+          We&apos;ve sent a verification link to your email. Open it, and we&apos;ll start reviewing your application.
+          Check spam if it doesn&apos;t show up in a few minutes.
         </p>
       </div>
       <div className="bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-left space-y-3">
         <p className="text-xs font-bold text-[#233551]/40 uppercase tracking-widest">What happens next</p>
         {[
-          { step: '1', text: 'We review your application and credentials' },
-          { step: '2', text: 'We schedule a 15-minute intro call' },
-          { step: '3', text: 'If it\'s a fit, we share your invite code' },
-          { step: '4', text: 'You complete onboarding and go live' },
+          { step: '1', text: 'Verify your email' },
+          { step: '2', text: 'We review your application and credentials' },
+          { step: '3', text: 'If it\'s a fit, we set up a short intro call' },
+          { step: '4', text: 'You complete onboarding and join the platform' },
         ].map(({ step, text }) => (
           <div key={step} className="flex items-start gap-3">
             <span className="w-5 h-5 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -736,14 +1074,18 @@ export default function TherapistApplyPage() {
         personal.city.trim().length > 0 &&
         personal.state.trim().length > 0 &&
         personal.country.trim().length > 0 &&
-        personal.dateOfBirth.length > 0 &&
+        ageFromDob(personal.dateOfBirth) >= 18 &&
         personal.gender.length > 0 &&
         personal.ethnicity.length > 0
       )
     }
     if (step === 1) {
+      const years = parseInt(creds.yearsExperience, 10)
       return (
         creds.yearsExperience !== '' &&
+        !isNaN(years) &&
+        years >= 0 &&
+        years <= 40 &&
         creds.education.trim().length > 0 &&
         creds.cvUrl.trim().length > 0
       )

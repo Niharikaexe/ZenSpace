@@ -421,7 +421,7 @@ export default function CouplesPageClient() {
               A space that is yours,<br />and yours alone.
             </h2>
             <p className="text-[#233551]/55 text-base leading-relaxed">
-              In a world full of opinions from family and society, Zen Space stays strictly private.
+              In a world full of opinions from family and society, MindCanopy stays strictly private.
             </p>
           </motion.div>
 

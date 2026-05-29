@@ -177,7 +177,7 @@ export default function AdolescentsPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                Between exams, family expectations, and the constant noise of being online, it’s easy to feel like your own voice is getting drowned out. Zen Space is a room of your own — a private place to find your balance and start a habit of checking in on yourself.
+                Between exams, family expectations, and the constant noise of being online, it’s easy to feel like your own voice is getting drowned out. MindCanopy is a room of your own — a private place to find your balance and start a habit of checking in on yourself.
               </motion.p>
 
               <motion.div

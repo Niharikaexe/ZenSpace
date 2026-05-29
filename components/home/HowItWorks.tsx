@@ -175,7 +175,7 @@ const steps = [
   {
     num: "03",
     title: "Meet, then commit",
-    body: "Talk for 15 minutes free. If it clicks, start your subscription. No pressure.",
+    body: "Free intro chat. If it clicks, start your subscription. No pressure.",
     Ill: Step03Illustration,
   },
 ]
