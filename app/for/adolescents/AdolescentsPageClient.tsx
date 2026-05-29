@@ -396,6 +396,12 @@ export default function AdolescentsPageClient() {
         </div>
       </section>
 
+      <CategoryPricing
+        category="individual"
+        ctaHref="/questionnaire/teen"
+        subheading="Teen sessions are billed as an individual plan. Start with a free intro chat before you pay anything. Switch therapist anytime."
+      />
+
       {/* ── FAQ ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-6">
@@ -426,12 +432,6 @@ export default function AdolescentsPageClient() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <CategoryPricing
-        category="individual"
-        ctaHref="/questionnaire/teen"
-        subheading="Teen sessions are billed as an individual plan. Start with a free intro chat before you pay anything. Switch therapist anytime."
-      />
-
       <section className="bg-[#233551] py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <motion.h2

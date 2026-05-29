@@ -444,6 +444,8 @@ export default function CouplesPageClient() {
         </div>
       </section>
 
+      <CategoryPricing category="couples" ctaHref="/questionnaire/couples" />
+
       {/* ── FAQ ── */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-6">
@@ -474,8 +476,6 @@ export default function CouplesPageClient() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <CategoryPricing category="couples" ctaHref="/questionnaire/couples" />
-
       <section className="bg-[#233551] py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <motion.h2
