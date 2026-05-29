@@ -1,5 +1,6 @@
 {
-  "crons": [
+  "_comment": "Cron jobs temporarily disabled. Vercel only reads the `crons` key — renaming it to `crons_disabled` stops all scheduled invocations while preserving the schedule config. To re-enable, rename `crons_disabled` back to `crons`.",
+  "crons_disabled": [
     {
       "path": "/api/cron/session-reminders",
       "schedule": "0 5 * * *"
