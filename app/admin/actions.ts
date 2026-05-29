@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
 import { sendApplicationInviteEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -183,16 +184,26 @@ export async function approveApplication(applicationId: string, adminNotes: stri
     .eq('id', applicationId)
   if (updateErr) throw new Error(updateErr.message)
 
-  // Send invite email (fire-and-forget)
+  // Send the invite email — this is the only way the therapist gets their
+  // onboarding link + code. Awaited so the Resend POST completes before the
+  // serverless function freezes, and logged on failure so a silent drop is
+  // visible (admin can then re-share the link/code manually).
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
   const inviteUrl = `${siteUrl}/therapist/onboard?code=${code}`
-  sendApplicationInviteEmail({
+  const inviteSent = await sendApplicationInviteEmail({
     to: application.email,
     name: application.full_name,
     inviteCode: code,
     inviteUrl,
     adminNotes: adminNotes || '',
-  }).catch(() => {})
+  })
+  if (!inviteSent) {
+    logger.error('admin/approveApplication', 'Invite email failed to send', null, {
+      applicationId,
+      to: application.email,
+      inviteCode: code,
+    })
+  }
 
   revalidatePath('/admin')
 }
