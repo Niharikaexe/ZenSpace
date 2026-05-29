@@ -1,0 +1,12 @@
+{
+  "_note": "Cron jobs are temporarily disabled. vercel.json has an empty `crons: []` so Vercel runs none of them. To re-enable, copy the `crons` array below into vercel.json (Vercel only reads vercel.json — this file is ignored by the platform).",
+  "crons": [
+    { "path": "/api/cron/session-reminders", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/availability-nudge", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/chat-not-started", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/no-subscribe-nudge", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/message-overdue-3h", "schedule": "0 * * * *" },
+    { "path": "/api/cron/reply-overdue", "schedule": "0 * * * *" },
+    { "path": "/api/cron/missed-sessions", "schedule": "0 * * * *" }
+  ]
+}
