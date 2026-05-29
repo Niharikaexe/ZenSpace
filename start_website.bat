@@ -1,7 +1,7 @@
 @echo off
-title ZenSpace Local Server
+title MindCanopy Local Server
 echo ==============================================
-echo Starting ZenSpace Next.js Server...
+echo Starting MindCanopy Next.js Server...
 echo ==============================================
 
 :: Check if node_modules exists, if not, install dependencies
