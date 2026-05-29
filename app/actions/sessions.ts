@@ -16,8 +16,7 @@ async function getAuthUser() {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
-const INTRO_MESSAGE_LIMIT = 10
-const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days, hidden from client
+const INTRO_MESSAGE_LIMIT = 25 // free intro chat: client + therapist messages combined
 
 export async function sendMessage(matchId: string, content: string): Promise<{ error?: string }> {
   const { user, supabase } = await getAuthUser()
@@ -42,18 +41,13 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
       .maybeSingle() as { data: { id: string } | null; error: unknown }
 
     if (!activeSub) {
-      // Hidden: check 7-day intro window
-      const { data: matchRow } = await (admin as any)
-        .from('matches').select('created_at').eq('id', matchId).single() as { data: { created_at: string } | null; error: unknown }
-
-      const withinWindow = matchRow && new Date(matchRow.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
-      if (!withinWindow) return { error: 'subscribe_required' }
-
+      // Free intro chat: 25 messages total (client + therapist combined), no
+      // time window. Once the conversation reaches 25 messages, the client
+      // must subscribe to send more.
       const { count } = await (admin as any)
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .eq('match_id', matchId)
-        .eq('sender_id', user.id) as { count: number | null; error: unknown }
+        .eq('match_id', matchId) as { count: number | null; error: unknown }
 
       if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
     }

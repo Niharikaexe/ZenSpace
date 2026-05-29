@@ -27,7 +27,7 @@ export default async function ClientChatPage() {
 
   if (!match) redirect('/dashboard')
 
-  const [{ data: subscription }, { data: questionnaire }, { count: clientMessageCount }] = await Promise.all([
+  const [{ data: subscription }, { data: questionnaire }, { count: totalMessageCount }] = await Promise.all([
     (admin as any)
       .from('subscriptions')
       .select('status, current_period_end')
@@ -44,8 +44,7 @@ export default async function ClientChatPage() {
     (admin as any)
       .from('messages')
       .select('*', { count: 'exact', head: true })
-      .eq('match_id', match.id)
-      .eq('sender_id', user.id) as Promise<{ count: number | null; error: unknown }>,
+      .eq('match_id', match.id) as Promise<{ count: number | null; error: unknown }>,
   ])
 
   const isSubscribed = !!(subscription && (
@@ -53,16 +52,13 @@ export default async function ClientChatPage() {
     (subscription.status === 'cancelled' && subscription.current_period_end && new Date(subscription.current_period_end) > new Date())
   ))
 
-  // Intro chat: 10 free messages within 7 days of match (window hidden from client)
-  const INTRO_LIMIT = 10
-  const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
-  const matchWithinWindow = new Date(match.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
-  // null = subscribed (no counter shown); 0 = exhausted; >0 = messages remaining
+  // Free intro chat: 25 messages total (client + therapist combined), no time
+  // window. Once 25 messages exist, the client must subscribe to send more.
+  const INTRO_LIMIT = 25
+  // null = subscribed (no gate); 0 = exhausted; >0 = messages remaining
   const freeMessagesLeft: number | null = isSubscribed
     ? null
-    : matchWithinWindow
-      ? Math.max(0, INTRO_LIMIT - (clientMessageCount ?? 0))
-      : 0
+    : Math.max(0, INTRO_LIMIT - (totalMessageCount ?? 0))
   const therapyType = (questionnaire?.responses?.type as string) ?? null
   const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
     (admin as any)
