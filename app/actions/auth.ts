@@ -159,19 +159,13 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   logger.info('auth/signUp', 'Account created', { userId, email, role })
 
   if (role === 'client') {
-    // Both emails are dispatched in parallel so the signup form returns ~1s
-    // faster on Vercel serverless. Each function catches its own errors, so
-    // failure here is logged but does not block the signup.
-    const firstName = fullName.split(' ')[0] || 'there'
-    await Promise.all([
-      sendAdminNewClientSignupEmail(fullName, email),
-      sendNotificationEmail({
-        to: email,
-        name: firstName,
-        type: 'client_welcome',
-        meta: {},
-      }),
-    ])
+    // Notify admin now. The client welcome email ("Go to your dashboard") is
+    // deliberately NOT sent here — during signup it arrives before the user has
+    // confirmed their email and reads like a verification email. It's sent once
+    // the account is actually active: in the immediate-session branch below
+    // (when email confirmation is disabled in Supabase) or in /auth/callback
+    // (after the user clicks the verification link).
+    await sendAdminNewClientSignupEmail(fullName, email)
   }
 
   // Save questionnaire data if present (client sign-ups only)
@@ -201,6 +195,12 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   }
 
   if (sessionCreatedImmediately) {
+    // Email confirmation is disabled in Supabase, so the account is active
+    // immediately and no /auth/callback will fire. Send the welcome email now.
+    if (role === 'client') {
+      const firstName = fullName.split(' ')[0] || 'there'
+      await sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} })
+    }
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     const userRole = currentUser?.user_metadata?.role ?? role
     logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', { userId, role: userRole })

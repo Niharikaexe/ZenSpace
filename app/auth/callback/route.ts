@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { sendNotificationEmail } from '@/lib/email'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -57,6 +58,17 @@ export async function GET(request: Request) {
   }
 
   const role = profile?.role ?? (user.user_metadata?.role as string) ?? 'client'
+
+  // Send the client welcome email here — i.e. once the user has actually
+  // confirmed their email — rather than during signup. Skip password-reset
+  // callbacks (they set next=/auth/reset-password). The confirmation code is
+  // single-use, so this fires once per account. (If magic-link login is added
+  // later, revisit this guard so returning users don't get re-welcomed.)
+  if (role === 'client' && next !== '/auth/reset-password' && user.email) {
+    const firstName = ((user.user_metadata?.full_name as string | undefined) ?? '').split(' ')[0] || 'there'
+    await sendNotificationEmail({ to: user.email, name: firstName, type: 'client_welcome', meta: {} })
+  }
+
   // Always honour explicit `next` params that require specific landing pages (e.g. password reset)
   const destination =
     next === '/auth/reset-password' ? next :
