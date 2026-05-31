@@ -3,12 +3,12 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { sendAdminTherapistOnboardedEmail } from '@/lib/email'
+import { sendAdminTherapistOnboardedEmail, sendNotificationEmail } from '@/lib/email'
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-const TEST_CODE = 'ZENSPACE2026'
+const TEST_CODE = 'MINDCANOPY2026'
 
 // ─── Invite lookup (called from client during onboarding) ─────────────────────
 
@@ -263,9 +263,15 @@ export async function submitTherapistOnboarding(
       .eq('id', invite.id)
   }
 
-  // Awaited so the Resend POST completes before redirect() throws and the
-  // serverless function exits. The send helper swallows its own errors.
-  await sendAdminTherapistOnboardedEmail(v.fullName)
+  // Onboarding is complete and the account is verified (is_verified: true
+  // above), so send the therapist their welcome/verified email now. Both emails
+  // are awaited so the Resend POSTs complete before redirect() throws and the
+  // serverless function exits; each send helper swallows its own errors.
+  const therapistFirstName = v.fullName.split(' ')[0] || 'there'
+  await Promise.all([
+    sendAdminTherapistOnboardedEmail(v.fullName),
+    sendNotificationEmail({ to: v.email, name: therapistFirstName, type: 'profile_verified', meta: {} }),
+  ])
 
   const supabase = await createClient()
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: v.email, password: v.password })

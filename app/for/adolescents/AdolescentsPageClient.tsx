@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { CategoryPricing } from '@/components/shared/CategoryPricing'
 import { PLANS } from '@/lib/plans'
 
 const STARTING_PRICE = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
@@ -177,7 +178,7 @@ export default function AdolescentsPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                Between exams, family expectations, and the constant noise of being online, it’s easy to feel like your own voice is getting drowned out. Zen Space is a room of your own — a private place to find your balance and start a habit of checking in on yourself.
+                Between exams, family expectations, and the constant noise of being online, it’s easy to feel like your own voice is getting drowned out. MindCanopy is a room of your own — a private place to find your balance and start a habit of checking in on yourself.
               </motion.p>
 
               <motion.div
@@ -394,6 +395,12 @@ export default function AdolescentsPageClient() {
           </div>
         </div>
       </section>
+
+      <CategoryPricing
+        category="individual"
+        ctaHref="/questionnaire/teen"
+        subheading="Teen sessions are billed as an individual plan. Start with a free intro chat before you pay anything. Switch therapist anytime."
+      />
 
       {/* ── FAQ ── */}
       <section className="bg-white py-20 md:py-28">

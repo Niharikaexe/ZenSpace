@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { CategoryPricing } from '@/components/shared/CategoryPricing'
 import { PLANS } from '@/lib/plans'
 
 const STARTING_PRICE = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
@@ -104,7 +105,7 @@ const faqs = [
   },
   {
     q: "Will anyone find out I’m here?",
-    a: "Your privacy is built into the foundation of Zen Space. This is your private environment, and we keep it that way.",
+    a: "Your privacy is built into the foundation of MindCanopy. This is your private environment, and we keep it that way.",
   },
   {
     q: "What happens in the first call?",
@@ -170,7 +171,7 @@ export default function IndividualsPageClient() {
                 transition={{ duration: 0.7, delay: 0.2 }}
                 className="text-base text-white/60 leading-relaxed max-w-lg"
               >
-                You’ve been looking for a room where you can finally hear yourself think. Zen Space can be that room. It’s a habit for your head — a private, steady conversation with someone who understands your world.
+                You’ve been looking for a room where you can finally hear yourself think. MindCanopy can be that room. It’s a habit for your head — a private, steady conversation with someone who understands your world.
               </motion.p>
 
               <motion.div
@@ -386,6 +387,8 @@ export default function IndividualsPageClient() {
           </div>
         </div>
       </section>
+
+      <CategoryPricing category="individual" ctaHref="/questionnaire/individual" />
 
       {/* ── FAQ ── */}
       <section className="bg-white py-20 md:py-28">

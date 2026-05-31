@@ -118,7 +118,7 @@ export default function TherapistJoinPage() {
                 title="Say hi to new matches."
                 body={
                   <>
-                    When a new client lands with you, a short <span className="font-semibold text-[#233551]">15-minute intro chat</span> helps them decide if you&apos;re the right fit. Think of it as your warm handshake.
+                    When a new client lands with you, a <span className="font-semibold text-[#233551]">free intro chat</span> helps them decide if you&apos;re the right fit. Think of it as your warm handshake.
                   </>
                 }
               />
@@ -162,7 +162,7 @@ export default function TherapistJoinPage() {
                   {
                     n: '6',
                     t: 'Intro chat, then sessions begin.',
-                    d: 'Every new client gets a 15-minute intro chat with you. After that, sessions get booked into your slots — by you or by them.',
+                    d: 'Every new client gets a free intro chat with you. After that, sessions get booked into your slots — by you or by them.',
                   },
                 ].map(({ n, t, d }, i) => (
                   <li
@@ -215,7 +215,7 @@ export default function TherapistJoinPage() {
                     },
                     {
                       t: 'A short intro chat with every match.',
-                      d: "When a new client is matched to you, you'll offer them a 15-minute intro chat so they can decide if you're their person.",
+                      d: "When a new client is matched to you, you'll offer them a free intro chat so they can decide if you're their person.",
                     },
                     {
                       t: 'Active on chat within 48 hours.',

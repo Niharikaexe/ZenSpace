@@ -158,7 +158,7 @@ export default async function BlogPostPage({ params }: Props) {
             Reading is the start.
           </p>
           <p className="text-white/55 text-sm mb-6">
-            Talk to a therapist for 15 minutes, free. No payment until you&apos;re sure.
+            Get a free intro chat with a therapist. No payment until you&apos;re sure.
           </p>
           <Link
             href="/questionnaire"

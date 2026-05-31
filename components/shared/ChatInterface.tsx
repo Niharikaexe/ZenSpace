@@ -19,7 +19,6 @@ interface Props {
   otherPartyName: string
   initialMessages: Message[]
   sendDisabled?: boolean
-  freeMessagesLeft?: number | null  // null = subscribed; 0 = exhausted; >0 = remaining
   onSendDisabled?: () => void
 }
 
@@ -43,15 +42,17 @@ export default function ChatInterface({
   otherPartyName,
   initialMessages,
   sendDisabled = false,
-  freeMessagesLeft = null,
   onSendDisabled,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isSending, startSend] = useTransition()
   const [sendError, setSendError] = useState<string | null>(null)
-  // Track free messages remaining locally so counter updates after each send
-  const [localFreeLeft, setLocalFreeLeft] = useState<number | null>(freeMessagesLeft ?? null)
+  // Set true when the server rejects a send because the 25-message free intro
+  // is used up mid-session. Combined with the sendDisabled prop (computed at
+  // page load), it gates further sends.
+  const [introBlocked, setIntroBlocked] = useState(false)
+  const blocked = sendDisabled || introBlocked
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -96,7 +97,7 @@ export default function ChatInterface({
 
   function handleSend() {
     if (!input.trim() || isSending) return
-    if (sendDisabled) { onSendDisabled?.(); return }
+    if (blocked) { onSendDisabled?.(); return }
     const content = input.trim()
     setInput('')
     setSendError(null)
@@ -116,16 +117,14 @@ export default function ChatInterface({
       const result = await sendMessage(matchId, content)
       if (result?.error) {
         if (result.error === 'subscribe_required') {
-          // Server rejected — intro limit or window expired; trigger paywall
+          // Server rejected — the 25-message free intro is used up. Block
+          // further sends and show the subscribe popup.
+          setIntroBlocked(true)
           onSendDisabled?.()
-          setLocalFreeLeft(0)
         } else {
           setSendError(result.error)
         }
         setMessages(prev => prev.filter(m => m.id !== optimistic.id))
-      } else if (localFreeLeft !== null) {
-        // Decrement local counter on successful send
-        setLocalFreeLeft(prev => (prev !== null ? Math.max(0, prev - 1) : null))
       }
     })
   }
@@ -227,7 +226,7 @@ export default function ChatInterface({
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() && !sendDisabled}
+            disabled={!input.trim() && !blocked}
             className="w-11 h-11 rounded-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-px"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -235,22 +234,9 @@ export default function ChatInterface({
             </svg>
           </button>
         </div>
-        {sendDisabled ? (
+        {blocked ? (
           <p className="text-xs text-[#3D8A80] text-center mt-1.5 font-medium">
             <button onClick={() => onSendDisabled?.()} className="underline hover:text-[#233551] transition-colors">Subscribe to continue messaging →</button>
-          </p>
-        ) : localFreeLeft !== null && localFreeLeft > 0 ? (
-          <p className="text-xs text-center mt-1.5">
-            <span className={`font-semibold ${localFreeLeft <= 3 ? 'text-amber-600' : 'text-[#3D8A80]'}`}>
-              {localFreeLeft} free {localFreeLeft === 1 ? 'message' : 'messages'} left
-            </span>
-            <span className="text-slate-400"> · </span>
-            <button
-              onClick={() => onSendDisabled?.()}
-              className="text-[#3D8A80] underline text-xs"
-            >
-              Subscribe for unlimited
-            </button>
           </p>
         ) : (
           <p className="text-xs text-slate-400 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
+import { CategoryPricing } from '@/components/shared/CategoryPricing'
 import { PLANS } from '@/lib/plans'
 
 const COUPLES_STARTING_PRICE = `${PLANS.couples_basic_weekly.price} / ${PLANS.couples_basic_weekly.per}`
@@ -421,7 +422,7 @@ export default function CouplesPageClient() {
               A space that is yours,<br />and yours alone.
             </h2>
             <p className="text-[#233551]/55 text-base leading-relaxed">
-              In a world full of opinions from family and society, Zen Space stays strictly private.
+              In a world full of opinions from family and society, MindCanopy stays strictly private.
             </p>
           </motion.div>
 
@@ -442,6 +443,8 @@ export default function CouplesPageClient() {
           </div>
         </div>
       </section>
+
+      <CategoryPricing category="couples" ctaHref="/questionnaire/couples" />
 
       {/* ── FAQ ── */}
       <section className="bg-white py-20 md:py-28">

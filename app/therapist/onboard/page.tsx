@@ -140,7 +140,7 @@ function StepInviteCode({
           type="text"
           value={value}
           onChange={e => onChange(e.target.value.toUpperCase())}
-          placeholder="ZENSPACE2026"
+          placeholder="MINDCANOPY2026"
           className="w-full border border-slate-200 rounded-xl px-4 py-3 text-base tracking-widest font-mono text-center text-[#233551] focus:outline-none focus:border-[#7EC0B7] uppercase"
           autoFocus
         />

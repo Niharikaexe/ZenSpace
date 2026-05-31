@@ -96,7 +96,6 @@ export default function ClientChatView({
               otherPartyName={therapist.fullName}
               initialMessages={initialMessages}
               sendDisabled={!canSend}
-              freeMessagesLeft={freeMessagesLeft}
               onSendDisabled={() => setShowSubModal(true)}
             />
           </div>

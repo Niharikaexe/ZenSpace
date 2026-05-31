@@ -116,7 +116,7 @@ export default function BlogPage() {
             Reading helps. Talking helps more.
           </h2>
           <p className="text-white/55 mb-8 text-base">
-            Before you pay anything, talk to your potential therapist for 15 minutes. No pressure. No invoice.
+            Before you pay anything, get a free intro chat with your potential therapist. No pressure, no invoice.
           </p>
           <Link
             href="/questionnaire"

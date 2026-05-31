@@ -1,10 +1,10 @@
-# ZenSpace — Project Brief for Claude
+# MindCanopy — Project Brief for Claude
 
 ---
 
 ## COMPANY CONTEXT
 
-ZenSpace is a subscription-based online therapy platform focused exclusively
+MindCanopy is a subscription-based online therapy platform focused exclusively
 on the Indian market. It offers:
 - Weekly therapy sessions (video) with globally trained therapists
 - Unlimited async text messaging with your therapist between sessions
@@ -14,7 +14,7 @@ on the Indian market. It offers:
 - Admin oversight of all therapist-client assignments
 - A free introductory chat before any payment
 
-**IMPORTANT CONSTRAINT:** ZenSpace does not prescribe medication. It is
+**IMPORTANT CONSTRAINT:** MindCanopy does not prescribe medication. It is
 a talk therapy and counselling platform only. Never imply or suggest
 diagnostic or prescription services.
 
@@ -268,7 +268,7 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 ---
 
 ### PHASE 12 — Polish & Launch Prep
-- Landing page (BetterHelp-inspired with ZenSpace branding)
+- Landing page (BetterHelp-inspired with MindCanopy branding)
 - Email notifications (Supabase Edge Functions or Resend)
 - Mobile responsiveness audit
 - Error handling, loading states, empty states
@@ -599,7 +599,7 @@ Each bug has: severity, file:line, description, and suggested fix.
 
 **B-26. JSON-LD says `medicalSpecialty: "Psychiatry"`**
 - File: `app/layout.tsx` line 96
-- Description: ZenSpace explicitly does not prescribe medication or offer psychiatry. This SEO claim is incorrect and could mislead users / crawlers.
+- Description: MindCanopy explicitly does not prescribe medication or offer psychiatry. This SEO claim is incorrect and could mislead users / crawlers.
 - Fix: Change to `"Psychotherapy"` or `"CounselingPsychology"`.
 
 **B-27. Missing static assets** — `og-image.png`, `robots.txt`, `sitemap.xml` all absent from `/public`. Social previews 404; SEO crawl is unguided. `app/layout.tsx:56,68` references `og-image.png`.

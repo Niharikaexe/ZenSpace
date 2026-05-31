@@ -40,11 +40,11 @@ export async function GET(request: NextRequest) {
   }
 
   for (const s of sessions as { id: string; scheduled_at: string; session_type: string; match_id: string }[]) {
-    // Skip if daily reminder already sent for this session
+    // Skip if reminder already sent for this session (either variant)
     const { data: existing } = await (admin as any)
       .from('notifications')
       .select('id')
-      .eq('type', 'session_reminder')
+      .in('type', ['session_reminder_client', 'session_reminder_therapist'])
       .eq('metadata->>sessionId', s.id)
       .limit(1)
 
@@ -67,20 +67,31 @@ export async function GET(request: NextRequest) {
     const sessionDate = new Date(s.scheduled_at)
     const isToday = sessionDate.toDateString() === now.toDateString()
     const title = isToday ? 'Session today' : 'Session tomorrow'
-    const body = `Your ${s.session_type} session is ${isToday ? 'today' : 'tomorrow'} at ${dateStr}. Be ready.`
+    const body = `Your ${s.session_type} session is ${isToday ? 'today' : 'tomorrow'} at ${dateStr}.`
 
-    const metadata = {
+    // Look up first names so each recipient's email body can address them
+    const { data: profiles } = await (admin as any)
+      .from('profiles').select('id, full_name')
+      .in('id', [match.client_id, match.therapist_id])
+    const therapistProfile = (profiles ?? []).find((p: any) => p.id === match.therapist_id)
+    const clientProfile = (profiles ?? []).find((p: any) => p.id === match.client_id)
+    const therapistFirstName = (therapistProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
+    const clientFirstName = (clientProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
+
+    const baseMetadata = {
       sessionId:   s.id,
       matchId:     s.match_id,
       scheduledAt: s.scheduled_at,
       sessionType: s.session_type,
       dateStr,
+      therapistFirstName,
+      clientFirstName,
       window: 'daily',
     }
 
     await Promise.all([
-      createNotification({ userId: match.client_id,    type: 'session_reminder', title, body, metadata }),
-      createNotification({ userId: match.therapist_id, type: 'session_reminder', title, body, metadata }),
+      createNotification({ userId: match.client_id,    type: 'session_reminder_client',    title, body, metadata: baseMetadata }),
+      createNotification({ userId: match.therapist_id, type: 'session_reminder_therapist', title, body, metadata: baseMetadata }),
     ])
 
     sent += 2

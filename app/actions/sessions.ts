@@ -16,8 +16,7 @@ async function getAuthUser() {
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
 
-const INTRO_MESSAGE_LIMIT = 10
-const INTRO_WINDOW_MS = 7 * 24 * 60 * 60 * 1000 // 7 days, hidden from client
+const INTRO_MESSAGE_LIMIT = 25 // free intro chat: client + therapist messages combined
 
 export async function sendMessage(matchId: string, content: string): Promise<{ error?: string }> {
   const { user, supabase } = await getAuthUser()
@@ -42,18 +41,13 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
       .maybeSingle() as { data: { id: string } | null; error: unknown }
 
     if (!activeSub) {
-      // Hidden: check 7-day intro window
-      const { data: matchRow } = await (admin as any)
-        .from('matches').select('created_at').eq('id', matchId).single() as { data: { created_at: string } | null; error: unknown }
-
-      const withinWindow = matchRow && new Date(matchRow.created_at) > new Date(Date.now() - INTRO_WINDOW_MS)
-      if (!withinWindow) return { error: 'subscribe_required' }
-
+      // Free intro chat: 25 messages total (client + therapist combined), no
+      // time window. Once the conversation reaches 25 messages, the client
+      // must subscribe to send more.
       const { count } = await (admin as any)
         .from('messages')
         .select('*', { count: 'exact', head: true })
-        .eq('match_id', matchId)
-        .eq('sender_id', user.id) as { count: number | null; error: unknown }
+        .eq('match_id', matchId) as { count: number | null; error: unknown }
 
       if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
     }
@@ -91,7 +85,16 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
           type: 'client_message',
           title: 'New message',
           body: `${senderName} sent you a message.`,
-          metadata: { matchId, senderId: user.id, clientName: senderName },
+          metadata: {
+            matchId,
+            senderId: user.id,
+            clientName: senderName,
+            messageBody: trimmed,
+          },
+          // Skip the immediate email. The 3-hour-unread cron at
+          // /api/cron/message-overdue-3h fires the email only when the
+          // recipient hasn't read the message by then.
+          skipEmail: true,
         }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
       }
     }
@@ -198,21 +201,38 @@ export async function scheduleSession(
 
   if (error) return { error: error.message }
 
-  // Notify the OTHER party about the scheduled session
+  // Notify the OTHER party about the scheduled session.
+  // The notification type branches by recipient role so each side gets the
+  // right copy (and a CTA URL that points to their dashboard).
   try {
-    const recipientId =
-      user.id === matchOwnership.therapist_id ? matchOwnership.client_id : matchOwnership.therapist_id
+    const recipientIsTherapist = user.id !== matchOwnership.therapist_id
+    const recipientId = recipientIsTherapist
+      ? matchOwnership.therapist_id
+      : matchOwnership.client_id
 
     const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
       weekday: 'short', day: 'numeric', month: 'short',
       hour: '2-digit', minute: '2-digit', hour12: true,
     })
+
+    // Look up the OTHER party's first name for the email body
+    const { data: otherProfiles } = await (admin as any)
+      .from('profiles').select('id, full_name')
+      .in('id', [matchOwnership.therapist_id, matchOwnership.client_id])
+    const therapistProfile = (otherProfiles ?? []).find((p: any) => p.id === matchOwnership.therapist_id)
+    const clientProfile = (otherProfiles ?? []).find((p: any) => p.id === matchOwnership.client_id)
+    const therapistFirstName = (therapistProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
+    const clientFirstName = (clientProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
+
     createNotification({
       userId: recipientId,
-      type: 'session_scheduled',
+      type: recipientIsTherapist ? 'session_scheduled_therapist' : 'session_scheduled_client',
       title: 'Session scheduled',
       body: `A ${sessionType} session has been scheduled for ${dateStr}.`,
-      metadata: { matchId, scheduledAt, sessionType, dateStr },
+      metadata: {
+        matchId, scheduledAt, sessionType, dateStr,
+        therapistFirstName, clientFirstName,
+      },
     }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
   } catch (err) {
     logger.warn('sessions/scheduleSession', 'Session-scheduled notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
@@ -318,6 +338,63 @@ export async function updateSessionStatus(
       // Non-fatal but log — a cancelled room left up means the join URL still
       // works until Daily.co's expiry timestamp kicks in.
       logger.warn('sessions/updateSessionStatus', 'Daily.co room deletion threw', { sessionId, err: err instanceof Error ? err.message : String(err) })
+    }
+
+    // Pattern detection: if the THERAPIST cancelled, check whether they've
+    // cancelled too many sessions in the last 30 days. If so, dispatch the
+    // cancellation-pattern email. Dedupes by checking that no
+    // cancellation-pattern notification has been sent in the last 30 days.
+    if (user.id === matchRow.therapist_id) {
+      try {
+        const windowStart = new Date(Date.now() - 30 * 86_400_000).toISOString()
+        const PATTERN_THRESHOLD = 3
+
+        // Count cancelled sessions for this therapist in the window.
+        // We need to join through matches.therapist_id since sessions don't
+        // carry the therapist directly. Cheaper: fetch matches first.
+        const { data: therapistMatches } = await (admin as any)
+          .from('matches')
+          .select('id')
+          .eq('therapist_id', user.id)
+
+        const matchIds = (therapistMatches ?? []).map((m: { id: string }) => m.id)
+
+        let cancelCount = 0
+        if (matchIds.length) {
+          const { count } = await (admin as any)
+            .from('sessions')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'cancelled')
+            .in('match_id', matchIds)
+            .gte('ended_at', windowStart)
+          cancelCount = count ?? 0
+        }
+
+        if (cancelCount >= PATTERN_THRESHOLD) {
+          // Have we already sent the pattern email recently?
+          const { count: alreadySent } = await (admin as any)
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('type', 'therapist_cancellation_pattern')
+            .gte('created_at', windowStart)
+
+          if ((alreadySent ?? 0) === 0) {
+            await createNotification({
+              userId: user.id,
+              type: 'therapist_cancellation_pattern',
+              title: 'Pattern of cancellations',
+              body: `You've cancelled ${cancelCount} sessions in the last 30 days.`,
+              metadata: {
+                cancelCount: String(cancelCount),
+                timeWindow: '30 days',
+              },
+            })
+          }
+        }
+      } catch (err) {
+        logger.warn('sessions/updateSessionStatus', 'Cancellation-pattern check failed', { err: err instanceof Error ? err.message : String(err) })
+      }
     }
   }
 
