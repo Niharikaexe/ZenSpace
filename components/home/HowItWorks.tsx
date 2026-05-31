@@ -1,9 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { PLANS } from "@/lib/plans"
-
-const STARTING_PRICE_LABEL = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
 
 /* ─── Tiny human bust (reusable across all illustrations) ─── */
 interface TinyHumanProps {
@@ -149,7 +146,7 @@ const Step03Illustration = () => (
       <text key={d} x={190+d*10} y={131.5} fontSize="4.5" fill={d===2 ? "white" : "#233551"} fontFamily="Lato,sans-serif" fontWeight={d===2 ? "900" : "400"}>{d+5}</text>
     ))}
     <rect x="186" y="152" width="76" height="16" rx="8" fill="#233551"/>
-    <text x="200" y="163" fontSize="7" fill="white" fontFamily="Lato,sans-serif" fontWeight="700">{STARTING_PRICE_LABEL}</text>
+    <text x="210" y="163" fontSize="7" fill="white" fontFamily="Lato,sans-serif" fontWeight="700">Get matched</text>
     <rect x="186" y="174" width="76" height="12" rx="6" fill="#7EC0B7"/>
     <text x="204" y="182" fontSize="6.5" fill="#233551" fontFamily="Lato,sans-serif" fontWeight="900">Get started →</text>
     <path d="M128,115 Q152,100 172,115" stroke="#7EC0B7" strokeWidth="2" fill="none" strokeLinecap="round" strokeDasharray="4 3" opacity="0.6"/>

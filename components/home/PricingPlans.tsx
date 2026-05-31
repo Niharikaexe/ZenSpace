@@ -3,13 +3,10 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Check } from "lucide-react"
-import { PLANS } from "@/lib/plans"
 
 const plans = [
   {
     name: "Essentials",
-    price: PLANS.basic_weekly.price,
-    period: `/${PLANS.basic_weekly.per}`,
     tagline: "Everything you need to begin.",
     features: [
       "1 video session per week (50 min)",
@@ -24,12 +21,10 @@ const plans = [
   },
   {
     name: "Premium",
-    price: PLANS.premium_weekly.price,
-    period: `/${PLANS.premium_weekly.per}`,
     tagline: "More access. Global expertise.",
     features: [
       "1 video session per week (50 min)",
-      "Priority chat — faster responses",
+      "Priority chat, faster responses",
       "International therapist access",
       "Free intro chat",
       "Switch therapist anytime",
@@ -41,9 +36,7 @@ const plans = [
   },
   {
     name: "Monthly",
-    price: PLANS.basic_monthly.price,
-    period: `/${PLANS.basic_monthly.per}`,
-    tagline: "Commit to the process. Save in it.",
+    tagline: "Commit to the process.",
     features: [
       "4 video sessions per month (50 min each)",
       "Unlimited chat with your therapist",
@@ -53,7 +46,7 @@ const plans = [
     cta: "Choose monthly",
     href: "/questionnaire",
     featured: false,
-    badge: "Best value",
+    badge: null,
   },
 ]
 
@@ -80,16 +73,16 @@ const PricingPlans = () => {
         >
           <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7]" />
-            Pricing
+            Plans
           </span>
           <h2
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
             style={{ fontFamily: 'var(--font-lato)' }}
           >
-            No surprises.<br />Pay for what you use.
+            What you get on each plan.
           </h2>
           <p className="text-[#233551]/50 text-base leading-relaxed">
-            You&apos;re not locked in. No contracts, no hidden fees. Start with the intro chat — it&apos;s free.
+            Start with a free intro chat. Plans appear in your dashboard after you&apos;re matched. Switch therapists anytime, cancel whenever.
           </p>
         </motion.div>
 
@@ -140,19 +133,6 @@ const PricingPlans = () => {
                 {plan.tagline}
               </p>
 
-              {/* Price */}
-              <div className="flex items-end gap-1 mb-7">
-                <span
-                  className={`text-4xl font-black leading-none ${plan.featured ? "text-white" : "text-[#233551]"}`}
-                  style={{ fontFamily: 'var(--font-lato)' }}
-                >
-                  {plan.price}
-                </span>
-                <span className={`text-sm mb-1 ${plan.featured ? "text-white/45" : "text-[#233551]/40"}`}>
-                  {plan.period}
-                </span>
-              </div>
-
               {/* Divider */}
               <div className={`h-px mb-6 ${plan.featured ? "bg-white/10" : "bg-slate-100"}`} />
 
@@ -201,8 +181,8 @@ const PricingPlans = () => {
           </p>
           <p className="text-xs text-[#233551]/30">
             Looking for couples therapy?{" "}
-            <Link href="/questionnaire?type=couples" className="text-[#3D8A80] font-semibold hover:underline">
-              {PLANS.couples_basic_weekly.price}/{PLANS.couples_basic_weekly.per} — one session for both partners →
+            <Link href="/questionnaire/couples" className="text-[#3D8A80] font-semibold hover:underline">
+              One session for both partners, see plans after intro chat →
             </Link>
           </p>
         </motion.div>
