@@ -645,6 +645,8 @@ type CredsValues = {
   yearsExperience: string
   education: string
   linkedinUrl: string
+  expectedSalary: string
+  expectedSalaryCurrency: 'INR' | 'USD'
   cvUrl: string
   cvFilename: string
   certificates: { url: string; filename: string }[]
@@ -659,7 +661,10 @@ function StepCredentials({
   onCertRemoved,
 }: {
   values: CredsValues
-  onChange: (key: 'yearsExperience' | 'education' | 'linkedinUrl', value: string) => void
+  onChange: (
+    key: 'yearsExperience' | 'education' | 'linkedinUrl' | 'expectedSalary' | 'expectedSalaryCurrency',
+    value: string,
+  ) => void
   onCvUploaded: (url: string, filename: string) => void
   onCvRemoved: () => void
   onCertAdded: (url: string, filename: string) => void
@@ -745,6 +750,46 @@ function StepCredentials({
           />
         </Field>
       </div>
+
+      <Field label="Expected monthly salary" required hint="for your records — helps us match you to clients in the right tier">
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={0}
+            step={1000}
+            value={values.expectedSalary}
+            onChange={e => onChange('expectedSalary', e.target.value)}
+            placeholder="50000"
+            className={cn(inputCls, 'flex-1')}
+          />
+          <div className="flex rounded-xl border border-slate-200 overflow-hidden flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => onChange('expectedSalaryCurrency', 'INR')}
+              className={cn(
+                'px-5 text-sm font-bold transition-colors',
+                values.expectedSalaryCurrency === 'INR'
+                  ? 'bg-[#233551] text-white'
+                  : 'bg-white text-[#233551]/50 hover:bg-slate-50',
+              )}
+            >
+              INR
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange('expectedSalaryCurrency', 'USD')}
+              className={cn(
+                'px-5 text-sm font-bold transition-colors border-l border-slate-200',
+                values.expectedSalaryCurrency === 'USD'
+                  ? 'bg-[#233551] text-white'
+                  : 'bg-white text-[#233551]/50 hover:bg-slate-50',
+              )}
+            >
+              USD
+            </button>
+          </div>
+        </div>
+      </Field>
 
       <Field label="LinkedIn profile" hint="optional but recommended">
         <input
@@ -1024,6 +1069,8 @@ export default function TherapistApplyPage() {
     yearsExperience: '',
     education: '',
     linkedinUrl: '',
+    expectedSalary: '',
+    expectedSalaryCurrency: 'INR',
     cvUrl: '',
     cvFilename: '',
     certificates: [],
@@ -1037,7 +1084,10 @@ export default function TherapistApplyPage() {
   })
 
   const updatePersonal = (key: keyof PersonalValues, value: string) => setPersonal(prev => ({ ...prev, [key]: value }))
-  const updateCreds = (key: 'yearsExperience' | 'education' | 'linkedinUrl', value: string) => setCreds(prev => ({ ...prev, [key]: value }))
+  const updateCreds = (
+    key: 'yearsExperience' | 'education' | 'linkedinUrl' | 'expectedSalary' | 'expectedSalaryCurrency',
+    value: string,
+  ) => setCreds(prev => ({ ...prev, [key]: value }))
   const updatePractice = (key: 'specializationOther' | 'languageOther' | 'whyMindcanopy', value: string) =>
     setPractice(prev => ({ ...prev, [key]: value }))
 
@@ -1087,6 +1137,8 @@ export default function TherapistApplyPage() {
         years >= 0 &&
         years <= 40 &&
         creds.education.trim().length > 0 &&
+        creds.expectedSalary !== '' &&
+        Number(creds.expectedSalary) > 0 &&
         creds.cvUrl.trim().length > 0
       )
     }
@@ -1167,6 +1219,8 @@ export default function TherapistApplyPage() {
             <input type="hidden" name="yearsExperience" value={creds.yearsExperience} />
             <input type="hidden" name="education" value={creds.education} />
             <input type="hidden" name="linkedinUrl" value={creds.linkedinUrl} />
+            <input type="hidden" name="expectedSalary" value={creds.expectedSalary} />
+            <input type="hidden" name="expectedSalaryCurrency" value={creds.expectedSalaryCurrency} />
             <input type="hidden" name="cvUrl" value={creds.cvUrl} />
             <input type="hidden" name="certificateUrls" value={JSON.stringify(creds.certificates.map(c => c.url))} />
             <input type="hidden" name="specializations" value={JSON.stringify(practice.specializations)} />

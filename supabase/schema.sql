@@ -452,6 +452,8 @@ CREATE TABLE therapist_applications (
   license_body          TEXT,
   years_experience      INT NOT NULL DEFAULT 0,
   education             TEXT,
+  expected_salary       NUMERIC,
+  expected_salary_currency TEXT CHECK (expected_salary_currency IN ('INR', 'USD')),
   specializations       TEXT[] NOT NULL DEFAULT '{}',
   specialization_other  TEXT,
   languages             TEXT[] NOT NULL DEFAULT '{}',
