@@ -28,10 +28,10 @@ export async function submitTherapistApplication(
   const linkedinUrl = (formData.get('linkedinUrl') as string | null)?.trim() ?? ''
   const yearsExperience = parseInt(formData.get('yearsExperience') as string, 10) || 0
   const education = (formData.get('education') as string | null)?.trim() ?? ''
-  const expectedSalaryRaw = (formData.get('expectedSalary') as string | null)?.trim() ?? ''
-  const expectedSalary = expectedSalaryRaw === '' ? null : Number(expectedSalaryRaw)
-  const expectedSalaryCurrencyRaw = (formData.get('expectedSalaryCurrency') as string | null)?.trim() ?? 'INR'
-  const expectedSalaryCurrency = expectedSalaryCurrencyRaw === 'USD' ? 'USD' : 'INR'
+  const expectedSessionPayRaw = (formData.get('expectedSessionPay') as string | null)?.trim() ?? ''
+  const expectedSessionPay = expectedSessionPayRaw === '' ? null : Number(expectedSessionPayRaw)
+  const expectedSessionPayCurrencyRaw = (formData.get('expectedSessionPayCurrency') as string | null)?.trim() ?? 'INR'
+  const expectedSessionPayCurrency = expectedSessionPayCurrencyRaw === 'USD' ? 'USD' : 'INR'
   const specializationsRaw = formData.get('specializations') as string | null
   const specializationOther = (formData.get('specializationOther') as string | null)?.trim() ?? ''
   const languagesRaw = formData.get('languages') as string | null
@@ -45,8 +45,8 @@ export async function submitTherapistApplication(
   if (!email.includes('@')) {
     return { error: 'Please enter a valid email address.' }
   }
-  if (expectedSalary === null || !Number.isFinite(expectedSalary) || expectedSalary <= 0) {
-    return { error: 'Please enter your expected monthly salary.' }
+  if (expectedSessionPay === null || !Number.isFinite(expectedSessionPay) || expectedSessionPay <= 0) {
+    return { error: 'Please enter your expected session pay.' }
   }
 
   let specializations: string[] = []
@@ -87,8 +87,8 @@ export async function submitTherapistApplication(
       linkedin_url: linkedinUrl || null,
       years_experience: yearsExperience,
       education: education || null,
-      expected_salary: expectedSalary,
-      expected_salary_currency: expectedSalaryCurrency,
+      expected_session_pay: expectedSessionPay,
+      expected_session_pay_currency: expectedSessionPayCurrency,
       specializations,
       specialization_other: specializationOther || null,
       languages,
