@@ -34,6 +34,7 @@ export function CategoryPricing({
       features: basic.features,
       featured: false,
       badge: null as string | null,
+      startsFrom: category === 'individual' ? '₹799' : null,
     },
     {
       key: 'premium',
@@ -42,6 +43,7 @@ export function CategoryPricing({
       features: premium.features,
       featured: true,
       badge: 'Most popular',
+      startsFrom: category === 'individual' ? '₹2,999' : null,
     },
   ]
 
@@ -95,9 +97,21 @@ export function CategoryPricing({
               >
                 {plan.name}
               </h3>
-              <p className={`text-xs mb-6 ${plan.featured ? 'text-white/55' : 'text-[#233551]/45'}`}>
+              <p className={`text-xs mb-4 ${plan.featured ? 'text-white/55' : 'text-[#233551]/45'}`}>
                 {plan.tagline}
               </p>
+
+              {plan.startsFrom && (
+                <p className={`text-sm font-bold mb-6 ${plan.featured ? 'text-[#7EC0B7]' : 'text-[#3D8A80]'}`}>
+                  Starts from{' '}
+                  <span
+                    className={`text-xl font-black ${plan.featured ? 'text-white' : 'text-[#233551]'}`}
+                    style={{ fontFamily: 'var(--font-lato)' }}
+                  >
+                    {plan.startsFrom}
+                  </span>
+                </p>
+              )}
 
               <div className={`h-px mb-6 ${plan.featured ? 'bg-white/10' : 'bg-slate-100'}`} />
 
