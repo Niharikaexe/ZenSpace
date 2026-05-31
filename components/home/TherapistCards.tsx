@@ -2,49 +2,90 @@
 
 import { useEffect, useRef } from "react"
 import { Star } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 
-const WomanIllustration = () => (
-  <svg viewBox="0 0 280 360" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-2xl">
-    <ellipse cx="140" cy="220" rx="115" ry="130" fill="rgba(126,192,183,0.10)" />
-    <path d="M30,300 C10,240 22,160 72,130 C62,170 48,230 30,300 Z" fill="#2A6B63" />
-    <path d="M30,300 C48,242 60,180 72,130" stroke="#1E5048" strokeWidth="1.5" fill="none" />
-    <path d="M250,290 C270,228 258,148 208,118 C218,158 234,222 250,290 Z" fill="#2A6B63" />
-    <path d="M250,290 C234,230 220,166 208,118" stroke="#1E5048" strokeWidth="1.5" fill="none" />
-    <path d="M55,148 C35,118 45,78 75,68 C69,94 60,124 55,148 Z" fill="#3D8A80" fillOpacity="0.8" />
-    <path d="M225,140 C245,110 235,70 205,60 C211,86 220,116 225,140 Z" fill="#3D8A80" fillOpacity="0.8" />
-    <ellipse cx="140" cy="290" rx="68" ry="72" fill="#E8926A" />
-    <circle cx="122" cy="268" r="7" fill="white" fillOpacity="0.75" />
-    <circle cx="148" cy="282" r="5.5" fill="white" fillOpacity="0.65" />
-    <circle cx="138" cy="255" r="4" fill="white" fillOpacity="0.5" />
-    <rect x="129" y="195" width="22" height="30" rx="11" fill="#FDBCA7" />
-    <circle cx="140" cy="172" r="44" fill="#FDBCA7" />
-    <path d="M96,158 Q140,100 184,158 Q194,192 190,232 Q164,252 140,252 Q116,252 90,232 Q86,192 96,158 Z" fill="#1C0E08" />
-    <path d="M96,158 Q80,192 84,232" stroke="#1C0E08" strokeWidth="10" fill="none" strokeLinecap="round" />
-    <path d="M184,158 Q200,192 196,232" stroke="#1C0E08" strokeWidth="10" fill="none" strokeLinecap="round" />
-    <circle cx="112" cy="128" r="11" fill="#7EC0B7" />
-    <circle cx="104" cy="118" r="5.5" fill="#B8E4DF" />
-    <circle cx="121" cy="117" r="5" fill="#B8E4DF" />
-    <circle cx="112" cy="110" r="4.5" fill="#B8E4DF" />
-    <circle cx="112" cy="128" r="3.5" fill="white" fillOpacity="0.9" />
-    <circle cx="168" cy="120" r="9.5" fill="#FFB5A7" />
-    <circle cx="160" cy="112" r="4.5" fill="#FFD6CF" />
-    <circle cx="177" cy="111" r="4" fill="#FFD6CF" />
-    <circle cx="168" cy="104" r="4" fill="#FFD6CF" />
-    <circle cx="168" cy="120" r="3" fill="white" fillOpacity="0.9" />
-    <circle cx="142" cy="106" r="8" fill="#7EC0B7" fillOpacity="0.85" />
-    <circle cx="136" cy="99" r="4" fill="#A8D9D4" />
-    <circle cx="149" cy="99" r="3.5" fill="#A8D9D4" />
-    <circle cx="142" cy="106" r="2.5" fill="white" fillOpacity="0.9" />
-    <ellipse cx="129" cy="170" rx="5" ry="6" fill="#1C0E08" />
-    <ellipse cx="151" cy="170" rx="5" ry="6" fill="#1C0E08" />
-    <circle cx="131" cy="168" r="1.8" fill="white" />
-    <circle cx="153" cy="168" r="1.8" fill="white" />
-    <path d="M132,184 Q140,192 148,184" stroke="#D4795A" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-    <path d="M62,345 C42,310 48,272 76,256 C70,282 64,316 62,345 Z" fill="#2A6B63" />
-    <path d="M218,348 C238,313 232,275 204,259 C210,285 216,319 218,348 Z" fill="#2A6B63" />
-  </svg>
+interface FloatDotProps {
+  top?: string
+  bottom?: string
+  left?: string
+  right?: string
+  size: number
+  color: string
+  delay: number
+  duration: number
+  reduce: boolean
+}
+
+const FloatDot = ({ top, bottom, left, right, size, color, delay, duration, reduce }: FloatDotProps) => (
+  <motion.span
+    style={{
+      position: "absolute",
+      top, bottom, left, right,
+      width: size, height: size,
+      borderRadius: 9999,
+      background: color,
+      opacity: 0.8,
+    }}
+    initial={{ opacity: 0, scale: 0.5 }}
+    animate={reduce ? { opacity: 0.8, scale: 1, y: 0 } : { opacity: 0.8, scale: 1, y: [0, -10, 0, 8, 0] }}
+    transition={
+      reduce
+        ? { duration: 0.5, delay }
+        : {
+            opacity: { duration: 0.5, delay },
+            scale: { duration: 0.5, delay },
+            y: { duration, repeat: Infinity, ease: "easeInOut", delay: delay + 0.6 },
+          }
+    }
+  />
 )
+
+const MeditatingFigure = () => {
+  const reduce = useReducedMotion()
+  return (
+    <div className="relative w-full h-full">
+      <motion.svg
+        viewBox="0 0 600 600"
+        preserveAspectRatio="xMidYMid meet"
+        className="absolute inset-0 w-full h-full"
+        style={{ transformOrigin: "center" }}
+        animate={reduce ? undefined : { rotate: [0, 4, -3, 0], scale: [1, 1.02, 0.99, 1] }}
+        transition={{ duration: 18, ease: "easeInOut", repeat: Infinity }}
+        aria-hidden
+      >
+        <path
+          d="M460,90 C540,140 580,240 560,340 C540,440 470,520 360,540 C240,560 130,510 80,420 C30,330 50,220 130,150 C210,80 380,40 460,90 Z"
+          fill="#FFE8E2"
+        />
+      </motion.svg>
+
+      <motion.img
+        src="/assets/individual-therapy.png"
+        alt=""
+        style={{ position: "absolute", inset: "8% 6% 6% 8%", width: "86%", height: "86%", objectFit: "contain" }}
+        initial={{ opacity: 0, y: 24, scale: 0.96 }}
+        animate={
+          reduce
+            ? { opacity: 1, y: 0, scale: 1 }
+            : { opacity: 1, y: [0, -6, 0], scale: [1, 1.015, 1] }
+        }
+        transition={
+          reduce
+            ? { duration: 0.6 }
+            : {
+                opacity: { duration: 0.9, delay: 0.3, ease: "easeOut" },
+                y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.9 },
+                scale: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.9 },
+              }
+        }
+      />
+
+      <FloatDot top="8%" left="12%" size={26} color="#E8926A" delay={0.4} duration={6.5} reduce={!!reduce} />
+      <FloatDot bottom="14%" right="10%" size={26} color="#7EC0B7" delay={0.7} duration={7.5} reduce={!!reduce} />
+      <FloatDot top="38%" right="4%" size={18} color="#F97B5A" delay={1.0} duration={5.5} reduce={!!reduce} />
+    </div>
+  )
+}
 
 const therapists = [
   { name: "Priya Menon",     specialty: "Anxiety & Depression",   bio: "London-trained, based in Bengaluru. CBT for chronic anxiety and low mood.",            rating: 4.9, reviews: 312, available: true,  initials: "PM" },
@@ -120,9 +161,7 @@ const TherapistCards = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="absolute md:relative right-0 -top-6 md:right-auto md:top-auto w-36 h-44 sm:w-44 sm:h-56 md:w-64 md:h-80 opacity-[0.18] md:opacity-100 pointer-events-none md:pointer-events-auto flex-shrink-0"
           >
-            <div className="md:float-slow w-full h-full">
-              <WomanIllustration />
-            </div>
+            <MeditatingFigure />
           </motion.div>
 
           <motion.div
