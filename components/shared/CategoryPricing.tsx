@@ -34,7 +34,7 @@ export function CategoryPricing({
       features: basic.features,
       featured: false,
       badge: null as string | null,
-      startsFrom: category === 'individual' ? '₹799' : null,
+      startsFrom: '₹799',
     },
     {
       key: 'premium',
@@ -43,7 +43,7 @@ export function CategoryPricing({
       features: premium.features,
       featured: true,
       badge: 'Most popular',
-      startsFrom: category === 'individual' ? '₹2,999' : null,
+      startsFrom: '₹2,999',
     },
   ]
 
