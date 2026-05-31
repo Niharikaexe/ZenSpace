@@ -14,6 +14,7 @@ export const PLANS = {
     amountPaise: 149900,
     sessionsPerWeek: 1,
     features: [
+      'Skilled Therapists',
       'A licensed therapist tailored just for you',
       '1 video session per week (50 min)',
       'Unlimited chat with your therapist',
@@ -32,6 +33,7 @@ export const PLANS = {
     amountPaise: 529900,
     sessionsPerWeek: 1,
     features: [
+      'Skilled Therapists',
       'A licensed therapist tailored just for you',
       '4 video sessions per month (50 min each)',
       'Unlimited chat with your therapist',
@@ -50,6 +52,7 @@ export const PLANS = {
     amountPaise: 449900,
     sessionsPerWeek: 1,
     features: [
+      '10+ years of experience therapists',
       'A licensed international therapist just for you',
       '1 video session per week (50 min)',
       'Unlimited priority chat with your therapist',
@@ -69,6 +72,7 @@ export const PLANS = {
     amountPaise: 1569900,
     sessionsPerWeek: 1,
     features: [
+      '10+ years of experience therapists',
       'A licensed international therapist just for you',
       '4 video sessions per month (50 min each)',
       'Unlimited priority chat with your therapist',
