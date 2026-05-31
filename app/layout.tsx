@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Lora, Lato } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { PLANS } from "@/lib/plans";
-
-const STARTING_PRICE = `${PLANS.basic_weekly.price}/${PLANS.basic_weekly.per}`;
 
 const GOOGLE_ADS_ID = "AW-18156017345";
 
@@ -33,7 +30,7 @@ export const metadata: Metadata = {
     template: "%s | MindCanopy",
   },
   description:
-    `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions. Starting ${STARTING_PRICE}.`,
+    `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. No waiting rooms. No prescriptions.`,
   keywords: [
     "online therapy India",
     "online therapist India",
@@ -56,7 +53,7 @@ export const metadata: Metadata = {
     siteName: "MindCanopy",
     title: "MindCanopy — Online Therapy for India",
     description:
-      `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat. Starting ${STARTING_PRICE}.`,
+      `Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat.`,
     images: [
       {
         url: "/og-image.png",

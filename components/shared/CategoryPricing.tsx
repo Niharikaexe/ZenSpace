@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { PLANS, getPlanKey, type PlanCategory } from '@/lib/plans'
@@ -15,43 +14,31 @@ interface CategoryPricingProps {
   subheading?: string
 }
 
-// Monthly savings vs paying weekly ×4, derived from the basic tier so the
-// number stays correct if pricing changes.
-function monthlySavingsPct(category: PlanCategory): number {
-  const weekly = PLANS[getPlanKey(category, 'basic', 'weekly')]
-  const monthly = PLANS[getPlanKey(category, 'basic', 'monthly')]
-  return Math.round((1 - monthly.amountPaise / (weekly.amountPaise * 4)) * 100)
-}
-
 export function CategoryPricing({
   category,
   ctaHref,
-  heading = 'Simple pricing. No surprises.',
-  subheading = 'Start with a free intro chat before you pay anything. Switch therapist anytime. Cancel whenever — your subscription is non-refundable but never locked in.',
+  heading = 'What you get on each plan.',
+  subheading = "Start with a free intro chat. Plans appear in your dashboard after you're matched. Switch therapists anytime, cancel whenever.",
 }: CategoryPricingProps) {
-  const [cadence, setCadence] = useState<'weekly' | 'monthly'>('weekly')
-
-  const basic = PLANS[getPlanKey(category, 'basic', cadence)]
-  const premium = PLANS[getPlanKey(category, 'premium', cadence)]
-  const savings = monthlySavingsPct(category)
+  // Cadence is hidden from the visitor on this section (prices live in-app).
+  // We show the weekly variants here so the feature copy stays per-week,
+  // which reads as the natural unit of regular therapy.
+  const basic = PLANS[getPlanKey(category, 'basic', 'weekly')]
+  const premium = PLANS[getPlanKey(category, 'premium', 'weekly')]
 
   const cards = [
     {
       key: 'basic',
       name: basic.name,
       tagline: basic.tagline,
-      price: basic.price,
-      per: basic.per,
       features: basic.features,
       featured: false,
-      badge: cadence === 'monthly' ? 'Best value' : null,
+      badge: null as string | null,
     },
     {
       key: 'premium',
       name: premium.name,
       tagline: premium.tagline,
-      price: premium.price,
-      per: premium.per,
       features: premium.features,
       featured: true,
       badge: 'Most popular',
@@ -62,10 +49,10 @@ export function CategoryPricing({
     <section id="pricing" className="bg-white py-20 md:py-24">
       <div className="max-w-5xl mx-auto px-6">
         {/* Header */}
-        <div className="text-center max-w-xl mx-auto mb-10">
+        <div className="text-center max-w-xl mx-auto mb-12">
           <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7]" />
-            Pricing
+            Plans
           </span>
           <h2
             className="text-3xl md:text-4xl font-black text-[#233551] leading-tight mb-4"
@@ -74,35 +61,6 @@ export function CategoryPricing({
             {heading}
           </h2>
           <p className="text-[#233551]/50 text-base leading-relaxed">{subheading}</p>
-        </div>
-
-        {/* Weekly / Monthly toggle */}
-        <div className="flex items-center justify-center gap-3 mb-12">
-          <div className="inline-flex items-center bg-slate-100 rounded-full p-1">
-            <button
-              type="button"
-              onClick={() => setCadence('weekly')}
-              className={`px-5 py-2 rounded-full text-sm font-bold transition-all ${
-                cadence === 'weekly' ? 'bg-white text-[#233551] shadow-sm' : 'text-[#233551]/50 hover:text-[#233551]/70'
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              type="button"
-              onClick={() => setCadence('monthly')}
-              className={`px-5 py-2 rounded-full text-sm font-bold transition-all inline-flex items-center gap-2 ${
-                cadence === 'monthly' ? 'bg-white text-[#233551] shadow-sm' : 'text-[#233551]/50 hover:text-[#233551]/70'
-              }`}
-            >
-              Monthly
-              {savings > 0 && (
-                <span className="inline-flex items-center text-[10px] font-black uppercase tracking-wide bg-[#7EC0B7]/20 text-[#3D8A80] px-2 py-0.5 rounded-full">
-                  Save {savings}%
-                </span>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* Plan cards */}
@@ -140,18 +98,6 @@ export function CategoryPricing({
               <p className={`text-xs mb-6 ${plan.featured ? 'text-white/55' : 'text-[#233551]/45'}`}>
                 {plan.tagline}
               </p>
-
-              <div className="flex items-end gap-1 mb-7">
-                <span
-                  className={`text-4xl font-black leading-none ${plan.featured ? 'text-white' : 'text-[#233551]'}`}
-                  style={{ fontFamily: 'var(--font-lato)' }}
-                >
-                  {plan.price}
-                </span>
-                <span className={`text-sm mb-1 ${plan.featured ? 'text-white/45' : 'text-[#233551]/40'}`}>
-                  /{plan.per}
-                </span>
-              </div>
 
               <div className={`h-px mb-6 ${plan.featured ? 'bg-white/10' : 'bg-slate-100'}`} />
 

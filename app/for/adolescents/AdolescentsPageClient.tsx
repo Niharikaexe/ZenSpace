@@ -5,9 +5,6 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { AssessmentButton } from '@/components/shared/AssessmentButton'
 import { CategoryPricing } from '@/components/shared/CategoryPricing'
-import { PLANS } from '@/lib/plans'
-
-const STARTING_PRICE = `${PLANS.basic_weekly.price} / ${PLANS.basic_weekly.per}`
 
 const EyebrowBadge = ({ children }: { children: React.ReactNode }) => (
   <span className="inline-flex items-center gap-2 bg-[#7EC0B7]/15 text-[#3D8A80] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full">
@@ -359,7 +356,7 @@ export default function AdolescentsPageClient() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-2xl mx-auto mb-12"
           >
-            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">{STARTING_PRICE}</p>
+            <p className="text-white/80 text-sm font-bold uppercase tracking-widest mb-3">Free intro chat to start.</p>
             <h2
               className="text-3xl md:text-4xl font-black text-white mb-4"
               style={{ fontFamily: 'var(--font-lato)' }}
