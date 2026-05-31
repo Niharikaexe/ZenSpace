@@ -99,12 +99,23 @@ export default function ContactPage() {
                       <Instagram size={18} className="text-[#233551]/60 hover:text-[#3D8A80]" />
                     </a>
                     <a
-                      href="https://linkedin.com/company/mindcanopy-in"
+                      href="https://www.linkedin.com/company/mind-canopy-therapy/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-[#233551]/5 hover:bg-[#7EC0B7]/15 flex items-center justify-center transition-colors"
                     >
                       <Linkedin size={18} className="text-[#233551]/60 hover:text-[#3D8A80]" />
+                    </a>
+                    <a
+                      href="https://x.com/mindcanopy_in"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="X"
+                      className="w-10 h-10 rounded-xl bg-[#233551]/5 hover:bg-[#7EC0B7]/15 flex items-center justify-center transition-colors"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-[18px] h-[18px] text-[#233551]/60 hover:text-[#3D8A80]">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
                     </a>
                   </div>
                 </div>

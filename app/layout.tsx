@@ -65,6 +65,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
+    site: "@mindcanopy_in",
+    creator: "@mindcanopy_in",
     title: "MindCanopy — Online Therapy for India",
     description:
       "Talk to a globally trained therapist from home. Weekly video sessions, unlimited text messaging, free intro chat.",
