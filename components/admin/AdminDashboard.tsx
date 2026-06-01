@@ -201,11 +201,14 @@ export interface Lead {
   referrer: string | null
   landing_page: string | null
   first_seen_at: string | null
+  extra_params: Record<string, string> | null
 }
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'leads'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'
+type View = 'dashboard' | 'leads'
 
 export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, leads }: Props) {
+  const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
@@ -230,7 +233,6 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
-    { key: 'leads', label: 'Leads', count: leads.length },
   ]
 
   return (
@@ -252,6 +254,42 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         </div>
       </header>
 
+      <div className="flex">
+        {/* ── Left sidebar ── */}
+        <aside className="w-48 shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-61px)] py-6 px-3">
+          <nav className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setView('dashboard')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                view === 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('leads')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between ${
+                view === 'leads' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Leads
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${view === 'leads' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {leads.length}
+              </span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* ── Content area ── */}
+        <div className="flex-1 min-w-0">
+
+      {view === 'leads' ? (
+        <div className="px-4 md:px-6 py-8">
+          <LeadsTab leads={leads} />
+        </div>
+      ) : (
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* ── Stats ── */}
@@ -838,13 +876,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
             )
           )}
 
-          {/* ── Leads Tab ── */}
-          {tab === 'leads' && (
-            <LeadsTab leads={leads} />
-          )}
-
         </div>
       </main>
+      )}
+
+        </div>
+      </div>
 
       {/* Match Modal */}
       {matchingClient && (

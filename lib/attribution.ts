@@ -32,6 +32,8 @@ export interface AttributionTouch {
   utm_content: string | null
   referrer: string | null
   landing_page: string | null
+  /** Any non-standard query params (gclid, fbclid, utm_id, custom tags). */
+  extra: Record<string, string>
   seen_at: string // ISO 8601
 }
 
@@ -49,6 +51,24 @@ function readUrlTouch(): AttributionTouch | null {
     UTM_KEYS.map((k) => [k, params.get(k)?.trim() || null]),
   ) as Record<UtmKey, string | null>
 
+  // Collect any query param that ISN'T one of the 5 standard UTMs.
+  // Captures click IDs (gclid, fbclid, msclkid), platform tags
+  // (gad_source, utm_id), and any custom params you append to a link.
+  // Capped to keep junk-stuffed URLs from bloating the row.
+  const MAX_EXTRA = 25
+  const MAX_VAL = 256
+  const extra: Record<string, string> = {}
+  const utmSet = new Set<string>(UTM_KEYS)
+  let count = 0
+  for (const [key, value] of params.entries()) {
+    if (utmSet.has(key)) continue
+    const v = value.trim()
+    if (!v) continue
+    if (count >= MAX_EXTRA) break
+    extra[key.slice(0, 64)] = v.slice(0, MAX_VAL)
+    count++
+  }
+
   const referrer = (() => {
     try {
       const ref = document.referrer
@@ -62,13 +82,14 @@ function readUrlTouch(): AttributionTouch | null {
     }
   })()
 
-  const hasAny = Object.values(utms).some(Boolean) || referrer
+  const hasAny = Object.values(utms).some(Boolean) || referrer || Object.keys(extra).length > 0
   if (!hasAny) return null
 
   return {
     ...utms,
     referrer,
     landing_page: window.location.pathname + window.location.search,
+    extra,
     seen_at: new Date().toISOString(),
   }
 }
@@ -140,6 +161,9 @@ export function attributionFields(): Record<string, string> {
     if (first.referrer) fields.referrer = first.referrer
     if (first.landing_page) fields.landing_page = first.landing_page
     if (first.seen_at) fields.first_seen_at = first.seen_at
+    if (first.extra && Object.keys(first.extra).length > 0) {
+      fields.extra_params = JSON.stringify(first.extra)
+    }
   }
   if (last) {
     if (last.utm_source) fields.last_utm_source = last.utm_source

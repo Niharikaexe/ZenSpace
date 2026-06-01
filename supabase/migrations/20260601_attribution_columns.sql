@@ -24,7 +24,11 @@ ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS last_utm_content TEXT,
   ADD COLUMN IF NOT EXISTS referrer TEXT,
   ADD COLUMN IF NOT EXISTS landing_page TEXT,
-  ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ,
+  -- Any non-standard query params on the first touch (gclid, fbclid,
+  -- utm_id, custom tags, etc.) stored as a JSON object. Shown merged in
+  -- one column in the admin Leads view.
+  ADD COLUMN IF NOT EXISTS extra_params JSONB;
 
 ALTER TABLE therapist_applications
   ADD COLUMN IF NOT EXISTS first_utm_source TEXT,
@@ -39,7 +43,8 @@ ALTER TABLE therapist_applications
   ADD COLUMN IF NOT EXISTS last_utm_content TEXT,
   ADD COLUMN IF NOT EXISTS referrer TEXT,
   ADD COLUMN IF NOT EXISTS landing_page TEXT,
-  ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS extra_params JSONB;
 
 -- Partial indexes for admin filtering. Partial because most leads will be
 -- organic (NULL UTMs), and we only need the index to be fast on tagged rows.

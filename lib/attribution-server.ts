@@ -25,6 +25,9 @@ const ATTRIBUTION_FIELDS = [
 
 export type AttributionRow = {
   [K in (typeof ATTRIBUTION_FIELDS)[number]]?: string
+} & {
+  /** Stored as JSONB. Any non-standard query params on the first touch. */
+  extra_params?: Record<string, string>
 }
 
 const MAX_LEN = 512 // cap to keep junk-tagged URLs from bloating rows
@@ -42,5 +45,24 @@ export function extractAttribution(formData: FormData): AttributionRow {
     const value = clean(formData.get(field))
     if (value !== undefined) row[field] = value
   }
+
+  // extra_params arrives as a JSON string; parse to an object for the
+  // JSONB column. Defensive: ignore anything that isn't a flat object.
+  const rawExtra = formData.get('extra_params')
+  if (typeof rawExtra === 'string' && rawExtra.trim()) {
+    try {
+      const parsed = JSON.parse(rawExtra)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const clean: Record<string, string> = {}
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === 'string') clean[k.slice(0, 64)] = v.slice(0, 256)
+        }
+        if (Object.keys(clean).length > 0) row.extra_params = clean
+      }
+    } catch {
+      // Malformed JSON — skip, never block the submission.
+    }
+  }
+
   return row
 }

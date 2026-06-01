@@ -49,6 +49,7 @@ CREATE TABLE profiles (
   referrer TEXT,
   landing_page TEXT,
   first_seen_at TIMESTAMPTZ,
+  extra_params JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -492,6 +493,7 @@ CREATE TABLE therapist_applications (
   referrer              TEXT,
   landing_page          TEXT,
   first_seen_at         TIMESTAMPTZ,
+  extra_params          JSONB,
   submitted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   reviewed_at           TIMESTAMPTZ
 );

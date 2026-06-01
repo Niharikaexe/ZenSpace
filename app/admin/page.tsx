@@ -41,7 +41,7 @@ export default async function AdminPage() {
     { data: rawSwitchRequests },
   ] = await Promise.all([
     admin.from('profiles')
-      .select('id, full_name, avatar_url, email, created_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at')
+      .select('id, full_name, avatar_url, email, created_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params')
       .eq('role', 'client')
       .order('created_at', { ascending: false }),
     admin.from('matches')
@@ -262,7 +262,7 @@ export default async function AdminPage() {
   // allClients query (already filtered to role=client).
   const { data: allApplicationsForLeads } = await admin
     .from('therapist_applications')
-    .select('id, full_name, email, status, submitted_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at')
+    .select('id, full_name, email, status, submitted_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params')
     .order('submitted_at', { ascending: false })
 
   const clientLeads: Lead[] = (allClients ?? []).map((c: any) => ({
@@ -285,6 +285,7 @@ export default async function AdminPage() {
     referrer: c.referrer ?? null,
     landing_page: c.landing_page ?? null,
     first_seen_at: c.first_seen_at ?? null,
+    extra_params: c.extra_params ?? null,
   }))
 
   const applicationLeads: Lead[] = (allApplicationsForLeads ?? []).map((a: any) => ({
@@ -307,6 +308,7 @@ export default async function AdminPage() {
     referrer: a.referrer ?? null,
     landing_page: a.landing_page ?? null,
     first_seen_at: a.first_seen_at ?? null,
+    extra_params: a.extra_params ?? null,
   }))
 
   const leads: Lead[] = [...clientLeads, ...applicationLeads]
