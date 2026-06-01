@@ -21,6 +21,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `https://mindcanopy.in/help/${data.slug}`,
     },
+    openGraph: {
+      type: 'article',
+      locale: 'en_IN',
+      url: `https://mindcanopy.in/help/${data.slug}`,
+      title: data.title,
+      description: data.excerpt,
+    },
   }
 }
 
