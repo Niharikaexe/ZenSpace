@@ -6,6 +6,7 @@ import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInvite
 import { Button } from '@/components/ui/button'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
+import { LeadsTab } from './LeadsTab'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ interface Props {
   inviteCodes: InviteCode[]
   applications: TherapistApplication[]
   switchRequests: SwitchRequest[]
+  leads: Lead[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -179,9 +181,31 @@ function formatDate(iso: string) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'
+export interface Lead {
+  id: string
+  lead_type: 'client' | 'therapist'
+  name: string
+  email: string
+  created_at: string
+  status: string
+  first_utm_source: string | null
+  first_utm_medium: string | null
+  first_utm_campaign: string | null
+  first_utm_term: string | null
+  first_utm_content: string | null
+  last_utm_source: string | null
+  last_utm_medium: string | null
+  last_utm_campaign: string | null
+  last_utm_term: string | null
+  last_utm_content: string | null
+  referrer: string | null
+  landing_page: string | null
+  first_seen_at: string | null
+}
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests }: Props) {
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'leads'
+
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, leads }: Props) {
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
@@ -206,6 +230,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
+    { key: 'leads', label: 'Leads', count: leads.length },
   ]
 
   return (
@@ -811,6 +836,11 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                 ))}
               </div>
             )
+          )}
+
+          {/* ── Leads Tab ── */}
+          {tab === 'leads' && (
+            <LeadsTab leads={leads} />
           )}
 
         </div>
