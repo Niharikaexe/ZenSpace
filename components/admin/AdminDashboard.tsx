@@ -202,6 +202,10 @@ export interface Lead {
   landing_page: string | null
   first_seen_at: string | null
   extra_params: Record<string, string> | null
+  journey: { p: string; t: string }[] | null
+  device_type: string | null
+  device_browser: string | null
+  device_os: string | null
 }
 
 type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'

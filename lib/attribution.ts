@@ -173,5 +173,112 @@ export function attributionFields(): Record<string, string> {
     if (last.utm_content) fields.last_utm_content = last.utm_content
   }
 
+  // On-site journey (page sequence) collected as the visitor navigated.
+  const journey = getJourney()
+  if (journey.length > 0) fields.journey = JSON.stringify(journey)
+
+  // Device info parsed live from the user agent at submit time.
+  const device = getDeviceInfo()
+  if (device.type) fields.device_type = device.type
+  if (device.browser) fields.device_browser = device.browser
+  if (device.os) fields.device_os = device.os
+
   return fields
+}
+
+// ── Journey tracking ─────────────────────────────────────────────────────────
+
+const JOURNEY_KEY = 'mc_journey'
+const JOURNEY_MAX = 50
+
+export interface JourneyStep {
+  p: string // pathname
+  t: string // ISO timestamp
+}
+
+function loadJourney(): JourneyStep[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = window.localStorage.getItem(JOURNEY_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Append the current page to the visitor's on-site journey. Called on every
+ * route change (see AttributionCapture). Skips consecutive duplicates so a
+ * re-render of the same path doesn't spam the trail. Capped at JOURNEY_MAX
+ * (keeps the oldest first step, drops the middle, so first-touch page and
+ * recent pages both survive).
+ */
+export function recordJourneyStep(pathname: string): void {
+  if (typeof window === 'undefined' || !pathname) return
+  // Don't record authenticated/admin areas in the pre-lead journey.
+  if (/^\/(dashboard|admin|therapist\/dashboard)/.test(pathname)) return
+
+  const journey = loadJourney()
+  const lastStep = journey[journey.length - 1]
+  if (lastStep && lastStep.p === pathname) return // consecutive duplicate
+
+  journey.push({ p: pathname, t: new Date().toISOString() })
+
+  // Cap: keep the first step (entry page) plus the most recent ones.
+  let trimmed = journey
+  if (journey.length > JOURNEY_MAX) {
+    trimmed = [journey[0], ...journey.slice(journey.length - (JOURNEY_MAX - 1))]
+  }
+
+  try {
+    window.localStorage.setItem(JOURNEY_KEY, JSON.stringify(trimmed))
+  } catch {
+    // private mode / quota — non-critical
+  }
+}
+
+export function getJourney(): JourneyStep[] {
+  return loadJourney()
+}
+
+// ── Device parsing ───────────────────────────────────────────────────────────
+
+export interface DeviceInfo {
+  type: string | null    // mobile | tablet | desktop
+  browser: string | null // Chrome | Safari | Firefox | Edge | Samsung Internet | ...
+  os: string | null      // Android | iOS | Windows | macOS | Linux | ...
+}
+
+/**
+ * Lightweight user-agent parse. Good enough for analytics buckets without
+ * pulling in a UA-parsing dependency. Reads navigator at call time (submit).
+ */
+export function getDeviceInfo(): DeviceInfo {
+  if (typeof navigator === 'undefined') return { type: null, browser: null, os: null }
+  const ua = navigator.userAgent || ''
+
+  const isTablet = /iPad|Tablet|PlayBook|Silk|(Android(?!.*Mobile))/i.test(ua)
+  const isMobile = /Mobi|Android|iPhone|iPod|IEMobile|BlackBerry|Opera Mini/i.test(ua)
+  const type = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop'
+
+  let os: string | null = null
+  if (/Windows/i.test(ua)) os = 'Windows'
+  else if (/Android/i.test(ua)) os = 'Android'
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS'
+  else if (/Mac OS X|Macintosh/i.test(ua)) os = 'macOS'
+  else if (/Linux/i.test(ua)) os = 'Linux'
+  else if (/CrOS/i.test(ua)) os = 'ChromeOS'
+
+  // Order matters: check the more specific brands before generic Chrome/Safari.
+  let browser: string | null = null
+  if (/SamsungBrowser/i.test(ua)) browser = 'Samsung Internet'
+  else if (/Edg\//i.test(ua)) browser = 'Edge'
+  else if (/OPR\/|Opera/i.test(ua)) browser = 'Opera'
+  else if (/Firefox\//i.test(ua)) browser = 'Firefox'
+  else if (/Chrome\//i.test(ua)) browser = 'Chrome'
+  else if (/Safari\//i.test(ua)) browser = 'Safari'
+
+  return { type, browser, os }
 }

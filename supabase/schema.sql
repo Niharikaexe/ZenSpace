@@ -50,6 +50,11 @@ CREATE TABLE profiles (
   landing_page TEXT,
   first_seen_at TIMESTAMPTZ,
   extra_params JSONB,
+  -- On-site page sequence before conversion (array of {p, t}). See lib/attribution.ts.
+  journey JSONB,
+  device_type TEXT,
+  device_browser TEXT,
+  device_os TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -494,6 +499,10 @@ CREATE TABLE therapist_applications (
   landing_page          TEXT,
   first_seen_at         TIMESTAMPTZ,
   extra_params          JSONB,
+  journey               JSONB,
+  device_type           TEXT,
+  device_browser        TEXT,
+  device_os             TEXT,
   submitted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   reviewed_at           TIMESTAMPTZ
 );

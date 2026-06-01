@@ -21,13 +21,20 @@ const ATTRIBUTION_FIELDS = [
   'referrer',
   'landing_page',
   'first_seen_at',
+  'device_type',
+  'device_browser',
+  'device_os',
 ] as const
+
+type JourneyStep = { p: string; t: string }
 
 export type AttributionRow = {
   [K in (typeof ATTRIBUTION_FIELDS)[number]]?: string
 } & {
   /** Stored as JSONB. Any non-standard query params on the first touch. */
   extra_params?: Record<string, string>
+  /** Stored as JSONB. Ordered on-site page sequence before conversion. */
+  journey?: JourneyStep[]
 }
 
 const MAX_LEN = 512 // cap to keep junk-tagged URLs from bloating rows
@@ -61,6 +68,26 @@ export function extractAttribution(formData: FormData): AttributionRow {
       }
     } catch {
       // Malformed JSON — skip, never block the submission.
+    }
+  }
+
+  // journey arrives as a JSON string array of { p, t }. Parse defensively
+  // and cap to keep the JSONB small.
+  const rawJourney = formData.get('journey')
+  if (typeof rawJourney === 'string' && rawJourney.trim()) {
+    try {
+      const parsed = JSON.parse(rawJourney)
+      if (Array.isArray(parsed)) {
+        const steps: JourneyStep[] = []
+        for (const item of parsed.slice(0, 50)) {
+          if (item && typeof item.p === 'string' && typeof item.t === 'string') {
+            steps.push({ p: item.p.slice(0, 256), t: item.t.slice(0, 40) })
+          }
+        }
+        if (steps.length > 0) row.journey = steps
+      }
+    } catch {
+      // Malformed — skip, never block the submission.
     }
   }
 

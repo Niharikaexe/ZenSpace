@@ -23,7 +23,7 @@ function mergeParams(extra: Record<string, string> | null): string {
 }
 
 type LeadTypeFilter = 'all' | 'client' | 'therapist'
-type SubTab = 'data' | 'analytics'
+type SubTab = 'data' | 'analytics' | 'journey'
 
 interface Filters {
   type: LeadTypeFilter
@@ -76,6 +76,7 @@ export function LeadsTab({ leads }: { leads: Lead[] }) {
       'First UTM Source', 'First UTM Medium', 'First UTM Campaign', 'First UTM Term', 'First UTM Content',
       'Last UTM Source', 'Last UTM Medium', 'Last UTM Campaign', 'Last UTM Term', 'Last UTM Content',
       'Referrer', 'Landing Page', 'First Seen', 'Other params',
+      'Device', 'Browser', 'OS', 'Journey',
     ]
     const esc = (v: string | null | undefined): string => {
       if (v == null) return ''
@@ -87,6 +88,8 @@ export function LeadsTab({ leads }: { leads: Lead[] }) {
       l.first_utm_source, l.first_utm_medium, l.first_utm_campaign, l.first_utm_term, l.first_utm_content,
       l.last_utm_source, l.last_utm_medium, l.last_utm_campaign, l.last_utm_term, l.last_utm_content,
       l.referrer, l.landing_page, l.first_seen_at, mergeParams(l.extra_params),
+      l.device_type, l.device_browser, l.device_os,
+      (l.journey ?? []).map((s) => s.p).join(' > '),
     ].map(esc).join(','))
     const csv = [headers.join(','), ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -124,7 +127,7 @@ export function LeadsTab({ leads }: { leads: Lead[] }) {
 
       {/* Subtabs */}
       <div className="flex items-center gap-1 border-b border-slate-200">
-        {(['data', 'analytics'] as SubTab[]).map((s) => (
+        {(['data', 'analytics', 'journey'] as SubTab[]).map((s) => (
           <button
             key={s}
             type="button"
@@ -211,11 +214,9 @@ export function LeadsTab({ leads }: { leads: Lead[] }) {
       </div>
 
       {/* Subtab content */}
-      {subtab === 'data' ? (
-        <LeadsTable leads={filtered} />
-      ) : (
-        <LeadsChart leads={filtered} from={f.dateFrom} to={f.dateTo} />
-      )}
+      {subtab === 'data' && <LeadsTable leads={filtered} />}
+      {subtab === 'analytics' && <LeadsChart leads={filtered} from={f.dateFrom} to={f.dateTo} />}
+      {subtab === 'journey' && <LeadsJourney leads={filtered} />}
     </div>
   )
 }
@@ -261,12 +262,15 @@ function LeadsTable({ leads }: { leads: Lead[] }) {
               <Th>Referrer</Th>
               <Th>Landing page</Th>
               <Th>Other params</Th>
+              <Th>Device</Th>
+              <Th>Browser</Th>
+              <Th>OS</Th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={19} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={22} className="px-4 py-12 text-center text-sm text-slate-400">
                   No leads match the current filters.
                 </td>
               </tr>
@@ -301,6 +305,9 @@ function LeadsTable({ leads }: { leads: Lead[] }) {
                   <Td className="text-slate-500 max-w-[200px] truncate" >{l.referrer || dash}</Td>
                   <Td className="text-slate-500 max-w-[240px] truncate">{l.landing_page || dash}</Td>
                   <Td className="text-slate-500 max-w-[260px] truncate">{mergeParams(l.extra_params) || dash}</Td>
+                  <Td className="text-slate-600 capitalize">{l.device_type || dash}</Td>
+                  <Td className="text-slate-600">{l.device_browser || dash}</Td>
+                  <Td className="text-slate-600">{l.device_os || dash}</Td>
                 </tr>
               )
             })}
@@ -399,6 +406,95 @@ function LeadsChart({ leads, from, to }: { leads: Lead[]; from: string; to: stri
             )}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+/* ───────────────────────── Journey ───────────────────────── */
+
+function timeOfDay(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+}
+
+function prettyPath(p: string): string {
+  if (p === '/') return 'Home'
+  return p
+}
+
+function LeadsJourney({ leads }: { leads: Lead[] }) {
+  const withJourney = leads.filter((l) => l.journey && l.journey.length > 0)
+
+  if (leads.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-slate-200 p-12 text-center text-sm text-slate-400">
+        No leads match the current filters.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-slate-400">
+        {withJourney.length} of {leads.length} leads have a recorded journey. Leads without one arrived
+        before journey tracking was live, or converted in a different browser.
+      </p>
+
+      <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+        {leads.map((l) => {
+          const steps = l.journey ?? []
+          return (
+            <div key={l.id} className="bg-white rounded-lg border border-slate-200 p-4">
+              {/* Lead header */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border flex-shrink-0 ${
+                    l.lead_type === 'client'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {l.lead_type === 'client' ? 'Client' : 'Therapist'}
+                  </span>
+                  <span className="font-medium text-slate-800 truncate">{l.name}</span>
+                  <span className="text-slate-400 text-sm truncate">{l.email}</span>
+                </div>
+                <div className="text-xs text-slate-400 flex-shrink-0 flex items-center gap-2">
+                  {l.first_utm_source && <span className="text-[#3D8A80] font-medium">{l.first_utm_source}</span>}
+                  <span>{formatDate(l.created_at)}</span>
+                </div>
+              </div>
+
+              {/* Journey trail */}
+              {steps.length === 0 ? (
+                <p className="text-xs text-slate-300 italic">No on-site journey recorded.</p>
+              ) : (
+                <div className="flex flex-wrap items-center gap-y-2">
+                  {l.referrer && (
+                    <>
+                      <span className="inline-flex items-center text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                        via {l.referrer}
+                      </span>
+                      <span className="text-slate-300 mx-1.5">→</span>
+                    </>
+                  )}
+                  {steps.map((s, i) => (
+                    <span key={i} className="inline-flex items-center">
+                      <span className="inline-flex items-center gap-1.5 text-xs bg-[#7EC0B7]/10 text-[#233551] border border-[#7EC0B7]/30 rounded-md px-2 py-1">
+                        <span className="font-medium">{prettyPath(s.p)}</span>
+                        <span className="text-slate-400">{timeOfDay(s.t)}</span>
+                      </span>
+                      {i < steps.length - 1 && <span className="text-slate-300 mx-1.5">→</span>}
+                    </span>
+                  ))}
+                  <span className="text-slate-300 mx-1.5">→</span>
+                  <span className="inline-flex items-center text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-2 py-1 font-medium">
+                    {l.lead_type === 'client' ? 'Signed up' : 'Applied'}
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
