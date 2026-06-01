@@ -4,6 +4,14 @@ import Footer from '@/components/home/Footer'
 export const metadata = {
   title: 'Terms and Conditions — MindCanopy',
   description: 'The terms that govern your use of MindCanopy, our online mental health platform.',
+  alternates: { canonical: 'https://mindcanopy.in/terms' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/terms',
+    title: 'Terms and Conditions — MindCanopy',
+    description: 'The terms that govern your use of MindCanopy, our online mental health platform.',
+  },
 }
 
 export const revalidate = 86400

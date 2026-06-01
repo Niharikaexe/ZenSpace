@@ -5,6 +5,14 @@ import Footer from '@/components/home/Footer'
 export const metadata = {
   title: 'About Us — MindCanopy',
   description: 'We built MindCanopy because therapy in India needed to change. Here\'s the honest version of why.',
+  alternates: { canonical: 'https://mindcanopy.in/about' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/about',
+    title: 'About MindCanopy',
+    description: 'We built MindCanopy because therapy in India needed to change. The honest version of why.',
+  },
 }
 
 export default function AboutPage() {
