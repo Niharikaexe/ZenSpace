@@ -35,6 +35,20 @@ CREATE TABLE profiles (
   avatar_url TEXT,
   phone TEXT,
   timezone TEXT DEFAULT 'UTC',
+  -- Marketing attribution captured on signup (see lib/attribution.ts).
+  first_utm_source TEXT,
+  first_utm_medium TEXT,
+  first_utm_campaign TEXT,
+  first_utm_term TEXT,
+  first_utm_content TEXT,
+  last_utm_source TEXT,
+  last_utm_medium TEXT,
+  last_utm_campaign TEXT,
+  last_utm_term TEXT,
+  last_utm_content TEXT,
+  referrer TEXT,
+  landing_page TEXT,
+  first_seen_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -464,6 +478,20 @@ CREATE TABLE therapist_applications (
   status                TEXT NOT NULL DEFAULT 'pending'
                         CHECK (status IN ('pending', 'approved', 'rejected', 'invited')),
   admin_notes           TEXT,
+  -- Marketing attribution captured on application submit (see lib/attribution.ts).
+  first_utm_source      TEXT,
+  first_utm_medium      TEXT,
+  first_utm_campaign    TEXT,
+  first_utm_term        TEXT,
+  first_utm_content     TEXT,
+  last_utm_source       TEXT,
+  last_utm_medium       TEXT,
+  last_utm_campaign     TEXT,
+  last_utm_term         TEXT,
+  last_utm_content      TEXT,
+  referrer              TEXT,
+  landing_page          TEXT,
+  first_seen_at         TIMESTAMPTZ,
   submitted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   reviewed_at           TIMESTAMPTZ
 );

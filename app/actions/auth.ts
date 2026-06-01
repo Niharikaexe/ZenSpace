@@ -7,6 +7,7 @@ import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
 import { sendAdminNewClientSignupEmail, sendNotificationEmail } from '@/lib/email'
+import { extractAttribution } from '@/lib/attribution-server'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -154,6 +155,24 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
   if (!profileRow) {
     logger.error('auth/signUp', 'profiles row missing after signUp — handle_new_user trigger may have failed', null, { email, userId })
     return { error: 'Sign-up did not complete. Please try again or contact admin@mindcanopy.in.' }
+  }
+
+  // Stamp marketing attribution onto the profiles row. The handle_new_user
+  // trigger creates the row without these fields; we patch them in now.
+  // Best-effort: a failed attribution write should NOT block account
+  // creation, so we log and move on.
+  const attribution = extractAttribution(formData)
+  if (Object.keys(attribution).length > 0) {
+    const { error: attribErr } = await (admin as any)
+      .from('profiles')
+      .update(attribution)
+      .eq('id', userId)
+    if (attribErr) {
+      logger.warn('auth/signUp', 'Failed to store attribution on profile', {
+        userId,
+        message: (attribErr as any).message,
+      })
+    }
   }
 
   logger.info('auth/signUp', 'Account created', { userId, email, role })

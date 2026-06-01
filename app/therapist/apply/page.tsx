@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { BrandLogo } from '@/components/shared/BrandLogo'
 import { submitTherapistApplication, type ApplyState } from './actions'
+import { attributionFields } from '@/lib/attribution'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1059,7 +1060,15 @@ const initialState: ApplyState = {}
 
 export default function TherapistApplyPage() {
   const [step, setStep] = useState(0)
-  const [state, formAction, isPending] = useActionState(submitTherapistApplication, initialState)
+  // Wrap the server action so we can append marketing attribution (read
+  // from localStorage on submit) before the FormData is sent.
+  const submitWithAttribution = async (prev: ApplyState, fd: FormData): Promise<ApplyState> => {
+    for (const [key, value] of Object.entries(attributionFields())) {
+      fd.append(key, value)
+    }
+    return submitTherapistApplication(prev, fd)
+  }
+  const [state, formAction, isPending] = useActionState(submitWithAttribution, initialState)
 
   const [personal, setPersonal] = useState<PersonalValues>({
     fullName: '', email: '', phone: '', city: '', state: '', country: '',
