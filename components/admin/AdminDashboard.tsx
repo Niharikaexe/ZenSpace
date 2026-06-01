@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 import QuestionnaireDetails from './QuestionnaireDetails'
+import { LeadsTab } from './LeadsTab'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,7 @@ interface Props {
   applications: TherapistApplication[]
   switchRequests: SwitchRequest[]
   emailLogs: EmailLog[]
+  leads: Lead[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -205,7 +207,35 @@ function formatDate(iso: string) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+export interface Lead {
+  id: string
+  lead_type: 'client' | 'therapist'
+  name: string
+  email: string
+  created_at: string
+  status: string
+  first_utm_source: string | null
+  first_utm_medium: string | null
+  first_utm_campaign: string | null
+  first_utm_term: string | null
+  first_utm_content: string | null
+  last_utm_source: string | null
+  last_utm_medium: string | null
+  last_utm_campaign: string | null
+  last_utm_term: string | null
+  last_utm_content: string | null
+  referrer: string | null
+  landing_page: string | null
+  first_seen_at: string | null
+  extra_params: Record<string, string> | null
+  journey: { p: string; t: string }[] | null
+  device_type: string | null
+  device_browser: string | null
+  device_os: string | null
+}
+
 type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails'
+type View = 'dashboard' | 'leads'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
 
@@ -229,7 +259,8 @@ function formatPay(amount: number | null, currency: string | null): string | nul
   return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
 }
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads }: Props) {
+  const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
@@ -296,6 +327,42 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         </div>
       </header>
 
+      <div className="flex">
+        {/* ── Left sidebar ── */}
+        <aside className="w-48 shrink-0 border-r border-slate-200 bg-white min-h-[calc(100vh-61px)] py-6 px-3">
+          <nav className="space-y-1">
+            <button
+              type="button"
+              onClick={() => setView('dashboard')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                view === 'dashboard' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('leads')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between ${
+                view === 'leads' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Leads
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${view === 'leads' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {leads.length}
+              </span>
+            </button>
+          </nav>
+        </aside>
+
+        {/* ── Content area ── */}
+        <div className="flex-1 min-w-0">
+
+      {view === 'leads' ? (
+        <div className="px-4 md:px-6 py-8">
+          <LeadsTab leads={leads} />
+        </div>
+      ) : (
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
 
         {/* ── Stats ── */}
@@ -1081,6 +1148,10 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
 
         </div>
       </main>
+      )}
+
+        </div>
+      </div>
 
       {/* Match Modal */}
       {matchingClient && (

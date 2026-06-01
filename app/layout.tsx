@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Lora, Lato } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
+import { AttributionCapture } from "@/components/shared/AttributionCapture";
 import "./globals.css";
 
 const GOOGLE_ADS_ID = "AW-18156017345";
@@ -120,6 +121,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${lora.variable} ${lato.variable} antialiased`}>
+        <AttributionCapture />
         {children}
         <Analytics />
         <Script

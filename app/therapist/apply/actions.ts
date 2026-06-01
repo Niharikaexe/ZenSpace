@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { sendNewApplicationAdminEmail, sendApplicationReceivedEmail } from '@/lib/email'
+import { extractAttribution } from '@/lib/attribution-server'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
@@ -97,6 +98,7 @@ export async function submitTherapistApplication(
       certificate_urls: certificateUrls,
       status: 'pending',
       email_verification_token: emailVerificationToken,
+      ...extractAttribution(formData),
     })
 
   if (error) {
