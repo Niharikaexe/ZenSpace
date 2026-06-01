@@ -116,9 +116,10 @@ export default function ChatInterface({
     startSend(async () => {
       const result = await sendMessage(matchId, content)
       if (result?.error) {
-        if (result.error === 'subscribe_required') {
-          // Server rejected — the 25-message free intro is used up. Block
-          // further sends and show the subscribe popup.
+        if (result.error === 'session_required' || result.error === 'subscribe_required') {
+          // Server rejected — the 25-message free intro is used up and the
+          // client hasn't booked a session yet. Block further sends and nudge
+          // them to book.
           setIntroBlocked(true)
           onSendDisabled?.()
         } else {

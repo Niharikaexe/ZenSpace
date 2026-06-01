@@ -3,6 +3,65 @@
 // Without it, emails are silently skipped (non-fatal).
 
 import { logger } from '@/lib/logger'
+import { createAdminClient } from '@/lib/supabase/server'
+
+// ── email_logs audit trail ───────────────────────────────────────────────────
+// Every Resend send attempt is recorded so the admin dashboard can debug
+// "did this person actually get the email?". Failures here are swallowed —
+// a logging glitch must never block an email send.
+
+type EmailSendStatus = 'sent' | 'failed_no_api_key' | 'failed_resend_rejected' | 'failed_threw'
+
+interface RelatedRefs {
+  userId?: string | null
+  applicationId?: string | null
+  matchId?: string | null
+}
+
+interface LogEmailArgs {
+  recipient: string
+  template: string
+  subject: string
+  send_status: EmailSendStatus
+  resend_id?: string | null
+  resend_status_code?: number | null
+  send_error?: string | null
+  related?: RelatedRefs
+}
+
+async function logEmailAttempt(args: LogEmailArgs): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any
+    await admin.from('email_logs').insert({
+      recipient: args.recipient,
+      template: args.template,
+      subject: args.subject,
+      send_status: args.send_status,
+      resend_id: args.resend_id ?? null,
+      resend_status_code: args.resend_status_code ?? null,
+      send_error: args.send_error ?? null,
+      related_user_id: args.related?.userId ?? null,
+      related_application_id: args.related?.applicationId ?? null,
+      related_match_id: args.related?.matchId ?? null,
+    })
+  } catch (err) {
+    logger.warn('email/log', 'Failed to write email_logs row', {
+      recipient: args.recipient,
+      template: args.template,
+      err: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
+function parseResendId(body: string): string | null {
+  try {
+    const json = JSON.parse(body) as { id?: unknown }
+    return typeof json.id === 'string' ? json.id : null
+  } catch {
+    return null
+  }
+}
 
 const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
 const FROM_ADMIN = process.env.RESEND_FROM_ADMIN ?? 'MindCanopy Admin <admin@mindcanopy.in>'
@@ -126,6 +185,17 @@ function tplClientMatchMade(
     ${btn(`Say hi →`, `${SITE}/dashboard/chat`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
+    ${signOff}
+  `, 'client')
+}
+
+function tplClientProposalsReady(firstName: string) {
+  return base(`
+    ${h1(`${escapeHtml(firstName)}, your matches are ready.`)}
+    ${p(`We&rsquo;ve gone through your responses and hand-picked two therapists for you &mdash; a Standard and a Professional option.`)}
+    ${p(`Take a look at both, read what they&rsquo;re about, and start a free chat with whoever feels right. There&rsquo;s no payment until you book a session.`)}
+    ${btn('See your therapists →', `${SITE}/dashboard`)}
+    ${p(`If neither feels like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     ${signOff}
   `, 'client')
 }
@@ -624,9 +694,10 @@ function tplAdminPayoutRequest({
 
 // ── Generic send helper (admin emails) ───────────────────────────────────────
 
-async function sendAdminEmail(subject: string, html: string, ctx: string): Promise<boolean> {
+async function sendAdminEmail(subject: string, html: string, ctx: string, related?: RelatedRefs): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     logger.warn(`email/${ctx}`, 'RESEND_API_KEY not set, email skipped', { subject })
+    await logEmailAttempt({ recipient: ADMIN_EMAIL, template: ctx, subject, send_status: 'failed_no_api_key', related })
     return false
   }
   try {
@@ -635,14 +706,27 @@ async function sendAdminEmail(subject: string, html: string, ctx: string): Promi
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({ from: FROM, to: ADMIN_EMAIL, subject, html }),
     })
+    const body = await res.text()
     if (!res.ok) {
-      const body = await res.text()
       logger.error(`email/${ctx}`, 'Resend rejected', null, { subject, status: res.status, body })
+      await logEmailAttempt({
+        recipient: ADMIN_EMAIL, template: ctx, subject, send_status: 'failed_resend_rejected',
+        resend_status_code: res.status, send_error: body.slice(0, 500), related,
+      })
       return false
     }
+    await logEmailAttempt({
+      recipient: ADMIN_EMAIL, template: ctx, subject, send_status: 'sent',
+      resend_id: parseResendId(body), resend_status_code: res.status, related,
+    })
     return true
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     logger.error(`email/${ctx}`, 'Send failed', err, { subject })
+    await logEmailAttempt({
+      recipient: ADMIN_EMAIL, template: ctx, subject, send_status: 'failed_threw',
+      send_error: msg.slice(0, 500), related,
+    })
     return false
   }
 }
@@ -655,9 +739,11 @@ async function sendEmail(
   subject: string,
   html: string,
   ctx: string,
+  related?: RelatedRefs,
 ): Promise<boolean> {
   if (!process.env.RESEND_API_KEY) {
     logger.warn(`email/${ctx}`, 'RESEND_API_KEY not set, email skipped', { to })
+    await logEmailAttempt({ recipient: to, template: ctx, subject, send_status: 'failed_no_api_key', related })
     return false
   }
   try {
@@ -666,14 +752,27 @@ async function sendEmail(
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({ from, to, subject, html }),
     })
+    const body = await res.text()
     if (!res.ok) {
-      const body = await res.text()
       logger.error(`email/${ctx}`, 'Resend rejected', null, { to, status: res.status, body })
+      await logEmailAttempt({
+        recipient: to, template: ctx, subject, send_status: 'failed_resend_rejected',
+        resend_status_code: res.status, send_error: body.slice(0, 500), related,
+      })
       return false
     }
+    await logEmailAttempt({
+      recipient: to, template: ctx, subject, send_status: 'sent',
+      resend_id: parseResendId(body), resend_status_code: res.status, related,
+    })
     return true
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
     logger.error(`email/${ctx}`, 'Send failed', err, { to })
+    await logEmailAttempt({
+      recipient: to, template: ctx, subject, send_status: 'failed_threw',
+      send_error: msg.slice(0, 500), related,
+    })
     return false
   }
 }
@@ -725,6 +824,7 @@ export async function sendPayoutRequestEmail(params: {
 
 export type EmailNotificationType =
   | 'client_welcome'
+  | 'client_proposals_ready'        // client gets this when admin proposes two therapists to choose from
   | 'client_match_made'
   | 'client_matched'                // therapist gets this when a client is matched to them
   | 'client_unmatched'              // therapist gets this when match ends
@@ -752,7 +852,11 @@ interface EmailParams {
 }
 
 export async function sendNotificationEmail({ to, name, type, meta = {} }: EmailParams): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return
+  if (!process.env.RESEND_API_KEY) {
+    // Still log the skip so admin can see what would have gone out
+    await logEmailAttempt({ recipient: to, template: `notification:${type}`, subject: 'Notification from MindCanopy', send_status: 'failed_no_api_key' })
+    return
+  }
 
   let subject = 'Notification from MindCanopy'
   let html = ''
@@ -761,6 +865,10 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
     case 'client_welcome':
       subject = `Welcome, ${name}.`
       html = tplClientWelcome(name)
+      break
+    case 'client_proposals_ready':
+      subject = `${name}, your therapist matches are ready.`
+      html = tplClientProposalsReady(name)
       break
     case 'client_match_made':
       subject = `Meet ${meta.therapistFirstName ?? 'your therapist'}.`
@@ -836,17 +944,32 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
   }
 
+  const template = `notification:${type}`
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
       body: JSON.stringify({ from: FROM, to, subject, html }),
     })
+    const body = await res.text()
     if (!res.ok) {
-      const body = await res.text()
       logger.warn('email/notification', 'Resend rejected', { to, type, status: res.status, body })
+      await logEmailAttempt({
+        recipient: to, template, subject, send_status: 'failed_resend_rejected',
+        resend_status_code: res.status, send_error: body.slice(0, 500),
+      })
+      return
     }
+    await logEmailAttempt({
+      recipient: to, template, subject, send_status: 'sent',
+      resend_id: parseResendId(body), resend_status_code: res.status,
+    })
   } catch (err) {
-    logger.warn('email/notification', 'Send failed', { to, type, err: err instanceof Error ? err.message : String(err) })
+    const msg = err instanceof Error ? err.message : String(err)
+    logger.warn('email/notification', 'Send failed', { to, type, err: msg })
+    await logEmailAttempt({
+      recipient: to, template, subject, send_status: 'failed_threw',
+      send_error: msg.slice(0, 500),
+    })
   }
 }

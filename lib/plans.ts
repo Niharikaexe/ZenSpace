@@ -170,6 +170,80 @@ export type PlanCategory = 'individual' | 'couples'
 
 export const PLAN_KEYS = Object.keys(PLANS) as PlanKey[]
 
+// ── Per-session pricing (dual-therapist proposal flow) ────────────────────────
+// Shown at the bottom of each therapist's profile card when a client chooses
+// between their matched Standard and Professional therapists. Clients pay as
+// they go per session, or take a monthly bundle (4 sessions) for 15% off.
+//
+// Per-session client pricing (INR) depends on the client's category
+// (Adult/Individual, Teen, Couples) and the therapist's tier.
+export type ProposalTier = 'standard' | 'professional'
+export type SessionCategory = 'individual' | 'teen' | 'couples'
+
+export const TIER_LABELS: Record<ProposalTier, string> = {
+  standard: 'Standard',
+  professional: 'Professional',
+}
+
+export const SESSION_PRICING: Record<SessionCategory, Record<ProposalTier, number>> = {
+  individual: { standard: 1300, professional: 3200 },
+  teen: { standard: 1800, professional: 4000 },
+  couples: { standard: 2400, professional: 5000 },
+}
+
+/** Per-session price (INR) for a given category + tier. */
+export function sessionPriceInr(category: SessionCategory, tier: ProposalTier): number {
+  return SESSION_PRICING[category][tier]
+}
+
+/** Sessions billed in a monthly bundle. */
+export const MONTHLY_BUNDLE_SESSIONS = 4
+/** Discount applied to the monthly bundle vs paying per session. */
+export const MONTHLY_BUNDLE_DISCOUNT = 0.15
+
+/** Monthly bundle price (4 sessions, 15% off), rounded to the nearest rupee. */
+export function monthlyBundleInr(perSessionInr: number): number {
+  return Math.round(perSessionInr * MONTHLY_BUNDLE_SESSIONS * (1 - MONTHLY_BUNDLE_DISCOUNT))
+}
+
+/** Format an INR amount as e.g. "₹1,300". */
+export function formatInr(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
+// ── Therapist payout (pay-as-you-go) ──────────────────────────────────────────
+// The therapist's earning per completed session, frozen onto the session row at
+// booking time so later price/experience edits don't rewrite payout history.
+//
+// Payout depends on the client's category, the therapist's proposal tier, and —
+// for Standard therapists — their years of experience band:
+//   • Standard 3–5 yrs  → `lo`
+//   • Standard 5–8 yrs  → `hi`   (years_experience >= 5)
+//   • Professional      → flat   (8+ yrs or foreign therapists)
+export const THERAPIST_PAYOUT: Record<
+  SessionCategory,
+  { standard: { lo: number; hi: number }; professional: number }
+> = {
+  individual: { standard: { lo: 800, hi: 1000 }, professional: 2500 },
+  teen: { standard: { lo: 1200, hi: 1400 }, professional: 3200 },
+  couples: { standard: { lo: 1400, hi: 1800 }, professional: 3500 },
+}
+
+/**
+ * Therapist payout (INR) for one completed session.
+ * Standard tier splits on the 3–5 vs 5–8 years-of-experience band; Professional
+ * tier is a flat amount regardless of experience.
+ */
+export function therapistSessionPayoutInr(
+  category: SessionCategory,
+  tier: ProposalTier,
+  yearsExperience: number,
+): number {
+  const band = THERAPIST_PAYOUT[category]
+  if (tier === 'professional') return band.professional
+  return yearsExperience >= 5 ? band.standard.hi : band.standard.lo
+}
+
 /**
  * Therapist's default revenue share per completed session — 75% of the
  * per-session value of the client's subscription plan, in rupees.

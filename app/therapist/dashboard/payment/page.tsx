@@ -1,19 +1,18 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
-import { therapistSessionPayout, type PlanKey, PLANS } from '@/lib/plans'
 import PayoutButton from '@/components/therapist/PayoutButton'
 
 export const dynamic = 'force-dynamic'
 
-// Earnings model: per completed session, the therapist earns
-// `therapistSessionPayout(client's plan)`. The dashboard sums those across
-// three windows:
+// Earnings model (pay-as-you-go): each session carries its own frozen
+// `therapist_payout_paise`, computed at booking from the client's category and
+// the therapist's tier/experience. The dashboard sums paid + completed sessions
+// across three windows:
 //   - Pending payout (last 7 days)
 //   - This month (calendar month-to-date)
 //   - All time
-// Updates the moment a session is marked `completed` — no cron, no snapshot
-// table.
+// Updates the moment a session is marked `completed` — no cron, no snapshot table.
 
 function formatINR(amount: number) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount)
@@ -39,7 +38,7 @@ export default async function TherapistPaymentPage() {
   const admin = createAdminClient()
 
   // All matches this therapist has ever had (any status) — past clients still
-  // count for past sessions they completed.
+  // count for the sessions they completed.
   const { data: matches } = await (admin as any)
     .from('matches')
     .select('id, client_id, status')
@@ -48,46 +47,23 @@ export default async function TherapistPaymentPage() {
   const matchList = matches ?? []
   const isMatched = matchList.some(m => m.status === 'active')
   const matchIds = matchList.map(m => m.id)
-  const clientIds = Array.from(new Set(matchList.map(m => m.client_id)))
   const clientByMatch = new Map(matchList.map(m => [m.id, m.client_id]))
+  const clientIds = Array.from(new Set(matchList.map(m => m.client_id)))
 
-  // Bulk fetches — three independent queries can run in parallel.
-  // We grab the most-recent subscription per client (any status) to figure
-  // out which plan to price their sessions at. If a client has changed plans
-  // over time, historical sessions are priced at the current plan — a
-  // tradeoff we accept because Supabase keeps one subscription row per
-  // client (updated in place), not one per billing cycle.
-  const [sessionsResult, subsResult, profilesResult] = await Promise.all([
+  const [sessionsResult, profilesResult] = await Promise.all([
     matchIds.length > 0
       ? (admin as any)
           .from('sessions')
-          .select('id, match_id, session_type, scheduled_at')
+          .select('id, match_id, session_type, scheduled_at, therapist_payout_paise')
           .in('match_id', matchIds)
           .eq('status', 'completed')
+          .eq('payment_status', 'paid')
           .order('scheduled_at', { ascending: false })
       : Promise.resolve({ data: [], error: null }),
     clientIds.length > 0
-      ? (admin as any)
-          .from('subscriptions')
-          .select('client_id, plan, created_at')
-          .in('client_id', clientIds)
-          .order('created_at', { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    clientIds.length > 0
-      ? (admin as any)
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', clientIds)
+      ? (admin as any).from('profiles').select('id, full_name').in('id', clientIds)
       : Promise.resolve({ data: [], error: null }),
   ])
-
-  // Most-recent subscription plan per client.
-  const planByClient = new Map<string, PlanKey>()
-  for (const s of (subsResult.data ?? []) as { client_id: string; plan: string }[]) {
-    if (!planByClient.has(s.client_id) && s.plan in PLANS) {
-      planByClient.set(s.client_id, s.plan as PlanKey)
-    }
-  }
 
   const nameByClient = new Map<string, string>()
   for (const p of (profilesResult.data ?? []) as { id: string; full_name: string | null }[]) {
@@ -105,18 +81,13 @@ export default async function TherapistPaymentPage() {
   let monthSessions = 0
   let totalSessions = 0
 
-  type SessionRow = { id: string; match_id: string; session_type: string; scheduled_at: string }
+  type SessionRow = { id: string; match_id: string; session_type: string; scheduled_at: string; therapist_payout_paise: number | null }
   type RecentSession = { scheduled_at: string; session_type: string; client_name: string; payout: number }
   const recentSessions: RecentSession[] = []
 
   for (const s of (sessionsResult.data ?? []) as SessionRow[]) {
     const clientId = clientByMatch.get(s.match_id)
-    if (!clientId) continue
-
-    const planKey = planByClient.get(clientId)
-    // Sessions for clients with no subscription on record (edge case — e.g.
-    // a record predating the subscriptions table) contribute 0 to payouts.
-    const payout = planKey ? therapistSessionPayout(planKey) : 0
+    const payout = Math.round((s.therapist_payout_paise ?? 0) / 100)
     const sessionDate = new Date(s.scheduled_at)
 
     totalPayout += payout
@@ -134,7 +105,7 @@ export default async function TherapistPaymentPage() {
       recentSessions.push({
         scheduled_at: s.scheduled_at,
         session_type: s.session_type,
-        client_name: nameByClient.get(clientId) ?? 'Client',
+        client_name: clientId ? (nameByClient.get(clientId) ?? 'Client') : 'Client',
         payout,
       })
     }
@@ -159,7 +130,7 @@ export default async function TherapistPaymentPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Sessions this month', value: String(monthSessions), sub: 'completed' },
-            { label: 'Earnings this month', value: formatINR(monthPayout), sub: '75% share' },
+            { label: 'Earnings this month', value: formatINR(monthPayout), sub: 'per session' },
             { label: 'Total sessions', value: String(totalSessions), sub: 'all time' },
             { label: 'Total earnings', value: formatINR(totalPayout), sub: 'all time' },
           ].map(({ label, value, sub }) => (

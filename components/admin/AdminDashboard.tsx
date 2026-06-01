@@ -6,6 +6,7 @@ import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInvite
 import { Button } from '@/components/ui/button'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
+import QuestionnaireDetails from './QuestionnaireDetails'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ export type UnmatchedClient = {
   full_name: string
   avatar_url: string | null
   created_at: string
+  email_confirmed_at: string | null
   clientProfile: ClientProfile | null
   questionnaire: { id: string; client_id: string; responses: Record<string, unknown>; submitted_at: string } | null
   subscription: Subscription | null
@@ -64,6 +66,7 @@ export type TherapistApplication = {
   id: string
   full_name: string
   email: string
+  email_verified_at: string | null
   phone: string | null
   city: string | null
   state: string | null
@@ -76,6 +79,8 @@ export type TherapistApplication = {
   license_body: string | null
   years_experience: number
   education: string | null
+  expected_session_pay: number | null
+  expected_session_pay_currency: string | null
   specializations: string[]
   specialization_other: string | null
   languages: string[]
@@ -86,7 +91,9 @@ export type TherapistApplication = {
   certificate_signed_urls: string[]
   certificate_download_urls: string[]
   status: string
+  admin_notes: string | null
   submitted_at: string
+  reviewed_at: string | null
 }
 
 export type SwitchRequest = {
@@ -101,11 +108,29 @@ export type SwitchRequest = {
   therapistName: string
 }
 
+export type EmailLog = {
+  id: string
+  resend_id: string | null
+  recipient: string
+  template: string
+  subject: string | null
+  related_user_id: string | null
+  related_application_id: string | null
+  related_match_id: string | null
+  send_status: 'sent' | 'failed_no_api_key' | 'failed_resend_rejected' | 'failed_threw'
+  send_error: string | null
+  resend_status_code: number | null
+  last_status: string | null
+  last_status_at: string | null
+  created_at: string
+}
+
 export type ActiveMatch = {
   id: string
   client_id: string
   therapist_id: string
   status: string
+  tier: string | null
   notes: string | null
   started_at: string | null
   created_at: string
@@ -123,6 +148,7 @@ interface Props {
   inviteCodes: InviteCode[]
   applications: TherapistApplication[]
   switchRequests: SwitchRequest[]
+  emailLogs: EmailLog[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -179,9 +205,31 @@ function formatDate(iso: string) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails'
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests }: Props) {
+type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
+
+function appMatchesFilter(app: TherapistApplication, filter: AppFilter): boolean {
+  if (filter === 'all') return true
+  if (filter === 'foreign') {
+    const country = (app.country ?? '').trim().toLowerCase()
+    return country !== '' && country !== 'india'
+  }
+  const y = app.years_experience ?? 0
+  if (filter === '0-3y') return y < 3
+  if (filter === '3-5y') return y >= 3 && y < 5
+  if (filter === '5-8y') return y >= 5 && y < 8
+  if (filter === '8+y') return y >= 8
+  return true
+}
+
+function formatPay(amount: number | null, currency: string | null): string | null {
+  if (amount == null) return null
+  const symbol = currency === 'USD' ? '$' : '₹'
+  return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
+}
+
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs }: Props) {
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null)
@@ -189,6 +237,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [matchingClient, setMatchingClient] = useState<UnmatchedClient | null>(null)
   const [isPending, startTransition] = useTransition()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [appFilter, setAppFilter] = useState<AppFilter>('all')
+  const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
 
   const appUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -206,7 +256,26 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
+    { key: 'emails', label: 'Emails', count: emailLogs.length },
   ]
+
+  // Application filter buckets — counts shown in the filter chips
+  const APP_FILTERS: { key: AppFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: '0-3y', label: '0–3 yrs' },
+    { key: '3-5y', label: '3–5 yrs' },
+    { key: '5-8y', label: '5–8 yrs' },
+    { key: '8+y', label: '8+ yrs' },
+    { key: 'foreign', label: 'Foreign' },
+  ]
+
+  const filteredApplications = applications.filter(a => appMatchesFilter(a, appFilter))
+
+  const filteredEmailLogs = emailLogs.filter(e => {
+    if (emailFilter === 'all') return true
+    if (emailFilter === 'sent') return e.send_status === 'sent'
+    return e.send_status !== 'sent'
+  })
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -277,8 +346,35 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                 <p className="text-sm text-slate-400 mt-1">New therapist applications will appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {applications.map(app => (
+              <>
+                <div className="px-6 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2 bg-slate-50/60">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">Filter</span>
+                  {APP_FILTERS.map(f => {
+                    const count = applications.filter(a => appMatchesFilter(a, f.key)).length
+                    const isActive = appFilter === f.key
+                    return (
+                      <button
+                        key={f.key}
+                        onClick={() => setAppFilter(f.key)}
+                        className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                          isActive
+                            ? 'bg-violet-600 text-white border-violet-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        {f.label}
+                        <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{count}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {filteredApplications.length === 0 ? (
+                  <div className="py-16 text-center text-sm text-slate-400">
+                    No applications in this bucket.
+                  </div>
+                ) : (
+                <div className="divide-y divide-slate-100">
+                {filteredApplications.map(app => (
                   <div key={app.id}>
                     <div className="px-6 py-4 flex items-center gap-4">
                       <div className="w-9 h-9 rounded-full bg-violet-100 text-violet-700 flex items-center justify-center font-semibold text-sm flex-shrink-0">
@@ -288,14 +384,35 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-slate-900 text-sm">{app.full_name}</span>
                           <span className="text-xs text-slate-400">{app.email}</span>
+                          {app.email_verified_at ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Email verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              Email unverified
+                            </span>
+                          )}
                           {app.city && (
                             <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{app.city}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5">
+                        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                           <span className="text-xs text-slate-500">
                             {app.years_experience}y exp · {app.license_number}
                           </span>
+                          {formatPay(app.expected_session_pay, app.expected_session_pay_currency) && (
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                              {formatPay(app.expected_session_pay, app.expected_session_pay_currency)}
+                            </span>
+                          )}
+                          {app.country && app.country.trim().toLowerCase() !== 'india' && (
+                            <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                              {app.country}
+                            </span>
+                          )}
                           {app.specializations.slice(0, 3).map(s => (
                             <span key={s} className="text-xs px-1.5 py-0.5 bg-violet-50 text-violet-700 rounded-full capitalize">{s}</span>
                           ))}
@@ -346,6 +463,24 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                           <InfoField label="Education" value={app.education} />
                           <InfoField label="License number" value={app.license_number} preserveCase />
                           <InfoField label="License body" value={app.license_body} />
+                          <InfoField
+                            label="Expected session pay"
+                            value={
+                              app.expected_session_pay != null
+                                ? `${app.expected_session_pay_currency === 'USD' ? '$' : '₹'}${Number(app.expected_session_pay).toLocaleString('en-IN')} / session`
+                                : null
+                            }
+                            preserveCase
+                          />
+                          <InfoField
+                            label="Email verified"
+                            value={
+                              app.email_verified_at
+                                ? `Yes · ${new Date(app.email_verified_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                : 'No'
+                            }
+                            preserveCase
+                          />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
                           <div>
@@ -480,6 +615,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                   </div>
                 ))}
               </div>
+                )}
+              </>
             )
           )}
 
@@ -500,6 +637,17 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-slate-900 text-sm">{client.full_name}</span>
+                          {client.email_confirmed_at ? (
+                            <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Email verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              Email unverified
+                            </span>
+                          )}
                           {client.clientProfile?.primary_concern && (
                             <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full capitalize">
                               {client.clientProfile.primary_concern.replace(/_/g, ' ')}
@@ -531,24 +679,32 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
 
                     {/* Expanded details */}
                     {expandedClientId === client.id && (
-                      <div className="px-6 pb-5 pt-1 bg-slate-50 border-t border-slate-100">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-3">
-                          <InfoField label="Gender" value={client.clientProfile?.gender} />
-                          <InfoField label="Previous therapy" value={client.clientProfile?.previous_therapy ? 'Yes' : 'No'} />
-                          <InfoField label="Session preference" value={client.clientProfile?.preferred_session_type} />
-                          <InfoField
-                            label="Therapist preference"
-                            value={client.clientProfile?.preferred_therapist_gender || 'No preference'}
-                          />
-                          {client.clientProfile?.therapy_goals && (
-                            <div className="col-span-2 md:col-span-3">
-                              <p className="text-xs text-slate-400">Therapy goals</p>
-                              <p className="text-sm text-slate-700 mt-1 bg-white rounded-lg p-3 border border-slate-200 leading-relaxed">
-                                {client.clientProfile.therapy_goals}
-                              </p>
-                            </div>
-                          )}
+                      <div className="px-6 pb-5 pt-3 bg-slate-50 border-t border-slate-100 space-y-5">
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Quick summary</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-white rounded-lg p-4 border border-slate-200">
+                            <InfoField label="Gender" value={client.clientProfile?.gender} />
+                            <InfoField label="Previous therapy" value={client.clientProfile?.previous_therapy ? 'Yes' : 'No'} />
+                            <InfoField label="Session preference" value={client.clientProfile?.preferred_session_type} />
+                            <InfoField
+                              label="Therapist preference"
+                              value={client.clientProfile?.preferred_therapist_gender || 'No preference'}
+                            />
+                            {client.clientProfile?.therapy_goals && (
+                              <div className="col-span-2 md:col-span-3">
+                                <p className="text-xs text-slate-400">Therapy goals (summary)</p>
+                                <p className="text-sm text-slate-700 mt-1 leading-relaxed">
+                                  {client.clientProfile.therapy_goals}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
+
+                        <QuestionnaireDetails
+                          responses={client.questionnaire?.responses ?? null}
+                          submittedAt={client.questionnaire?.submitted_at ?? null}
+                        />
                       </div>
                     )}
                   </div>
@@ -725,7 +881,9 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {activeMatches.map(match => (
+                {activeMatches.map(match => {
+                  const isProposal = match.status === 'pending'
+                  return (
                   <div key={match.id} className="px-6 py-4 flex items-center gap-4">
                     {/* Client → Therapist avatars */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -738,10 +896,24 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                         <span className="text-sm font-medium text-slate-900">{match.client?.full_name}</span>
                         <span className="text-slate-300 text-xs">with</span>
                         <span className="text-sm font-medium text-slate-700">{match.therapist?.full_name}</span>
-                        {match.subscription && <StatusPill status={match.subscription.status} />}
+                        {match.tier && (
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                            match.tier === 'professional' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                          }`}>
+                            {match.tier}
+                          </span>
+                        )}
+                        {isProposal ? (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                            Proposed · awaiting client
+                          </span>
+                        ) : (
+                          match.subscription && <StatusPill status={match.subscription.status} />
+                        )}
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Matched {formatDate(match.started_at ?? match.created_at)}
+                        {isProposal ? 'Proposed' : 'Matched'} {formatDate(match.started_at ?? match.created_at)}
                       </p>
                       {match.notes && (
                         <p className="text-xs text-slate-500 mt-0.5 italic">"{match.notes}"</p>
@@ -752,10 +924,11 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                       onClick={() => startTransition(() => endMatch(match.id))}
                       className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium transition-colors flex-shrink-0"
                     >
-                      End match
+                      {isProposal ? 'Cancel proposal' : 'End match'}
                     </button>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )
           )}
@@ -811,6 +984,99 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                 ))}
               </div>
             )
+          )}
+
+          {/* ── Emails Tab ── */}
+          {tab === 'emails' && (
+            <>
+              <div className="px-6 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2 bg-slate-50/60">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">Filter</span>
+                {([
+                  { key: 'all' as const, label: 'All' },
+                  { key: 'sent' as const, label: 'Accepted by Resend' },
+                  { key: 'failed' as const, label: 'Failed' },
+                ]).map(f => {
+                  const count = f.key === 'all'
+                    ? emailLogs.length
+                    : f.key === 'sent'
+                      ? emailLogs.filter(e => e.send_status === 'sent').length
+                      : emailLogs.filter(e => e.send_status !== 'sent').length
+                  const isActive = emailFilter === f.key
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => setEmailFilter(f.key)}
+                      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
+                        isActive
+                          ? 'bg-slate-800 text-white border-slate-800'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      {f.label}
+                      <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{count}</span>
+                    </button>
+                  )
+                })}
+                <p className="text-[11px] text-slate-400 ml-auto">
+                  Last 200 sends · live delivery / bounce / click status not synced yet
+                </p>
+              </div>
+
+              {filteredEmailLogs.length === 0 ? (
+                <div className="py-16 text-center text-sm text-slate-400">
+                  No email logs match this filter.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {filteredEmailLogs.map(log => {
+                    const isFailed = log.send_status !== 'sent'
+                    const statusLabel = {
+                      sent: 'Accepted',
+                      failed_no_api_key: 'No API key',
+                      failed_resend_rejected: 'Resend rejected',
+                      failed_threw: 'Network error',
+                    }[log.send_status]
+                    return (
+                      <div key={log.id} className="px-6 py-3 flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                            isFailed
+                              ? 'bg-red-50 text-red-700 border-red-200'
+                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isFailed ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium text-slate-900 break-all">{log.recipient}</span>
+                            <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{log.template}</span>
+                          </div>
+                          {log.subject && (
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">{log.subject}</p>
+                          )}
+                          {log.send_error && (
+                            <p className="text-xs text-red-600 mt-1 font-mono break-words whitespace-pre-wrap">
+                              {log.send_error}
+                            </p>
+                          )}
+                          <div className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                            <span>{new Date(log.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                            {log.resend_id && (
+                              <span className="font-mono">Resend: {log.resend_id.slice(0, 8)}…</span>
+                            )}
+                            {log.resend_status_code != null && (
+                              <span>HTTP {log.resend_status_code}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
 
         </div>

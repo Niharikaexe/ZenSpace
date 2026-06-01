@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ChatInterface from '@/components/shared/ChatInterface'
-import SubscriptionModal from '@/components/client/SubscriptionModal'
 import ClientNav from '@/components/client/ClientNav'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
@@ -20,9 +20,8 @@ interface Props {
   clientName: string
   therapist: TherapistPanelData
   initialMessages: Message[]
-  isSubscribed: boolean
-  freeMessagesLeft: number | null  // null = subscribed; 0 = exhausted; >0 = remaining
-  therapyType: string | null
+  hasPaidSession: boolean
+  freeMessagesLeft: number | null  // null = unlocked; 0 = intro exhausted; >0 = remaining
 }
 
 function initials(name: string) {
@@ -35,16 +34,15 @@ export default function ClientChatView({
   clientName,
   therapist,
   initialMessages,
-  isSubscribed,
+  hasPaidSession,
   freeMessagesLeft,
-  therapyType,
 }: Props) {
-  const [showSubModal, setShowSubModal] = useState(false)
+  const router = useRouter()
 
-  // canSend: subscribed OR has free intro messages remaining
-  const canSend = isSubscribed || (freeMessagesLeft !== null && freeMessagesLeft > 0)
-  // showExpiredBanner: not subscribed AND intro exhausted (freeMessagesLeft === 0)
-  const showExpiredBanner = !isSubscribed && freeMessagesLeft === 0
+  // canSend: has a paid session OR still has free intro messages remaining
+  const canSend = hasPaidSession || (freeMessagesLeft !== null && freeMessagesLeft > 0)
+  // Booking prompt shows once the 25-message intro is used up and no session booked
+  const showBookPrompt = !hasPaidSession && freeMessagesLeft === 0
 
   return (
     <div className="h-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
@@ -69,22 +67,22 @@ export default function ClientChatView({
             </div>
           </div>
 
-          {showExpiredBanner && (
-            <div className="flex-shrink-0 px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3">
+          {showBookPrompt && (
+            <div className="flex-shrink-0 px-4 py-2.5 bg-[#7EC0B7]/10 border-b border-[#7EC0B7]/30 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
-                <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg className="w-4 h-4 text-[#3D8A80] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p className="text-xs text-amber-800 font-medium truncate">
-                  Subscribe to keep messaging and book sessions.
+                <p className="text-xs text-[#233551]/80 font-medium truncate">
+                  Book your session to keep chatting with your therapist.
                 </p>
               </div>
-              <button
-                onClick={() => setShowSubModal(true)}
-                className="flex-shrink-0 text-xs font-bold text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1 rounded-full transition-colors"
+              <Link
+                href="/dashboard/sessions"
+                className="flex-shrink-0 text-xs font-bold text-white bg-[#233551] hover:bg-[#1e2d47] px-3 py-1 rounded-full transition-colors"
               >
-                Subscribe →
-              </button>
+                Book a session →
+              </Link>
             </div>
           )}
 
@@ -96,15 +94,11 @@ export default function ClientChatView({
               otherPartyName={therapist.fullName}
               initialMessages={initialMessages}
               sendDisabled={!canSend}
-              onSendDisabled={() => setShowSubModal(true)}
+              onSendDisabled={() => router.push('/dashboard/sessions')}
             />
           </div>
         </div>
       </div>
-
-      {showSubModal && (
-        <SubscriptionModal trigger="chat" onClose={() => setShowSubModal(false)} therapyType={therapyType} />
-      )}
     </div>
   )
 }

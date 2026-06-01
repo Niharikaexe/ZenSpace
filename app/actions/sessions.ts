@@ -29,27 +29,23 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
     .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
 
   if (senderProfile?.role === 'client') {
-    // B-14: allow access while current_period_end is in the future, even if
-    // status='cancelled' (user paid for the period; Razorpay cancel_at_cycle_end
-    // means they keep access until period_end, not immediately).
-    const { data: activeSub } = await (admin as any)
-      .from('subscriptions')
-      .select('id')
-      .eq('client_id', user.id)
-      .in('status', ['active', 'cancelled'])
-      .gt('current_period_end', new Date().toISOString())
-      .maybeSingle() as { data: { id: string } | null; error: unknown }
+    // Free intro chat: 25 messages total (client + therapist combined), no
+    // time window. Once the conversation reaches 25 messages, the client must
+    // have booked (and paid for) at least one session to keep chatting —
+    // pay-as-you-go, no subscription.
+    const { count } = await (admin as any)
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId) as { count: number | null; error: unknown }
 
-    if (!activeSub) {
-      // Free intro chat: 25 messages total (client + therapist combined), no
-      // time window. Once the conversation reaches 25 messages, the client
-      // must subscribe to send more.
-      const { count } = await (admin as any)
-        .from('messages')
+    if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) {
+      const { count: paidSessions } = await (admin as any)
+        .from('sessions')
         .select('*', { count: 'exact', head: true })
-        .eq('match_id', matchId) as { count: number | null; error: unknown }
+        .eq('match_id', matchId)
+        .eq('payment_status', 'paid') as { count: number | null; error: unknown }
 
-      if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
+      if ((paidSessions ?? 0) === 0) return { error: 'session_required' }
     }
   }
 

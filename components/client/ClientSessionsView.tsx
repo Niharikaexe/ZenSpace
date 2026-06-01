@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useTransition, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import ClientNav from '@/components/client/ClientNav'
-import SubscriptionModal from '@/components/client/SubscriptionModal'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
-import { scheduleSession } from '@/app/actions/sessions'
+import { formatInr } from '@/lib/plans'
 
 type Session = {
   id: string
@@ -23,20 +23,30 @@ interface Props {
   matchId: string
   currentUserId: string
   clientName: string
+  userEmail: string
   therapist: TherapistPanelData
   timezone: string | null
   therapistTimezone: string
-  isSubscribed: boolean
-  sessionsThisWeek: number
-  sessionsPerWeek: number
+  perSessionInr: number
+  razorpayKeyId: string | null
   upcoming: Session[]
   past: Session[]
-  therapyType: string | null
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>
 }
 
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise(resolve => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 /**
  * Converts a wall-clock time (hour, minute) in the therapist's timezone on a given
@@ -114,109 +124,192 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${cls}`}>{status}</span>
 }
 
-// ── Booking dropdown (small, 30%-ish width) ───────────────────────────────────
+// ── Pay-to-book modal ─────────────────────────────────────────────────────────
 
-function BookingDropdown({
+function PaySessionModal({
   slot,
   dayLabel,
+  therapistName,
   matchId,
-  isSubscribed,
-  weeklyLimitReached,
-  onSubscribeNeeded,
+  perSessionInr,
+  userName,
+  userEmail,
+  razorpayKeyId,
   onClose,
   onBooked,
 }: {
   slot: TimeSlot
   dayLabel: string
+  therapistName: string
   matchId: string
-  isSubscribed: boolean
-  weeklyLimitReached: boolean
-  onSubscribeNeeded: () => void
+  perSessionInr: number
+  userName: string
+  userEmail: string
+  razorpayKeyId: string | null
   onClose: () => void
   onBooked: (label: string) => void
 }) {
-  const [sessionType, setSessionType] = useState<'video' | 'chat'>('video')
-  const [isPending, startTransition] = useTransition()
+  const [phase, setPhase] = useState<'idle' | 'opening' | 'confirming'>('idle')
   const [error, setError] = useState<string | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const busy = phase !== 'idle'
 
-  // Close on outside click
+  // Trigger the enter transition on mount.
   useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [onClose])
+    const id = requestAnimationFrame(() => setMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
-  function handleSchedule() {
-    if (!isSubscribed) { onSubscribeNeeded(); return }
-    if (weeklyLimitReached) { setError("You've already used your session this week."); return }
+  async function handlePay() {
     setError(null)
-    startTransition(async () => {
-      const result = await scheduleSession(matchId, slot.iso, sessionType)
-      if (result?.error) {
-        setError(result.error)
-      } else {
-        onBooked(`${dayLabel} · ${slot.label12}`)
+    if (!razorpayKeyId) {
+      setError('Payments aren’t configured yet. Please contact support.')
+      return
+    }
+    setPhase('opening')
+
+    try {
+      const orderRes = await fetch('/api/payment/session-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId, scheduledAt: slot.iso }),
+      })
+      const orderData = await orderRes.json()
+      if (!orderRes.ok) {
+        setError(orderData.error ?? 'Couldn’t start the payment. Please try again.')
+        setPhase('idle')
+        return
       }
-    })
+
+      const loaded = await loadRazorpayScript()
+      if (!loaded) {
+        setError('Could not load the payment gateway. Check your connection and try again.')
+        setPhase('idle')
+        return
+      }
+
+      const { order_id, amount, key, sessionId } = orderData
+
+      const rzp = new (window as any).Razorpay({
+        key,
+        order_id,
+        amount,
+        currency: 'INR',
+        name: 'MindCanopy',
+        description: `Session with ${therapistName} · ${dayLabel}, ${slot.label12}`,
+        theme: { color: '#233551' },
+        prefill: { name: userName, email: userEmail },
+        modal: { ondismiss: () => setPhase('idle') },
+        handler: async function (response: {
+          razorpay_payment_id: string
+          razorpay_order_id: string
+          razorpay_signature: string
+        }) {
+          setPhase('confirming')
+          try {
+            const verifyRes = await fetch('/api/payment/session-verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                sessionId,
+              }),
+            })
+            const verifyData = await verifyRes.json()
+            if (!verifyRes.ok) {
+              setError(verifyData.error ?? 'Payment went through but we couldn’t confirm the session. Contact support with payment ID: ' + response.razorpay_payment_id)
+              setPhase('idle')
+              return
+            }
+            onBooked(`${dayLabel} · ${slot.label12}`)
+          } catch {
+            setError('Something went wrong after payment. Contact support with payment ID: ' + response.razorpay_payment_id)
+            setPhase('idle')
+          }
+        },
+      })
+
+      rzp.on('payment.failed', function (resp: any) {
+        setError(resp.error?.description ?? 'Payment failed. Please try again.')
+        setPhase('idle')
+      })
+
+      rzp.open()
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setPhase('idle')
+    }
   }
 
   return (
     <div
-      ref={ref}
-      className="absolute z-30 top-full mt-2 left-0 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-2xl border border-slate-200 shadow-xl p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      onClick={e => { if (e.target === e.currentTarget && !busy) onClose() }}
     >
-      {/* Slot info */}
-      <div className="mb-3">
-        <p className="text-xs font-black text-[#233551]/35 uppercase tracking-widest mb-0.5">Booking</p>
-        <p className="text-sm font-bold text-[#233551]">{dayLabel}</p>
-        <p className="text-xs text-[#233551]/50">{slot.label12} · 50 min session</p>
-      </div>
+      <div className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-200 ${mounted ? 'opacity-100' : 'opacity-0'}`} />
 
-      {/* Session type */}
-      <div className="flex gap-1.5 mb-3">
-        {(['video', 'chat'] as const).map(t => (
+      <div
+        className={`relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-200 ${
+          mounted ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-[0.98]'
+        }`}
+      >
+        {/* Header */}
+        <div className="bg-[#233551] px-6 pt-6 pb-5">
           <button
-            key={t}
-            onClick={() => setSessionType(t)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl border text-xs font-semibold transition-all ${
-              sessionType === t
-                ? 'bg-[#233551] text-white border-[#233551]'
-                : 'border-slate-200 text-[#233551]/55 hover:border-slate-300'
-            }`}
+            onClick={() => !busy && onClose()}
+            disabled={busy}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors disabled:opacity-40"
           >
-            {t === 'video' ? (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-              </svg>
-            ) : (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            )}
-            {t === 'video' ? 'Video' : 'Chat'}
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
-        ))}
-      </div>
+          <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Confirm & pay</p>
+          <h2 className="text-white text-xl font-black leading-snug">Book your session</h2>
+          <p className="text-white/60 text-sm mt-1.5">with {therapistName}</p>
+        </div>
 
-      {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
+        {/* Details */}
+        <div className="px-6 py-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#7EC0B7]/15 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-[#3D8A80]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#233551]">{dayLabel}</p>
+              <p className="text-xs text-[#233551]/50">{slot.label12} · 50 min video session</p>
+            </div>
+          </div>
 
-      <div className="flex gap-1.5">
-        <button
-          onClick={onClose}
-          className="flex-1 py-2 text-xs border border-slate-200 rounded-xl text-[#233551]/55 hover:bg-slate-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSchedule}
-          disabled={isPending}
-          className="flex-1 py-2 text-xs bg-[#233551] text-white font-bold rounded-xl hover:bg-[#1e2d47] transition-colors disabled:opacity-40"
-        >
-          {isPending ? '…' : 'Schedule'}
-        </button>
+          <div className="flex items-center justify-between rounded-2xl bg-[#FAFAFA] border border-slate-100 px-4 py-3">
+            <span className="text-sm text-[#233551]/55">Session price</span>
+            <span className="text-lg font-black text-[#233551]">{formatInr(perSessionInr)}</span>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+              <p className="text-xs text-red-700 leading-relaxed">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div className="px-6 pb-6">
+          <button
+            onClick={handlePay}
+            disabled={busy}
+            className="w-full py-3.5 bg-[#233551] text-white font-black text-sm rounded-2xl hover:bg-[#1e2d47] transition-colors disabled:opacity-60 disabled:cursor-wait"
+          >
+            {phase === 'opening' ? 'Opening checkout…' : phase === 'confirming' ? 'Confirming…' : `Pay ${formatInr(perSessionInr)} & book`}
+          </button>
+          <p className="text-center text-xs text-[#233551]/35 mt-3">
+            Secure payment via Razorpay · Pay as you go · Non-refundable
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -226,45 +319,36 @@ function BookingDropdown({
 
 export default function ClientSessionsView({
   matchId,
-  currentUserId,
   clientName,
+  userEmail,
   therapist,
   timezone,
   therapistTimezone,
-  isSubscribed,
-  sessionsThisWeek,
-  sessionsPerWeek,
+  perSessionInr,
+  razorpayKeyId,
   upcoming,
   past,
-  therapyType,
   weeklyAvailability,
 }: Props) {
-  const [showSubModal, setShowSubModal]     = useState(false)
-  const [selectedDay, setSelectedDay]       = useState<string | null>(null)
-  const [openSlot, setOpenSlot]             = useState<TimeSlot | null>(null)
-  const [bookedLabel, setBookedLabel]       = useState<string | null>(null)
-  const [expandedNotes, setExpandedNotes]   = useState<string | null>(null)
+  const router = useRouter()
+  const [selectedDay, setSelectedDay]     = useState<string | null>(null)
+  const [openSlot, setOpenSlot]           = useState<TimeSlot | null>(null)
+  const [bookedLabel, setBookedLabel]     = useState<string | null>(null)
+  const [expandedNotes, setExpandedNotes] = useState<string | null>(null)
 
-  const weeklyLimitReached = sessionsThisWeek >= sessionsPerWeek
   const week = buildWeek(weeklyAvailability, therapistTimezone)
-
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
 
   function selectDay(entry: DayEntry) {
-    if (selectedDay === entry.dateStr) {
-      setSelectedDay(null)
-      setOpenSlot(null)
-    } else {
-      setSelectedDay(entry.dateStr)
-      setOpenSlot(null)
-    }
+    setSelectedDay(selectedDay === entry.dateStr ? null : entry.dateStr)
   }
 
   function handleBooked(label: string) {
     setBookedLabel(label)
     setOpenSlot(null)
     setSelectedDay(null)
-    setTimeout(() => setBookedLabel(null), 4000)
+    router.refresh()
+    setTimeout(() => setBookedLabel(null), 5000)
   }
 
   return (
@@ -279,24 +363,6 @@ export default function ClientSessionsView({
 
         {/* ── Right: Sessions content ─────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {!isSubscribed && (
-            <div className="flex-shrink-0 px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs text-amber-800 font-medium truncate">
-                  A subscription is required to book sessions.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSubModal(true)}
-                className="flex-shrink-0 text-xs font-bold text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1 rounded-full transition-colors"
-              >
-                Subscribe →
-              </button>
-            </div>
-          )}
           <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-5 py-7 space-y-10">
 
@@ -304,6 +370,7 @@ export default function ClientSessionsView({
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black text-[#233551]/35 uppercase tracking-widest">Book a Session</h2>
+                <span className="text-xs font-semibold text-[#233551]/45">{formatInr(perSessionInr)} / session</span>
               </div>
 
               {bookedLabel && (
@@ -311,16 +378,7 @@ export default function ClientSessionsView({
                   <svg className="w-4 h-4 text-[#3D8A80] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
-                  <p className="text-sm font-semibold text-[#3D8A80]">Session requested — {bookedLabel}</p>
-                </div>
-              )}
-
-              {isSubscribed && weeklyLimitReached && (
-                <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-[#E8926A]/8 border border-[#E8926A]/20 rounded-xl">
-                  <svg className="w-4 h-4 text-[#E8926A] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-xs text-[#E8926A] font-semibold">1 session used this week. New slots open next Monday.</p>
+                  <p className="text-sm font-semibold text-[#3D8A80]">Session booked — {bookedLabel}</p>
                 </div>
               )}
 
@@ -373,48 +431,25 @@ export default function ClientSessionsView({
                     <p className="text-[11px] text-[#233551]/40 font-semibold">Each session 50 min</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {selectedDayEntry.slots.map(slot => {
-                      const isOpen = openSlot?.time === slot.time && openSlot?.date === slot.date
-
-                      return (
-                        <div key={slot.time} className="relative">
-                          <button
-                            onClick={() => setOpenSlot(isOpen ? null : slot)}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
-                              isOpen
-                                ? 'bg-[#233551] border-[#233551] text-white'
-                                : 'bg-white border-slate-200 hover:border-[#7EC0B7] text-[#233551]'
-                            }`}
-                          >
-                            <svg className={`w-3.5 h-3.5 ${isOpen ? 'text-white/70' : 'text-[#7EC0B7]'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            {slot.label12}
-                          </button>
-
-                          {isOpen && (
-                            <BookingDropdown
-                              slot={slot}
-                              dayLabel={selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                              matchId={matchId}
-                              isSubscribed={isSubscribed}
-                              weeklyLimitReached={weeklyLimitReached}
-                              onSubscribeNeeded={() => { setOpenSlot(null); setShowSubModal(true) }}
-                              onClose={() => setOpenSlot(null)}
-                              onBooked={handleBooked}
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
+                    {selectedDayEntry.slots.map(slot => (
+                      <button
+                        key={slot.time}
+                        onClick={() => setOpenSlot(slot)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold text-[#233551] hover:border-[#7EC0B7] transition-all"
+                      >
+                        <svg className="w-3.5 h-3.5 text-[#7EC0B7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {slot.label12}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
 
               {!selectedDay && (
                 <p className="mt-3 text-xs text-[#233551]/35">
-                  Select a day above to see available times.
-                  {!isSubscribed && ' A subscription is required to book.'}
+                  Select a day above to see available times. You pay per session when you book.
                 </p>
               )}
             </section>
@@ -490,8 +525,19 @@ export default function ClientSessionsView({
         </div>
       </div>
 
-      {showSubModal && (
-        <SubscriptionModal trigger="session" onClose={() => setShowSubModal(false)} therapyType={therapyType} />
+      {openSlot && selectedDayEntry && (
+        <PaySessionModal
+          slot={openSlot}
+          dayLabel={selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+          therapistName={therapist.fullName}
+          matchId={matchId}
+          perSessionInr={perSessionInr}
+          userName={clientName}
+          userEmail={userEmail}
+          razorpayKeyId={razorpayKeyId}
+          onClose={() => setOpenSlot(null)}
+          onBooked={handleBooked}
+        />
       )}
     </div>
   )

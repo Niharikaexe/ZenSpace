@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientSessionsView from '@/components/client/ClientSessionsView'
-import { PLANS, type PlanKey } from '@/lib/plans'
+import { sessionPriceInr, type SessionCategory, type ProposalTier } from '@/lib/plans'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +14,10 @@ type Session = {
   ended_at: string | null
   daily_room_url: string | null
   therapist_notes: string | null
+}
+
+function normalizeCategory(raw: unknown): SessionCategory {
+  return raw === 'couples' || raw === 'teen' ? raw : 'individual'
 }
 
 export default async function ClientSessionsPage() {
@@ -32,25 +36,14 @@ export default async function ClientSessionsPage() {
   const admin = createAdminClient()
   const { data: match } = await (admin as any)
     .from('matches')
-    .select('id, therapist_id')
+    .select('id, therapist_id, tier')
     .eq('client_id', user.id)
     .eq('status', 'active')
-    .maybeSingle() as { data: { id: string; therapist_id: string } | null; error: unknown }
+    .maybeSingle() as { data: { id: string; therapist_id: string; tier: string | null } | null; error: unknown }
 
   if (!match) redirect('/dashboard')
 
-  const { data: subscription } = await (admin as any)
-    .from('subscriptions')
-    .select('status, plan, current_period_end')
-    .eq('client_id', user.id)
-    .eq('status', 'active')
-    .gt('current_period_end', new Date().toISOString())
-    .maybeSingle() as { data: { status: string; plan: string; current_period_end: string } | null; error: unknown }
-
-  const isSubscribed = !!subscription
-  const sessionsPerWeek = subscription?.plan
-    ? (PLANS[subscription.plan as PlanKey]?.sessionsPerWeek ?? 1)
-    : 1
+  const tier: ProposalTier = match.tier === 'professional' ? 'professional' : 'standard'
 
   const { data: questionnaire } = await (admin as any)
     .from('questionnaire_responses')
@@ -58,9 +51,10 @@ export default async function ClientSessionsPage() {
     .eq('client_id', user.id)
     .maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
 
-  const therapyType = (questionnaire?.responses?.type as string) ?? null
+  const category = normalizeCategory(questionnaire?.responses?.type)
+  const perSessionInr = sessionPriceInr(category, tier)
 
-  const [tProfileResult, tUserResult, sessionsResult] = await Promise.all([
+  const [tProfileResult, tUserResult, sessionsResult, userResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
       .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified, timezone')
@@ -73,9 +67,11 @@ export default async function ClientSessionsPage() {
       .single(),
     (admin as any)
       .from('sessions')
-      .select('id, session_type, status, scheduled_at, started_at, ended_at, daily_room_url, therapist_notes')
+      .select('id, session_type, status, scheduled_at, started_at, ended_at, daily_room_url, therapist_notes, payment_status')
       .eq('match_id', match.id)
+      .eq('payment_status', 'paid')
       .order('scheduled_at', { ascending: false }),
+    admin.auth.admin.getUserById(user.id),
   ])
 
   const tp = tProfileResult.data
@@ -93,28 +89,16 @@ export default async function ClientSessionsPage() {
   const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
   const therapistTimezone = (tp?.timezone as string | null) ?? 'UTC'
   const allSessions: Session[] = sessionsResult.data ?? []
+  const userEmail = userResult.data?.user?.email ?? ''
 
-  // Count sessions in current calendar week (Mon–Sun) for this match
   const now = new Date()
-  const weekStart = new Date(now)
-  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)) // Monday
-  weekStart.setHours(0, 0, 0, 0)
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekStart.getDate() + 7)
-
-  const sessionsThisWeek = allSessions.filter(s => {
-    const d = new Date(s.scheduled_at)
-    return d >= weekStart && d < weekEnd && s.status !== 'cancelled'
-  }).length
-
-  const now2 = new Date()
   const upcoming = allSessions.filter(
     (s: Session) => s.status !== 'completed' && s.status !== 'cancelled' &&
-      new Date(s.scheduled_at) > new Date(now2.getTime() - 3600000)
+      new Date(s.scheduled_at) > new Date(now.getTime() - 3600000)
   )
   const past = allSessions.filter(
     (s: Session) => s.status === 'completed' || s.status === 'cancelled' ||
-      new Date(s.scheduled_at) <= new Date(now2.getTime() - 3600000)
+      new Date(s.scheduled_at) <= new Date(now.getTime() - 3600000)
   )
 
   return (
@@ -122,15 +106,14 @@ export default async function ClientSessionsPage() {
       matchId={match.id}
       currentUserId={user.id}
       clientName={profile?.full_name ?? ''}
+      userEmail={userEmail}
       therapist={therapist}
       timezone={profile?.timezone ?? null}
       therapistTimezone={therapistTimezone}
-      isSubscribed={isSubscribed}
-      sessionsThisWeek={sessionsThisWeek}
-      sessionsPerWeek={sessionsPerWeek}
+      perSessionInr={perSessionInr}
+      razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
       upcoming={upcoming}
       past={past}
-      therapyType={therapyType}
       weeklyAvailability={weeklyAvailability}
     />
   )

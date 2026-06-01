@@ -3,7 +3,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { sendPayoutRequestEmail } from '@/lib/email'
-import { PLANS, therapistSessionPayout, type PlanKey } from '@/lib/plans'
 
 export type TherapistProfileState = { error?: string; success?: boolean }
 export type AvatarState = { error?: string; avatarUrl?: string | null }
@@ -259,54 +258,30 @@ export async function requestPayout(): Promise<{ error?: string; success?: boole
     const tProfile = tProfileResult.data
     const matchList = (matchesResult.data ?? []) as { id: string; client_id: string }[]
     const matchIds = matchList.map(m => m.id)
-    const clientIds = Array.from(new Set(matchList.map(m => m.client_id)))
-    const clientByMatch = new Map(matchList.map(m => [m.id, m.client_id]))
 
-    // Count + price the last-7-day completed sessions to match the dashboard's
-    // "Pending payout" headline.
+    // Sum the frozen per-session payout for completed + paid sessions in the
+    // last 7 days, matching the dashboard's "Pending payout" headline.
     const weekStart = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
 
     let sessionsThisWeek = 0
     let pendingPayoutRupees = 0
 
-    if (matchIds.length > 0 && clientIds.length > 0) {
-      const [sessionsResult, subsResult] = await Promise.all([
-        (admin as any)
-          .from('sessions')
-          .select('match_id, scheduled_at')
-          .in('match_id', matchIds)
-          .eq('status', 'completed')
-          .gte('scheduled_at', weekStart),
-        (admin as any)
-          .from('subscriptions')
-          .select('client_id, plan, created_at')
-          .in('client_id', clientIds)
-          .order('created_at', { ascending: false }),
-      ])
+    if (matchIds.length > 0) {
+      const { data: sessions, error: sessionsErr } = await (admin as any)
+        .from('sessions')
+        .select('therapist_payout_paise')
+        .in('match_id', matchIds)
+        .eq('status', 'completed')
+        .eq('payment_status', 'paid')
+        .gte('scheduled_at', weekStart) as { data: { therapist_payout_paise: number | null }[] | null; error: unknown }
 
-      if (sessionsResult.error) {
-        logger.error('therapist/payout', 'Failed to load sessions', sessionsResult.error, { userId: user.id })
-        return { error: 'Could not calculate your pending payout. Please try again.' }
-      }
-      if (subsResult.error) {
-        logger.error('therapist/payout', 'Failed to load subscriptions', subsResult.error, { userId: user.id })
+      if (sessionsErr) {
+        logger.error('therapist/payout', 'Failed to load sessions', sessionsErr, { userId: user.id })
         return { error: 'Could not calculate your pending payout. Please try again.' }
       }
 
-      // Most-recent subscription plan per client.
-      const planByClient = new Map<string, PlanKey>()
-      for (const s of (subsResult.data ?? []) as { client_id: string; plan: string }[]) {
-        if (!planByClient.has(s.client_id) && s.plan in PLANS) {
-          planByClient.set(s.client_id, s.plan as PlanKey)
-        }
-      }
-
-      for (const s of (sessionsResult.data ?? []) as { match_id: string }[]) {
-        const clientId = clientByMatch.get(s.match_id)
-        if (!clientId) continue
-        const planKey = planByClient.get(clientId)
-        if (!planKey) continue
-        pendingPayoutRupees += therapistSessionPayout(planKey)
+      for (const s of sessions ?? []) {
+        pendingPayoutRupees += Math.round((s.therapist_payout_paise ?? 0) / 100)
         sessionsThisWeek++
       }
     }

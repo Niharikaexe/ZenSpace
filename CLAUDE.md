@@ -24,6 +24,17 @@ diagnostic or prescription services.
 - **Couples:** ₹5,999/week — 1 couples session (60 min) + text for both partners
 - **Monthly Bundle:** ₹9,999/month — 4 sessions + text + switch therapist anytime
 
+### PER-SESSION PRICING (dual-therapist match flow)
+After matching, the client picks between a **Standard** and a **Professional** therapist and pays
+**per session** (or a monthly bundle of 4 sessions at 15% off). Per-session prices vary by category
+and tier — single source of truth is `SESSION_PRICING` in `lib/plans.ts`:
+
+| Category | Standard | Professional |
+|---|---|---|
+| Adult / Individual | ₹1,300 | ₹3,200 |
+| Teen | ₹1,800 | ₹4,000 |
+| Couples | ₹2,400 | ₹5,000 |
+
 ---
 
 ## TONE OF VOICE — READ THIS BEFORE WRITING ANYTHING
@@ -123,12 +134,24 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 1. **Landing page** → CTA to get started
 2. **Questionnaire** (unauthenticated) → captures mental health concerns, goals, preferences, and which category the client belongs to couples, indiviudal or teenager.
 3. **Create account** → email/password via Supabase Auth
-4. **Dashboard — Pending Match state**
-   **Questionnaire unanswered** -> prompt the user to take the questionnaire to match with best therapist
-   - Message: "We are finding your perfect therapist..."
-   - Carousel of sample/anonymised therapist profiles (to build trust)
-   - Prompt to choose a subscription plan (per-session / weekly / monthly) and pay via Razorpay
-5. **Dashboard — Matched state** (after admin assigns a therapist)
+4. **Dashboard — Pending Match state** (no proposals yet)
+   - Message: "We're matching you with the most aligned therapists." **No payment prompt and no
+     pricing plans on this screen** — the client only pays once they've chosen a therapist and book
+     a session.
+   - **Questionnaire unanswered** → prompt the user to take the questionnaire so we can match them.
+   - Carousel of sample/anonymised therapist profiles (to build trust).
+5. **Dashboard — Choose your therapist state** (after admin proposes two therapists)
+   - The admin hand-picks **two** therapists: a **Standard** (basic-tier) and a **Professional**
+     (premium-tier) therapist. Both are stored as `pending` matches.
+   - The client sees a two-tab UI ("Standard" / "Professional"). Each tab shows that therapist's
+     full profile: photo, name, credentials, quote/tagline, bio, specializations, approach, an
+     optional admin "Why we think you'll click" summary, how sessions work, and **per-session
+     pricing** for that tier (pay-as-you-go, or a monthly bundle of 4 sessions at 15% off).
+   - A **"Start a free chat"** button attaches that therapist (flips the chosen match to `active`,
+     ends the other proposal) and drops the client into the chat/sessions dashboard.
+   - Component: `components/client/TherapistMatchSelection.tsx`; action:
+     `app/actions/choose-therapist.ts`.
+6. **Dashboard — Matched state** (after the client starts a chat)
    - Therapist profile card (name, photo, specialization, bio)
    - Chat (Supabase Realtime)
    - Video session (Daily.co)
@@ -152,11 +175,23 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 ## Admin Flow
 
 1. **Admin dashboard** (protected route, role = admin)
-2. View all clients in "pending match" state with their questionnaire answers
+2. View all clients in "pending match" state with their full questionnaire answers
 3. View all verified therapists and their capacity
-4. **Manually assign** a therapist to a client (creates a `match` record)
-5. View all active matches, sessions, subscriptions
+4. **Propose two therapists** to a client — one **Standard** (basic-tier) and one **Professional**
+   (premium-tier) — via the Match modal. This creates two `pending` match records (one per tier),
+   each with an optional interview summary the client will see. Action: `createMatchProposals` in
+   `app/admin/actions.ts`.
+5. View all matches (proposals show as "Proposed · awaiting client"; the client's choice becomes the
+   one `active` match), sessions, subscriptions
 6. Verify therapist credentials (toggle `is_verified`)
+
+### Matching model
+- `matches.status`: `pending` = a proposed therapist awaiting the client's choice; `active` = the
+  therapist the client started a chat with; `ended` = a declined proposal or an ended match.
+- `matches.tier` = `'standard'` | `'professional'`; `matches.admin_summary` = the per-therapist
+  blurb shown on the client's selection card.
+- A client may have **two** `pending` proposals but only **one** `active` match (enforced by the
+  partial unique index `idx_matches_one_active_per_client`). Choosing one ends the other.
 
 ---
 
@@ -459,303 +494,6 @@ Remove items as they are completed.
 **Monitoring**
 - [ ] Sentry error tracking installed and configured
 - [ ] Uptime monitor set up (BetterStack or UptimeRobot)
-
----
-
-### 🐛 KNOWN BUGS / ISSUES — Production Audit 2026-05-02
-
-Each bug has: severity, file:line, description, and suggested fix.
-
----
-
-#### 🔴 CRITICAL — Security & data loss
-
-**B-01. Service role key + anon JWT committed to `.env.example`**
-- File: `.env.example` lines 1–4
-- Description: Production Supabase URL, anon JWT, publishable key, and `SUPABASE_SERVICE_ROLE_KEY=sb_secret_...` are all in plaintext in a tracked file. Anyone with repo read access can fully bypass RLS and access the live database. This is the single most consequential finding in the audit.
-- Fix: Rotate all three keys in Supabase dashboard, scrub git history (or accept rotation as the mitigation), replace `.env.example` with placeholder values. Tracked in the SECRETS & ENV section above.
-
-**B-02. IDOR — `saveSessionNotes` has no ownership check**
-- File: `app/actions/sessions.ts` lines 202–219
-- Description: Function uses the admin Supabase client (RLS bypass) and only checks that the caller is authenticated, not that they own the session. Any logged-in user (including a client) can pass any `sessionId` and overwrite the therapist's session notes. Directly contradicts the "therapists write, clients read" rule.
-- Fix: Before update, fetch `session.match_id`, then `match.therapist_id`, and verify `match.therapist_id === user.id`. Reject otherwise.
-
-**B-03. IDOR — `updateSessionStatus` has no ownership check**
-- File: `app/actions/sessions.ts` lines 221–238
-- Description: Same pattern as B-02 — admin client, no ownership check. Any auth'd user can flip any session to `cancelled` / `completed` / `ongoing`.
-- Fix: Same ownership check (therapist OR client of the session's match) before update.
-
-**B-04. IDOR — `scheduleSession` has no ownership check**
-- File: `app/actions/sessions.ts` lines 117–198
-- Description: Accepts any `matchId` without verifying caller is the therapist or client of that match. Triggers Daily.co room creation (cost burn) and writes a `sessions` row attributed to a match the user doesn't belong to.
-- Fix: Fetch the match first; reject unless `match.therapist_id === user.id` (sessions are scheduled by therapists per CLAUDE.md flow).
-
-**B-05. Cron auth is conditional**
-- File: `app/api/cron/session-reminders/route.ts` lines 11–16
-- Description: `if (cronSecret) { ... check ... }` — if `CRON_SECRET` env var is unset in Vercel, the route is publicly callable and will spam emails for every upcoming session each call.
-- Fix: Make the check unconditional. Return 500 if `CRON_SECRET` is unset in production.
-
-**B-06. Forgot-password leaks user existence + 1k user cap**
-- File: `app/actions/auth.ts` lines 199–214
-- Description: Returns the explicit message `"We don't have an account with that email."`, enabling email enumeration. Also calls `listUsers({ perPage: 1000 })` which silently caps; once the platform crosses 1k users, password reset stops working for the (1001 + n)th user.
-- Fix: Always return the same success message regardless of whether the email exists. Replace `listUsers` with a direct lookup or paginated scan.
-
-**B-07. Two Razorpay webhook handlers wired**
-- Files: `app/api/webhooks/razorpay/route.ts` (canonical) and `app/api/payment/webhook/route.ts` (legacy). Both whitelisted in `lib/supabase/middleware.ts:72–73`.
-- Description: If both URLs are configured in Razorpay, every event triggers double-writes. If only the legacy URL is set, the canonical handler never sees events. Either way, subscription state is wrong.
-- Fix: Delete `app/api/payment/webhook/route.ts` and remove `/api/payment/webhook` from middleware allowlist. Confirm only `/api/webhooks/razorpay` is configured in Razorpay dashboard.
-
-**B-08. HMAC comparison uses `===` (not timing-safe)**
-- Files: `app/api/payment/verify/route.ts:55` and `app/api/webhooks/razorpay/route.ts:41`
-- Description: Direct string equality on HMAC signatures is theoretically vulnerable to timing attacks. Practical exposure is small for short HMACs over TLS, but it's a one-line fix that should be done before production.
-- Fix: Use `crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))` after length-equality guard.
-
-**B-09. Webhook idempotency missing on `subscription.charged`**
-- File: `app/api/webhooks/razorpay/route.ts` line 104 onward
-- Description: No event-ID dedup. Razorpay retries on 5xx (and sometimes on 2xx slow responses); a single charge event can land twice and double-extend `current_period_end`.
-- Fix: Add a `processed_webhook_events` table keyed on Razorpay event ID with a unique constraint, OR dedupe on `(razorpay_payment_id, event_type)` before applying state changes.
-
-**B-10. `/api/payment/verify` trusts client-supplied `plan`**
-- File: `app/api/payment/verify/route.ts` lines 12, 67–68
-- Description: The Zod schema accepts `plan` from the client and uses it to compute `current_period_end`. A client can pay weekly, send `plan=monthly`, and get a longer billing period.
-- Fix: Look up the actual subscription cadence from the Razorpay subscription/order or from the existing DB row instead of trusting client input.
-
-**B-11. Race in subscription creation**
-- File: `app/api/payment/create-subscription/route.ts` lines 56–68
-- Description: Check-then-act: queries for existing active subs, then cancels pending ones, then creates new. Two parallel calls can both pass the check and both create, resulting in two active subscriptions for the same client.
-- Fix: Wrap in a Postgres transaction with `SELECT ... FOR UPDATE`, or add a unique partial index `WHERE status IN ('active','pending')` on `subscriptions.client_id` to make the second insert fail.
-
----
-
-#### 🔴 CRITICAL — Functional / data correctness
-
-**B-12. Questionnaire data never reaches the database**
-- Files: `app/questionnaire/page.tsx` (legacy), `app/questionnaire/individual/page.tsx`, `app/questionnaire/couples/page.tsx`, `app/questionnaire/teen/page.tsx`
-- Description: ALL FOUR questionnaire flows save responses to `sessionStorage` only. None call `saveQuestionnaire()` or write to the `questionnaire_responses` table. Combined with B-13 below, the admin's Pending Clients screen has nothing to show because nothing is being persisted in the first place.
-- Fix: Add a server action `saveQuestionnaire` that writes to `questionnaire_responses` keyed by an anonymous session ID, then on signup associate the row with the new `auth.user.id`.
-
-**B-13. Admin pending clients show empty fields**
-- Files: signup at `app/actions/auth.ts:73` (comment "Stored in questionnaire_responses table only") + admin UI reads from `client_profiles`.
-- Description: Signup deliberately skips writing to `client_profiles`. Admin match modal renders Gender, Therapy goals, Therapist preference, etc. — all blank for every client. Admin cannot make informed matches.
-- Fix: Either backfill `client_profiles` from `questionnaire_responses` at signup, OR change the admin UI to read from `questionnaire_responses` directly.
-
-**B-14. Cancel-subscription contradicts its stated behavior**
-- File: `app/actions/subscription.ts` lines 40, 70–77; gate at `app/actions/sessions.ts:34–38`
-- Description: The Razorpay API call uses `cancel_at_cycle_end: 1` (correct) but the DB write flips status to `'cancelled'` immediately. The chat/session gate requires `status='active'`. Result: a user pays for a month, clicks cancel, loses chat access instantly — contradicting the inline comment that claims "client keeps access until period_end".
-- Fix: Pick one model and align all three pieces (Razorpay flag, DB status, gate). Recommended: keep status `active` until `current_period_end` passes, with a separate `cancellation_pending` flag for UI; a daily cron flips to `cancelled` when the period ends.
-
-**B-15. `subscription_plan` enum mismatch**
-- Files: `supabase/schema.sql:14` (only `weekly`/`monthly`), `supabase/migrations/20260402_subscription_plans.sql` (adds 8 named keys), `app/api/payment/create-order/route.ts:96` (writes old keys), `app/api/payment/create-subscription/route.ts:115` (writes new keys), `lib/plans.ts:5–157`
-- Description: Two payment paths writing two incompatible plan vocabularies into the same enum column. Fresh environments (bootstrapped from `schema.sql`) will reject the new values entirely.
-- Fix: Pick one vocabulary (recommend the 8-key set since it encodes plan tier + cadence). Drop unused enum values, update both code paths, fold migration back into `schema.sql`.
-
-**B-16. Therapist payment page hardcodes plan keys that don't exist**
-- File: `app/therapist/dashboard/payment/page.tsx` lines 8–13
-- Description: Uses keys `essentials/premium/couples/monthly`. None match the canonical 8-key set in `lib/plans.ts`. Plan-name lookups silently return `null`, displaying empty values.
-- Fix: Replace with the actual plan keys from `lib/plans.ts`. Pull plan metadata from the same source the rest of the app uses.
-
-**B-17. `razorpay_plan_id` column abused as order-ID dump**
-- File: `app/api/payment/create-order/route.ts:100` writes `order.id` into `razorpay_plan_id`; `app/api/payment/webhook/route.ts:64,86,110` queries on it.
-- Description: The legacy webhook works "by accident" because it queries the same wrong column the order route writes. Any new code that reads `razorpay_plan_id` expecting an actual plan ID will break.
-- Fix: Add a `razorpay_order_id` column (or use the existing `razorpay_payment_id`). Fix the writer and the webhook query.
-
-**B-18. `profiles.email` is selected but doesn't exist on the table**
-- Files: `app/therapist/dashboard/page.tsx:93`, `app/therapist/dashboard/client/[matchId]/page.tsx:49,151`. Schema (`supabase/schema.sql:24–33`) has no `email` column.
-- Description: Therapist client cards select `email` and render `{c.email}` as empty / falsy. The subscribe page does it correctly — it uses `admin.auth.admin.getUserById` and passes email as a prop.
-- Fix: Either add `email` to `profiles` (denormalized, kept in sync via a trigger from `auth.users`), or remove all selects and use `auth.admin.getUserById` server-side everywhere.
-
-**B-19. Admin `createMatch` allows double-matching**
-- File: `app/admin/actions.ts` lines 24–53
-- Description: Doesn't check whether the client already has an active match. Schema has no unique constraint either. Violates the "one active match per client" rule from CLAUDE.md.
-- Fix: Add a check before insert (`SELECT 1 FROM matches WHERE client_id=$1 AND status='active'` → reject), AND add a unique partial index `CREATE UNIQUE INDEX ON matches (client_id) WHERE status = 'active'`.
-
-**B-20. Cron dedup filter is broken**
-- File: `app/api/cron/session-reminders/route.ts` line 47
-- Description: `.filter('metadata->sessionId', 'eq', `"${s.id}"`)` wraps the value in literal double-quotes, which won't match raw JSON values stored in the metadata column. The dedup never matches → reminders are likely sent every cron run.
-- Fix: Remove the literal quotes. Use `.eq('metadata->>sessionId', s.id)` (the `->>` operator returns text, matching the unquoted UUID).
-
-**B-21. Cron email title says "Session in 1 Hour" but window is 25 hours**
-- Files: `vercel.json` cron schedule + `lib/email.ts` lines 21 (`25 * 3_600_000` ms window) and 114–122 (template title "Session in 1 Hour")
-- Description: Cron runs daily at 05:00 UTC and emails every session in the next 25 hours. Recipients get an email saying "Session in 1 Hour" up to 25 hours in advance.
-- Fix: Either run cron hourly with a 1-hour window, or change template copy to "Your session is tomorrow at {time}" and run daily.
-
-**B-22. Contact form never sends anything**
-- File: `app/contact/page.tsx` lines 14–21
-- Description: `handleSubmit` does `await new Promise(r => setTimeout(r, 800))` and shows "Sent. We'll get back to you within one business day." The message is silently dropped.
-- Fix: Either POST to a server action that writes to a `contact_messages` table, or send via Resend, or both.
-
----
-
-#### 🟠 HIGH — Missing pages, broken links, infra
-
-**B-23. `/terms` page doesn't exist** — Referenced from `components/home/Footer.tsx:106` and `app/(auth)/signup/page.tsx:222`. Required for Razorpay merchant approval and DPDP compliance.
-
-**B-24. `/pricing` page doesn't exist; `components/home/PricingPlans.tsx` is unused** — Component exists but is imported nowhere. Either build the page or delete the component.
-
-**B-25. Footer links broken** — `components/home/Footer.tsx`:
-  - About + Contact use `href="#"` (should be `/about`, `/contact`)
-  - All social icons `href="#"`
-  - Services links use `/questionnaire?type=individual|couples|teen` query that the legacy questionnaire page ignores; real routes are `/questionnaire/{individual,couples,teen}`
-
-**B-26. JSON-LD says `medicalSpecialty: "Psychiatry"`**
-- File: `app/layout.tsx` line 96
-- Description: MindCanopy explicitly does not prescribe medication or offer psychiatry. This SEO claim is incorrect and could mislead users / crawlers.
-- Fix: Change to `"Psychotherapy"` or `"CounselingPsychology"`.
-
-**B-27. Missing static assets** — `og-image.png`, `robots.txt`, `sitemap.xml` all absent from `/public`. Social previews 404; SEO crawl is unguided. `app/layout.tsx:56,68` references `og-image.png`.
-
-**B-28. `next.config.ts` is empty** — No `images.remotePatterns` for Supabase storage. Avatar uploads will fail to render via `<Image>`.
-
-**B-29. Tone-of-voice violations** — `app/(auth)/login/page.tsx:114` uses "therapy journey"; `app/(auth)/signup/page.tsx:153` uses "on your terms". Both on the explicit avoid list in CLAUDE.md.
-
-**B-30. Demo phone number in contact page** — `app/contact/page.tsx:79` shows `+91 98765 43210`. Replace or remove the phone block.
-
-**B-31. Missing `error.tsx` and `not-found.tsx` for dashboards**
-  - No `app/(client)/dashboard/error.tsx`
-  - No `app/therapist/dashboard/error.tsx`
-  - No `not-found.tsx` for `app/therapist/dashboard/client/[matchId]` — a `notFound()` call lands on the global 404 instead of the dashboard-shaped 404.
-
-**B-32. `force-dynamic` on static pages wastes SSR**
-  - `app/(client)/dashboard/faq/page.tsx`
-  - `app/(client)/dashboard/reviews/page.tsx`
-  - Possibly `/about`, `/contact`, `/blog`, `/faq` (verify)
-  - Fix: remove `export const dynamic = 'force-dynamic'`; use ISR (`export const revalidate = N`).
-
----
-
-#### 🟠 HIGH — Design synchronicity
-
-**B-33. Legacy questionnaire uses non-brand colors**
-- File: `app/questionnaire/page.tsx`
-- Description: Uses generic `teal-50`, `teal-600`, `cyan-100`, `text-teal-700` — Tailwind defaults that don't match the brand palette (`#233551` navy, `#7EC0B7` teal, `#E8926A` coral, `#FFF5F2` cream). Also the page doesn't read query strings, doesn't save to DB, and is now superseded by `/questionnaire/{individual,couples,teen}`.
-- Fix: Delete the page, or redirect to `/questionnaire/individual` as the default landing.
-
-**B-34. Form input borders inconsistent**
-- Description: Auth pages use `border` (1px). Contact page, therapist apply, and questionnaires use `border-2` (heavier). Reads as visual incoherence between sibling forms.
-- Fix: Standardize to `border border-slate-200 h-11 rounded-xl` for inputs everywhere.
-
-**B-35. Button radii inconsistent**
-- Description: Landing + auth CTAs use `rounded-full` (pill). Questionnaire option buttons + therapist apply submit use `rounded-xl`. Pills feel premium; rounded-xl feels utilitarian.
-- Fix: Standardize primary CTAs to `rounded-full`; keep `rounded-2xl`/`rounded-3xl` for card containers only.
-
-**B-36. Page padding inconsistent**
-- Description: Landing uses `px-6`. Questionnaires use `px-4`. Dashboard mixes `px-4` and `px-5`.
-- Fix: Standardize `px-6` for desktop, `px-4` only on narrow mobile widths.
-
-**B-37. Hex colors hardcoded everywhere**
-- Description: `bg-[#233551]`, `text-[#7EC0B7]`, etc. used 100+ times across components. No central token. Future palette changes require a search-and-replace.
-- Fix: Add `brand.navy`, `brand.teal`, `brand.coral`, `brand.cream` to `tailwind.config.ts` `theme.extend.colors`. Refactor incrementally.
-
-**B-38. Questionnaire pages have no Navbar/Footer wrapper**
-- Description: `/questionnaire/{individual,couples,teen}` render in isolation, breaking the shell users see on every other page.
-- Fix: Wrap each in `<Navbar /> ... <Footer />`.
-
-**B-39. Section accent color inconsistent**
-- Description: Some labels use `text-[#3D8A80]`, others `text-[#7EC0B7]` for the same UI role.
-- Fix: Pick one for "section accent"; reserve the other for hover/active.
-
-**B-40. Form heading sizes too small relative to landing**
-- Description: Landing H1 is `text-4xl md:text-5xl lg:text-[3.6rem]`. Form headings are `text-xl`/`text-2xl`. Forms feel de-emphasized.
-- Fix: Bump form primary headings to `text-3xl md:text-4xl`.
-
----
-
-#### 🟡 MEDIUM — Code quality / pre-scale
-
-**B-41. Pervasive `(supabase as any)` casts** — Disables type safety on most DB writes. The `Database` type is rarely actually used. Fix: replace casts with `createClient<Database>()` and let TS catch mismatches like B-18.
-
-**B-41. Pervasive `(supabase as any)` casts** — Skipped (high-risk refactor requiring full Database type wiring; deferred to post-launch).
-
-~~**B-42. SQL migrations not folded into `schema.sql`**~~ — Fixed: `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded into `schema.sql`.
-
-**B-43. Realtime publication for `notifications` not auto-applied** — `alter publication supabase_realtime add table notifications;` must be run manually in production Supabase. Tracked in CRITICAL infra section.
-
-~~**B-44. `WEEKLY_SCHEDULE` hardcoded**~~ — Fixed: replaced with structured `weekly_availability` JSONB column on `therapist_profiles`; therapist edits via slot picker on their home dashboard; client sessions view reads live data.
-
-~~**B-45. Daily.co URL not validated**~~ — Fixed: `JoinButton` now validates `roomUrl` matches `*.daily.co` pattern before rendering the link; shows "Invalid session link" if URL fails check.
-
-~~**B-46. Notification fire-and-forget swallows errors**~~ — Fixed: `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`.
-
-~~**B-47. `markMessagesRead` not awaited inside realtime callback**~~ — Fixed: `await` added in `components/shared/ChatInterface.tsx`.
-
-~~**B-48. Weekly session limit hardcoded `>= 1`**~~ — Fixed: `sessionsPerWeek` field added to all 10 plans in `lib/plans.ts`; `ClientSessionsView` reads it from props; sessions page derives it from the active subscription's plan key.
-
-~~**B-49. Switch-request doesn't verify match is active**~~ — Already fixed: `app/actions/switch-therapist.ts` had `.eq('status', 'active')` check.
-
-~~**B-50. No rate limiting**~~ — Fixed: in-memory sliding-window rate limiter added to `lib/supabase/middleware.ts`; limits payment API routes (5–10 req/min per IP).
-
-~~**B-51. No DPDP-compliant data deletion flow**~~ — Fixed: `deleteAccount` server action in `app/actions/delete-account.ts` deletes auth user (cascades all personal data); two-step confirmation UI added to client account page.
-
-~~**B-52. Admin login has no `noindex` metadata**~~ — Fixed: `robots: { index: false }` added to `/admin/login`.
-
----
-
-#### ✅ Resolved / not actually bugs (cleared from prior list)
-
-- ~~Therapist nav showing Notes when unmatched~~ — Audit confirmed the filter logic works correctly per render.
-- ~~Chat intro count behavior~~ — Confirmed correct: counter resets on re-match because it scopes to `match_id + sender_id`.
-
-**Fixed — Security & data (Phases 1–4, audit 2026-05-07)**
-- ~~B-02~~ IDOR `saveSessionNotes` — ownership check added (`match.therapist_id === user.id`) in `app/actions/sessions.ts`
-- ~~B-03~~ IDOR `updateSessionStatus` — ownership check added (therapist OR client of match) in `app/actions/sessions.ts`
-- ~~B-04~~ IDOR `scheduleSession` — ownership check added (`match.client_id === user.id`) in `app/actions/sessions.ts`
-- ~~B-05~~ Cron auth conditional — check made unconditional; returns 401 if `CRON_SECRET` unset in `app/api/cron/session-reminders/route.ts`
-- ~~B-06~~ Forgot-password email enumeration — now always returns same success message; replaced `listUsers` with direct email lookup in `app/actions/auth.ts`
-- ~~B-07~~ Dual Razorpay webhook handlers — deleted `app/api/payment/webhook/route.ts`; removed from middleware allowlist
-- ~~B-08~~ HMAC `===` comparison — replaced with `crypto.timingSafeEqual()` in both verify and webhook routes
-- ~~B-19~~ Admin `createMatch` double-match — pre-insert check added in `app/admin/actions.ts`; DB unique partial index on `matches(client_id) WHERE status='active'` via migration
-- ~~B-52~~ Admin login crawlable — added `robots: { index: false }` metadata to `/admin/login`
-
-**Fixed — Payment & subscription (Phase 5)**
-- ~~B-09~~ Webhook idempotency — `subscription.charged` handler dedupes on `razorpay_payment_id` before applying state changes
-- ~~B-10~~ Verify trusts client-supplied `plan` — removed `plan` from Zod schema; fetches cadence from DB by `razorpay_subscription_id`
-- ~~B-11~~ Subscription creation race — DB unique partial index on `subscriptions(client_id) WHERE status IN ('active','pending')` via migration; code catches 23505
-- ~~B-14~~ Cancel subscription loses access immediately — gate changed to `.in('status', ['active', 'cancelled'])` with `current_period_end` date check in `app/actions/sessions.ts`
-- ~~B-15~~ `subscription_plan` enum mismatch — `schema.sql` updated with all 10 plan values; migration handles deployed envs
-- ~~B-16~~ Therapist payment page hardcoded plan keys — replaced with canonical keys from `lib/plans.ts`
-- ~~B-17~~ `razorpay_plan_id` abused as order-ID — `razorpay_order_id` column added; `create-order` writes to new column
-
-**Fixed — Schema & data (Phase 6)**
-- ~~B-12~~ Questionnaire data never reaches DB — `saveQuestionnaire` server action added in `app/actions/questionnaire.ts`; all three questionnaire pages call it before redirecting
-- ~~B-13~~ Admin pending clients show empty fields — `backfillClientProfile()` maps questionnaire answers to `client_profiles` fields; called at questionnaire save and at signup
-- ~~B-18~~ `profiles.email` missing — column added to `profiles`; `handle_new_user()` trigger updated; `sync_profile_email` trigger keeps it in sync with `auth.users`
-- ~~B-20~~ Cron dedup filter broken — fixed to use `->>` (text) operator instead of literal-quoted `->` JSON path
-- ~~B-21~~ Cron email title wrong — template copy updated to match actual 25-hour window
-- ~~B-22~~ Contact form silent drop — form now POSTs to server action that writes to `contact_messages` table
-
-**Fixed — Pages & infrastructure (Phase 3 + audit)**
-- ~~B-23~~ `/terms` missing — `app/terms/page.tsx` created with 14 legal sections, proper metadata, Navbar + Footer
-- ~~B-25~~ Footer links broken — `/about`, `/contact` hrefs fixed; service links updated to `/questionnaire/{individual,couples,teen}`
-- ~~B-26~~ JSON-LD `medicalSpecialty: "Psychiatry"` — changed to `"CounselingPsychology"` in `app/layout.tsx`
-- ~~B-27~~ Missing static assets — `robots.txt`, `sitemap.xml` added to `/public`; OG image placeholder wired
-- ~~B-28~~ `next.config.ts` empty — `images.remotePatterns` added for Supabase storage domain
-- ~~B-31~~ Missing dashboard error/not-found pages — added `error.tsx` for client and therapist dashboards; `not-found.tsx` for `[matchId]` route
-- ~~B-32~~ `force-dynamic` on static pages — removed from FAQ, reviews, about, contact; ISR revalidate added
-
-**Fixed — Design synchronicity (Phase 7)**
-- ~~B-29~~ Tone violations — "therapy journey" and "on your terms" removed from login/signup pages
-- ~~B-30~~ Demo phone number — phone block removed from `app/contact/page.tsx`
-- ~~B-33~~ Legacy questionnaire non-brand colors — `app/questionnaire/page.tsx` redirects to `/questionnaire/individual`
-- ~~B-34~~ Input border inconsistency — `border-2` → `border` standardized across contact, therapist apply, and questionnaire forms
-- ~~B-35~~ Button radii — already correct (all primary CTAs use `rounded-full`); no change needed
-- ~~B-36~~ Page padding inconsistency — questionnaire pages updated to `px-4 md:px-6`
-- ~~B-37~~ Hex colors hardcoded — brand color tokens added to `globals.css` `@theme inline` block
-- ~~B-38~~ Questionnaire pages missing Navbar/Footer — Footer added to all three questionnaire pages (header already present)
-- ~~B-39~~ Section accent color inconsistency — `text-[#7EC0B7]` → `text-[#3D8A80]` for section labels on white backgrounds
-- ~~B-40~~ Form headings too small — login/signup primary headings bumped from `text-2xl` to `text-3xl`
-
-**Fixed — Code quality (Phase 4 audit)**
-- ~~B-46~~ Notification errors swallowed — `.catch(() => {})` replaced with proper error logging in `app/actions/sessions.ts`
-- ~~B-47~~ `markMessagesRead` not awaited — `await` added inside realtime callback in `components/shared/ChatInterface.tsx`
-
-**Fixed — Final phase (2026-05-10)**
-- ~~B-42~~ Schema.sql gaps — `notifications`, `therapist_applications`, `therapist_switch_requests` tables and unique partial indexes folded in
-- ~~B-44~~ Hardcoded availability — replaced with `weekly_availability` JSONB; therapist slot-picker on home dashboard; `ClientSessionsView` reads live data
-- ~~B-45~~ Daily.co URL unvalidated — `JoinButton` validates `*.daily.co` pattern before navigation
-- ~~B-48~~ Session limit hardcoded — `sessionsPerWeek` added to all plans in `lib/plans.ts`; `ClientSessionsView` uses prop instead of hardcoded 1
-- ~~B-49~~ Switch-request match status — already had `.eq('status', 'active')` check; no change needed
-- ~~B-50~~ No rate limiting — in-memory sliding-window limiter added to middleware for payment API routes
-- ~~B-51~~ No data deletion — `deleteAccount` server action created; two-step confirmation UI in client account page
 
 ---
 

@@ -84,6 +84,70 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   revalidatePath('/admin')
 }
 
+type Proposal = { therapistId: string; summary: string }
+
+/**
+ * Dual-therapist match: admin proposes a Standard (basic-tier) and a
+ * Professional (premium-tier) therapist as two `pending` matches. The client
+ * picks one via "Start a free chat" (see app/actions/choose-therapist.ts).
+ *
+ * Only the client is notified here — therapists are notified when chosen.
+ */
+export async function createMatchProposals(
+  clientId: string,
+  standard: Proposal,
+  professional: Proposal,
+) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  if (!standard.therapistId || !professional.therapistId) {
+    throw new Error('Pick both a Standard and a Professional therapist.')
+  }
+  if (standard.therapistId === professional.therapistId) {
+    throw new Error('The Standard and Professional therapists must be different people.')
+  }
+
+  // Reject if the client already has an active match OR pending proposals.
+  const { data: existing } = await (admin as any)
+    .from('matches')
+    .select('id')
+    .eq('client_id', clientId)
+    .in('status', ['active', 'pending']) as { data: { id: string }[] | null; error: unknown }
+
+  if (existing && existing.length > 0) {
+    throw new Error('This client already has an active match or pending proposals. End those first.')
+  }
+
+  const now = new Date().toISOString()
+  const rows = [
+    { tier: 'standard', ...standard },
+    { tier: 'professional', ...professional },
+  ].map((p) => ({
+    client_id: clientId,
+    therapist_id: p.therapistId,
+    matched_by: adminUser.id,
+    tier: p.tier,
+    admin_summary: p.summary || null,
+    status: 'pending',
+    created_at: now,
+  }))
+
+  const { error } = await (admin as any).from('matches').insert(rows)
+  if (error) throw new Error(error.message)
+
+  // Notify the client that two therapists are ready to review.
+  createNotification({
+    userId: clientId,
+    type: 'client_proposals_ready',
+    title: 'Your therapist matches are ready',
+    body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
+    metadata: { proposals: 2 },
+  }).catch(() => {})
+
+  revalidatePath('/admin')
+}
+
 export async function toggleTherapistVerification(therapistProfileId: string, currentValue: boolean) {
   await assertAdmin()
   const admin = createAdminClient()

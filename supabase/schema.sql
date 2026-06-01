@@ -148,6 +148,10 @@ CREATE TABLE matches (
   client_id UUID NOT NULL REFERENCES profiles(id),
   therapist_id UUID NOT NULL REFERENCES profiles(id),
   status match_status NOT NULL DEFAULT 'pending',
+  -- Dual-proposal matching: admin proposes a Standard + a Professional therapist
+  -- as two `pending` rows; the client picks one (→ active), the other ends.
+  tier TEXT,                                 -- 'standard' | 'professional' (null = legacy single match)
+  admin_summary TEXT,                        -- optional interview-based blurb shown on the client's card
   matched_by UUID REFERENCES profiles(id),   -- admin who made the match
   notes TEXT,                                -- admin notes on why this match
   started_at TIMESTAMPTZ,
@@ -175,9 +179,20 @@ CREATE TABLE sessions (
   daily_room_name TEXT,
   -- Notes (therapist only)
   therapist_notes TEXT,
+  -- Pay-as-you-go: per-session payment (frozen at booking time)
+  client_amount_paise INTEGER,             -- what the client paid, in paise
+  therapist_payout_paise INTEGER,          -- therapist's earning for this session, in paise
+  payment_status TEXT NOT NULL DEFAULT 'pending',  -- 'pending' | 'paid'
+  category TEXT,                           -- 'individual' | 'teen' | 'couples' (frozen)
+  tier TEXT,                               -- 'standard' | 'professional' (frozen)
+  razorpay_order_id TEXT,
+  razorpay_payment_id TEXT,
+  paid_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_sessions_razorpay_order_id ON sessions(razorpay_order_id);
 
 -- ============================================================
 -- MESSAGES (real-time chat)

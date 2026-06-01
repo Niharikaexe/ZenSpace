@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-const initialState = { error: undefined, success: false }
+const initialState: AuthState = {}
 
 const usps = [
   {

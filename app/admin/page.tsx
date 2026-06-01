@@ -8,6 +8,7 @@ import type {
   InviteCode,
   TherapistApplication,
   SwitchRequest,
+  EmailLog,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,7 @@ export default async function AdminPage() {
     { data: questionnaireResponses },
     { data: allSubscriptions },
     { data: therapistUsers },
+    authUsersResp,
   ] = await Promise.all([
     clientIds.length > 0
       ? admin.from('client_profiles').select('*').in('user_id', clientIds)
@@ -86,7 +88,16 @@ export default async function AdminPage() {
     therapistUserIds.length > 0
       ? admin.from('profiles').select('id, full_name, avatar_url').in('id', therapistUserIds)
       : Promise.resolve({ data: [] }),
+    // Auth users for email_confirmed_at — caps at 1000 (Supabase listUsers limit).
+    // Past that, switch to paginated scan keyed on a stored cursor.
+    admin.auth.admin.listUsers({ perPage: 1000 }),
   ])
+
+  // Map<userId, { email_confirmed_at: string | null }>
+  const authMap = new Map<string, { email_confirmed_at: string | null }>()
+  for (const u of (authUsersResp?.data?.users ?? [])) {
+    authMap.set(u.id, { email_confirmed_at: u.email_confirmed_at ?? null })
+  }
 
   // ── Build unmatched clients ──────────────────────────────────────────────────
   const unmatchedClients: UnmatchedClient[] = (allClients ?? [])
@@ -96,6 +107,7 @@ export default async function AdminPage() {
       full_name: c.full_name,
       avatar_url: c.avatar_url ?? null,
       created_at: c.created_at,
+      email_confirmed_at: authMap.get(c.id)?.email_confirmed_at ?? null,
       clientProfile: (clientProfiles ?? []).find((cp: any) => cp.user_id === c.id) ?? null,
       questionnaire: (questionnaireResponses ?? []).find((q: any) => q.client_id === c.id) ?? null,
       subscription: (allSubscriptions ?? []).find((s: any) => s.client_id === c.id) ?? null,
@@ -131,6 +143,7 @@ export default async function AdminPage() {
     client_id: m.client_id,
     therapist_id: m.therapist_id,
     status: m.status,
+    tier: m.tier ?? null,
     notes: m.notes ?? null,
     started_at: m.started_at ?? null,
     created_at: m.created_at,
@@ -189,6 +202,7 @@ export default async function AdminPage() {
         id: a.id,
         full_name: a.full_name,
         email: a.email,
+        email_verified_at: a.email_verified_at ?? null,
         phone: a.phone ?? null,
         city: a.city ?? null,
         state: a.state ?? null,
@@ -201,6 +215,8 @@ export default async function AdminPage() {
         license_body: a.license_body ?? null,
         years_experience: a.years_experience ?? 0,
         education: a.education ?? null,
+        expected_session_pay: a.expected_session_pay ?? null,
+        expected_session_pay_currency: a.expected_session_pay_currency ?? null,
         specializations: a.specializations ?? [],
         specialization_other: a.specialization_other ?? null,
         languages: a.languages ?? [],
@@ -211,7 +227,9 @@ export default async function AdminPage() {
         certificate_signed_urls: certificateSignedUrls,
         certificate_download_urls: certificateDownloadUrls,
         status: a.status,
+        admin_notes: a.admin_notes ?? null,
         submitted_at: a.submitted_at,
+        reviewed_at: a.reviewed_at ?? null,
       }
     })
   )
@@ -235,6 +253,30 @@ export default async function AdminPage() {
   const { data: switchTherapistProfiles } = switchTherapistIds.length > 0
     ? await admin.from('profiles').select('id, full_name').in('id', switchTherapistIds)
     : { data: [] }
+
+  // ── Email logs (most recent 200) ────────────────────────────────────────────
+  const { data: rawEmailLogs } = await admin
+    .from('email_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  const emailLogs: EmailLog[] = (rawEmailLogs ?? []).map((row: any) => ({
+    id: row.id,
+    resend_id: row.resend_id ?? null,
+    recipient: row.recipient,
+    template: row.template,
+    subject: row.subject ?? null,
+    related_user_id: row.related_user_id ?? null,
+    related_application_id: row.related_application_id ?? null,
+    related_match_id: row.related_match_id ?? null,
+    send_status: row.send_status,
+    send_error: row.send_error ?? null,
+    resend_status_code: row.resend_status_code ?? null,
+    last_status: row.last_status ?? null,
+    last_status_at: row.last_status_at ?? null,
+    created_at: row.created_at,
+  }))
 
   const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
     const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)
@@ -265,6 +307,7 @@ export default async function AdminPage() {
       inviteCodes={inviteCodes}
       applications={applications}
       switchRequests={switchRequests}
+      emailLogs={emailLogs}
     />
   )
 }
