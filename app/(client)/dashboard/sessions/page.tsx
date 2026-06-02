@@ -57,7 +57,7 @@ export default async function ClientSessionsPage() {
   const [tProfileResult, tUserResult, sessionsResult, userResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified, timezone')
+      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified, timezone, tagline, education, license_country, session_expectations')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -79,9 +79,13 @@ export default async function ClientSessionsPage() {
   const therapist = {
     fullName: tu?.full_name ?? 'Your Therapist',
     avatarUrl: tu?.avatar_url ?? null,
+    tagline: tp?.tagline ?? null,
     specializations: tp?.specializations ?? [],
     bio: tp?.bio ?? null,
     approach: tp?.approach ?? null,
+    education: tp?.education ?? null,
+    licenseCountry: tp?.license_country ?? null,
+    sessionExpectations: tp?.session_expectations ?? null,
     yearsExperience: tp?.years_experience ?? 0,
     languages: tp?.languages ?? ['English'],
     isVerified: tp?.is_verified ?? false,
@@ -105,6 +109,7 @@ export default async function ClientSessionsPage() {
     <ClientSessionsView
       matchId={match.id}
       currentUserId={user.id}
+      therapistUserId={match.therapist_id}
       clientName={profile?.full_name ?? ''}
       userEmail={userEmail}
       therapist={therapist}

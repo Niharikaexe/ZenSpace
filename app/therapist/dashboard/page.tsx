@@ -6,6 +6,7 @@ import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 import { logger } from '@/lib/logger'
+import { toIanaTimeZone } from '@/lib/timezones'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,10 +15,11 @@ function formatDate(iso: string) {
 }
 
 function formatDateTime(iso: string, tz?: string | null) {
+  const zone = toIanaTimeZone(tz)
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit', hour12: true,
-    ...(tz ? { timeZone: tz } : {}),
+    ...(zone ? { timeZone: zone } : {}),
   })
 }
 

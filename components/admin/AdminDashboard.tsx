@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { signOut } from '@/app/actions/auth'
 import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
@@ -240,6 +242,63 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [appFilter, setAppFilter] = useState<AppFilter>('all')
   const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
 
+  // ── Live data: Supabase Realtime → router.refresh() ─────────────────────────
+  // Any insert/update/delete on a table that feeds this dashboard re-runs the
+  // server component (single source of truth — no client-side data merging).
+  const router = useRouter()
+  const [live, setLive] = useState(false)
+  const [lastSync, setLastSync] = useState<Date>(() => new Date())
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    // Debounce bursts (e.g. a signup that writes profile + questionnaire + client_profile)
+    refreshTimer.current = setTimeout(() => {
+      router.refresh()
+      setLastSync(new Date())
+    }, 800)
+  }, [router])
+
+  useEffect(() => {
+    const supabase = createClient()
+    const tables = [
+      'profiles', 'client_profiles', 'questionnaire_responses', 'subscriptions',
+      'matches', 'therapist_profiles', 'therapist_applications',
+      'therapist_switch_requests', 'email_logs',
+    ]
+    const channel = supabase.channel('admin-dashboard')
+    for (const table of tables) {
+      channel.on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        'postgres_changes' as any,
+        { event: '*', schema: 'public', table },
+        scheduleRefresh,
+      )
+    }
+    channel.subscribe(status => setLive(status === 'SUBSCRIBED'))
+    return () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current)
+      supabase.removeChannel(channel)
+    }
+  }, [scheduleRefresh])
+
+  // Safety net: re-sync when the admin returns to the tab, in case an event was
+  // missed while the connection was asleep (mobile background, laptop lid, etc.)
+  useEffect(() => {
+    function resync() {
+      if (document.visibilityState === 'visible') {
+        router.refresh()
+        setLastSync(new Date())
+      }
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('focus', resync)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('focus', resync)
+    }
+  }, [router])
+
   const appUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
   function copyToClipboard(text: string, id: string) {
@@ -290,9 +349,22 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
               <p className="text-xs text-slate-400">Welcome back, {adminName.split(' ')[0]}</p>
             </div>
           </div>
-          <form action={signOut}>
-            <Button type="submit" variant="outline" size="sm" className="text-xs text-slate-600">Sign out</Button>
-          </form>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { router.refresh(); setLastSync(new Date()) }}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+              title={`Last updated ${lastSync.toLocaleTimeString()}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+              <span className="hidden sm:inline">{live ? 'Live' : 'Reconnecting'}</span>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <form action={signOut}>
+              <Button type="submit" variant="outline" size="sm" className="text-xs text-slate-600">Sign out</Button>
+            </form>
+          </div>
         </div>
       </header>
 

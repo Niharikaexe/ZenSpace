@@ -158,7 +158,7 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
                   { label: 'My Account', href: '/dashboard/account', always: true },
                   { label: 'My Therapist', href: '/dashboard/my-therapist', always: false },
                   { label: 'Change Therapist', href: '/dashboard/change-therapist', always: false },
-                  { label: 'Sessions', href: '/dashboard/sessions', always: false },
+                  { label: 'Subscription', href: '/dashboard/subscription', always: true },
                 ].filter(item => item.always || isMatched).map(item => (
                   <Link
                     key={item.label}

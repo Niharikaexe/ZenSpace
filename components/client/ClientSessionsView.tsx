@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import ClientNav from '@/components/client/ClientNav'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
 import { formatInr } from '@/lib/plans'
+import { toIanaTimeZone } from '@/lib/timezones'
 
 type Session = {
   id: string
@@ -22,6 +24,7 @@ type Session = {
 interface Props {
   matchId: string
   currentUserId: string
+  therapistUserId: string
   clientName: string
   userEmail: string
   therapist: TherapistPanelData
@@ -69,6 +72,9 @@ function buildWeek(
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>,
   therapistTimezone: string,
 ): DayEntry[] {
+  // Normalize the stored timezone (which may be a legacy label like "IST
+  // (India)") into a valid IANA zone before it reaches Intl. Falls back to IST.
+  const tz = toIanaTimeZone(therapistTimezone) ?? 'Asia/Kolkata'
   const now = new Date()
   const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
   const days: DayEntry[] = []
@@ -81,7 +87,7 @@ function buildWeek(
     const slots: TimeSlot[] = (weeklyAvailability[String(d.getDay())] ?? [])
       .map(({ hour, minute }) => {
         // Convert the therapist's local hour:minute on this calendar date → UTC
-        const slotDate = localTimeToUTC(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, therapistTimezone)
+        const slotDate = localTimeToUTC(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, tz)
         if (slotDate <= cutoff) return null
         // Display time in client's browser timezone (IST for most users)
         const label12 = slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })
@@ -110,7 +116,7 @@ function formatDT(iso: string, timezone?: string | null) {
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: true,
-    timeZone: timezone ?? undefined,
+    timeZone: toIanaTimeZone(timezone),
   })
 }
 
@@ -178,6 +184,12 @@ function PaySessionModal({
       if (!orderRes.ok) {
         setError(orderData.error ?? 'Couldn’t start the payment. Please try again.')
         setPhase('idle')
+        return
+      }
+
+      // Booked against a monthly-bundle credit — no payment needed.
+      if (orderData.booked) {
+        onBooked(`${dayLabel} · ${slot.label12}`)
         return
       }
 
@@ -319,6 +331,7 @@ function PaySessionModal({
 
 export default function ClientSessionsView({
   matchId,
+  therapistUserId,
   clientName,
   userEmail,
   therapist,
@@ -331,6 +344,29 @@ export default function ClientSessionsView({
   weeklyAvailability,
 }: Props) {
   const router = useRouter()
+
+  // Live availability: when the therapist edits their weekly slots, their
+  // therapist_profiles row updates — re-fetch so the booking grid reflects it
+  // without the client reloading. (RLS: clients can read their matched
+  // therapist's profile; therapist_profiles is in the realtime publication.)
+  useEffect(() => {
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`therapist-availability:${therapistUserId}`)
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        'postgres_changes' as any,
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'therapist_profiles',
+          filter: `user_id=eq.${therapistUserId}`,
+        },
+        () => router.refresh(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [therapistUserId, router])
   const [selectedDay, setSelectedDay]     = useState<string | null>(null)
   const [openSlot, setOpenSlot]           = useState<TimeSlot | null>(null)
   const [bookedLabel, setBookedLabel]     = useState<string | null>(null)
@@ -352,7 +388,7 @@ export default function ClientSessionsView({
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">

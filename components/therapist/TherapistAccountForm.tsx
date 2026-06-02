@@ -2,14 +2,18 @@
 
 import { useState, useRef, useTransition, useActionState } from 'react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import {
   updateTherapistProfile,
   sendTherapistPasswordReset,
-  updateTherapistAvatar,
+  saveTherapistAvatar,
   deleteTherapistAvatar,
   type TherapistProfileState,
 } from '@/app/actions/therapist-profile'
 import { signOut } from '@/app/actions/auth'
+
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 // Client groups — three prominent picks shown above the full specialisations list
 const CLIENT_GROUPS = ['Teen', 'Adult', 'Couples']
@@ -153,10 +157,41 @@ export function TherapistAccountForm({ initialData }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
     setAvatarError(null)
-    const fd = new FormData()
-    fd.set('avatar', file, file.name)
+
+    if (file.size > MAX_PHOTO_BYTES) {
+      setAvatarError('Photo must be under 5 MB.')
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+      return
+    }
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      setAvatarError('Photo must be JPG, PNG, or WebP.')
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+      return
+    }
+
     startAvatarTransition(async () => {
-      const result = await updateTherapistAvatar(fd)
+      // Upload straight to Supabase Storage from the browser so the file never
+      // passes through the Server Action (which caps request bodies at 1 MB).
+      // We write under our own folder (therapists/<uid>/...) and then hand the
+      // resulting path to the server action, which records its public URL.
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setAvatarError('Your session expired. Please sign in again.')
+        return
+      }
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `therapists/${user.id}/avatar-${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { contentType: file.type, upsert: true })
+      if (uploadErr) {
+        setAvatarError(`Upload failed: ${uploadErr.message}`)
+        if (avatarInputRef.current) avatarInputRef.current.value = ''
+        return
+      }
+
+      const result = await saveTherapistAvatar(path)
       if (result.error) {
         setAvatarError(result.error)
       } else {

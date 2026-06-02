@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createNotification } from '@/lib/notifications'
+import { createDailyRoom } from '@/lib/daily'
 import { z } from 'zod'
 import {
   sessionPriceInr,
@@ -91,6 +93,104 @@ export async function POST(request: Request) {
 
   const clientPaise = sessionPriceInr(category, tier) * 100
   const payoutPaise = therapistSessionPayoutInr(category, tier, yearsExperience) * 100
+
+  // ── Monthly bundle: consume a prepaid credit instead of charging ────────────
+  // If the client has an active bundle with credits left, book the session
+  // immediately as 'paid' (no fresh Razorpay charge) and decrement the bundle.
+  // The decrement is a compare-and-swap on credits_remaining; if it loses a
+  // race, we fall through to the normal pay-per-session flow below.
+  const { data: bundle } = await (admin as any)
+    .from('session_bundles')
+    .select('id, credits_remaining, per_session_paise')
+    .eq('client_id', user.id)
+    .eq('status', 'active')
+    .gt('credits_remaining', 0)
+    .maybeSingle() as {
+      data: { id: string; credits_remaining: number; per_session_paise: number | null } | null
+      error: unknown
+    }
+
+  if (bundle) {
+    const remaining = bundle.credits_remaining - 1
+    const { data: claimed } = await (admin as any)
+      .from('session_bundles')
+      .update({
+        credits_remaining: remaining,
+        ...(remaining <= 0 ? { status: 'exhausted' } : {}),
+      })
+      .eq('id', bundle.id)
+      .eq('status', 'active')
+      .eq('credits_remaining', bundle.credits_remaining) // CAS guard
+      .select('id') as { data: { id: string }[] | null; error: unknown }
+
+    if (claimed && claimed.length > 0) {
+      // Credit secured — create the paid session now.
+      const room = await createDailyRoom(matchId, scheduledDate.toISOString())
+      const { data: inserted, error: dbErr } = await (admin as any)
+        .from('sessions')
+        .insert({
+          match_id: matchId,
+          session_type: 'video',
+          status: 'scheduled',
+          scheduled_at: scheduledDate.toISOString(),
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          client_amount_paise: bundle.per_session_paise ?? clientPaise,
+          therapist_payout_paise: payoutPaise,
+          category,
+          tier,
+          daily_room_url: room.url,
+          daily_room_name: room.name,
+        })
+        .select('id')
+        .single() as { data: { id: string } | null; error: unknown }
+
+      if (dbErr || !inserted) {
+        // Refund the credit we just claimed so it isn't silently lost.
+        await (admin as any)
+          .from('session_bundles')
+          .update({ credits_remaining: bundle.credits_remaining, status: 'active' })
+          .eq('id', bundle.id)
+        logger.error('api/payment/session-order', 'Failed to insert bundle-booked session', dbErr, {
+          userId: user.id, matchId, bundleId: bundle.id,
+        })
+        return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+      }
+
+      logger.info('api/payment/session-order', 'Session booked via bundle credit', {
+        userId: user.id, matchId, sessionId: inserted.id, bundleId: bundle.id, creditsLeft: remaining,
+      })
+
+      // Notify the therapist (fire-and-forget), mirroring session-verify.
+      try {
+        const dateStr = scheduledDate.toLocaleString('en-IN', {
+          weekday: 'short', day: 'numeric', month: 'short',
+          hour: '2-digit', minute: '2-digit', hour12: true,
+        })
+        const { data: profiles } = await (admin as any)
+          .from('profiles').select('id, full_name')
+          .in('id', [match.therapist_id, match.client_id])
+        const therapistFirstName = ((profiles ?? []).find((p: any) => p.id === match.therapist_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
+        const clientFirstName = ((profiles ?? []).find((p: any) => p.id === match.client_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
+
+        createNotification({
+          userId: match.therapist_id,
+          type: 'session_scheduled_therapist',
+          title: 'Session booked',
+          body: `A video session has been booked for ${dateStr}.`,
+          metadata: {
+            matchId, scheduledAt: scheduledDate.toISOString(), sessionType: 'video', dateStr,
+            therapistFirstName, clientFirstName,
+          },
+        }).catch((err) => logger.error('api/payment/session-order', 'Failed to send booking notification', err))
+      } catch (err) {
+        logger.warn('api/payment/session-order', 'Bundle booking notification dispatch failed', { sessionId: inserted.id, err: err instanceof Error ? err.message : String(err) })
+      }
+
+      return NextResponse.json({ booked: true, sessionId: inserted.id, creditsRemaining: remaining })
+    }
+    // CAS lost — fall through to pay-per-session below.
+  }
 
   const keyId = process.env.RAZORPAY_KEY_ID
   const keySecret = process.env.RAZORPAY_KEY_SECRET

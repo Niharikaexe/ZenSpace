@@ -210,17 +210,30 @@ export function PendingDashboard({
   function buildPreferencesList(): string[] {
     if (!questionnairePrefs) return []
     const lines: string[] = []
+
     if (questionnairePrefs.type === 'couples') {
-      lines.push('A therapist experienced in couples and relationship dynamics')
+      lines.push('A therapist who works with couples — someone who can hold both sides of the relationship, not just one')
     } else if (questionnairePrefs.type === 'teen') {
-      lines.push('A therapist experienced in working with young adults (14–20)')
+      lines.push('A therapist who genuinely understands young adults (14–20), without talking down to them')
     }
+
     if (questionnairePrefs.concerns.length > 0) {
-      lines.push(`A therapist experienced in: ${questionnairePrefs.concerns.slice(0, 3).join(', ')}`)
+      const concerns = questionnairePrefs.concerns.slice(0, 3).join(', ')
+      lines.push(`Real experience with what you're navigating — ${concerns}`)
     }
-    if (questionnairePrefs.therapistGender && questionnairePrefs.therapistGender !== 'No preference') {
-      lines.push(`Preferred therapist gender: ${questionnairePrefs.therapistGender}`)
+
+    // Only surface gender when the client expressed an actual preference.
+    // The questionnaire stores "No strong preference" for no-preference, so check
+    // for the specific gender keywords rather than excluding a single string.
+    const gender = questionnairePrefs.therapistGender?.toLowerCase() ?? ''
+    if (gender.includes('female')) {
+      lines.push("A female therapist, since that's who you said you'd feel most at ease with")
+    } else if (gender.includes('male')) {
+      lines.push("A male therapist, since that's who you said you'd feel most at ease with")
+    } else if (gender.includes('non-binary') || gender.includes('gender-diverse')) {
+      lines.push('A non-binary or gender-diverse therapist, as you asked for')
     }
+
     return lines
   }
 

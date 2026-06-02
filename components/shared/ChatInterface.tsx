@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useTransition } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { sendMessage, markMessagesRead } from '@/app/actions/sessions'
 
@@ -46,13 +46,18 @@ export default function ChatInterface({
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
-  const [isSending, startSend] = useTransition()
+  const [isSending, setIsSending] = useState(false)
+  // Ref guard prevents a stuck pending state from permanently blocking sends —
+  // it is always cleared in the finally below, unlike a transition's flag.
+  const sendingRef = useRef(false)
   const [sendError, setSendError] = useState<string | null>(null)
   // Set true when the server rejects a send because the 25-message free intro
   // is used up mid-session. Combined with the sendDisabled prop (computed at
   // page load), it gates further sends.
   const [introBlocked, setIntroBlocked] = useState(false)
   const blocked = sendDisabled || introBlocked
+  // Popup shown when a blocked client tries to send — prompts them to book.
+  const [showLimitModal, setShowLimitModal] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -73,6 +78,16 @@ export default function ChatInterface({
           const newMsg = payload.new as Message
           setMessages(prev => {
             if (prev.some(m => m.id === newMsg.id)) return prev
+            // Reconcile our own optimistic placeholder with the real row so the
+            // message isn't rendered twice.
+            const optIdx = prev.findIndex(
+              m => m.id.startsWith('opt-') && m.sender_id === newMsg.sender_id && m.content === newMsg.content
+            )
+            if (optIdx !== -1) {
+              const copy = [...prev]
+              copy[optIdx] = newMsg
+              return copy
+            }
             return [...prev, newMsg]
           })
           void markMessagesRead(matchId)
@@ -95,9 +110,9 @@ export default function ChatInterface({
     e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
   }
 
-  function handleSend() {
-    if (!input.trim() || isSending) return
-    if (blocked) { onSendDisabled?.(); return }
+  async function handleSend() {
+    if (!input.trim() || sendingRef.current) return
+    if (blocked) { setShowLimitModal(true); return }
     const content = input.trim()
     setInput('')
     setSendError(null)
@@ -113,21 +128,29 @@ export default function ChatInterface({
     }
     setMessages(prev => [...prev, optimistic])
 
-    startSend(async () => {
+    sendingRef.current = true
+    setIsSending(true)
+    try {
       const result = await sendMessage(matchId, content)
       if (result?.error) {
         if (result.error === 'session_required' || result.error === 'subscribe_required') {
           // Server rejected — the 25-message free intro is used up and the
-          // client hasn't booked a session yet. Block further sends and nudge
-          // them to book.
+          // client hasn't booked a session yet. Stop the chat and pop the
+          // booking modal.
           setIntroBlocked(true)
-          onSendDisabled?.()
+          setShowLimitModal(true)
         } else {
           setSendError(result.error)
         }
         setMessages(prev => prev.filter(m => m.id !== optimistic.id))
       }
-    })
+    } catch {
+      setSendError('Message failed to send. Please try again.')
+      setMessages(prev => prev.filter(m => m.id !== optimistic.id))
+    } finally {
+      sendingRef.current = false
+      setIsSending(false)
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -212,6 +235,27 @@ export default function ChatInterface({
         </div>
       )}
 
+      {/* Persistent booking prompt — stays after the modal is dismissed.
+          Client-only (gated on onSendDisabled). */}
+      {blocked && onSendDisabled && (
+        <div className="flex-none px-4 pt-3">
+          <div className="flex items-center gap-3 rounded-2xl bg-[#7EC0B7]/12 border border-[#7EC0B7]/30 px-4 py-3">
+            <svg className="w-5 h-5 text-[#3D8A80] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="flex-1 text-xs sm:text-sm text-[#233551]/80 font-medium leading-snug">
+              Your free intro chat is over. Book a session to keep chatting with {otherPartyName}.
+            </p>
+            <button
+              onClick={() => onSendDisabled()}
+              className="flex-shrink-0 text-xs font-bold text-white bg-[#233551] hover:bg-[#1e2d47] px-3.5 py-2 rounded-full transition-colors whitespace-nowrap"
+            >
+              Book a session
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
       <div className="flex-none border-t border-slate-200 bg-white px-4 py-3">
         <div className="flex items-end gap-2.5">
@@ -220,14 +264,15 @@ export default function ChatInterface({
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${otherPartyName}...`}
+            disabled={blocked}
+            placeholder={blocked ? 'Book a session to keep chatting…' : `Message ${otherPartyName}...`}
             rows={1}
-            className="flex-1 resize-none border border-slate-200 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent overflow-hidden bg-slate-50"
+            className="flex-1 resize-none border border-slate-200 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent overflow-hidden bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ minHeight: '42px', maxHeight: '120px' }}
           />
           <button
             onClick={handleSend}
-            disabled={!input.trim() && !blocked}
+            disabled={(!input.trim() && !blocked) || isSending}
             className="w-11 h-11 rounded-full bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 mb-px"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -235,14 +280,57 @@ export default function ChatInterface({
             </svg>
           </button>
         </div>
-        {blocked ? (
-          <p className="text-xs text-[#3D8A80] text-center mt-1.5 font-medium">
-            <button onClick={() => onSendDisabled?.()} className="underline hover:text-[#233551] transition-colors">Subscribe to continue messaging →</button>
-          </p>
-        ) : (
+        {!blocked && (
           <p className="text-xs text-slate-400 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>
         )}
       </div>
+
+      {/* Free-intro limit reached — booking prompt. Client-only: gated on
+          onSendDisabled, which only the client view provides (therapists are
+          never intro-limited and never pass this handler). */}
+      {showLimitModal && onSendDisabled && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowLimitModal(false) }}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="bg-[#233551] px-6 pt-6 pb-5">
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-1">Free intro chat</p>
+              <h2 className="text-white text-xl font-black leading-snug">That&apos;s your 25 free messages.</h2>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-[#233551]/70 leading-relaxed">
+                You&apos;ve used your free intro chat with {otherPartyName}. Book a session to keep
+                the conversation going — pay as you go, no subscription.
+              </p>
+            </div>
+            <div className="px-6 pb-6 flex flex-col gap-2">
+              <button
+                onClick={() => { setShowLimitModal(false); onSendDisabled?.() }}
+                className="w-full py-3.5 bg-[#233551] text-white font-black text-sm rounded-2xl hover:bg-[#1e2d47] transition-colors"
+              >
+                Book a session
+              </button>
+              <button
+                onClick={() => setShowLimitModal(false)}
+                className="w-full py-2.5 text-[#233551]/55 font-semibold text-sm rounded-2xl hover:bg-slate-50 transition-colors"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

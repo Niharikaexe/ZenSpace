@@ -52,7 +52,7 @@ export default async function ClientChatPage() {
   const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, is_verified')
+      .select('specializations, bio, approach, years_experience, languages, is_verified, tagline, education, license_country, session_expectations')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -75,9 +75,13 @@ export default async function ClientChatPage() {
   const therapist = {
     fullName: tUser?.full_name ?? 'Your Therapist',
     avatarUrl: tUser?.avatar_url ?? null,
+    tagline: tProfile?.tagline ?? null,
     specializations: tProfile?.specializations ?? [],
     bio: tProfile?.bio ?? null,
     approach: tProfile?.approach ?? null,
+    education: tProfile?.education ?? null,
+    licenseCountry: tProfile?.license_country ?? null,
+    sessionExpectations: tProfile?.session_expectations ?? null,
     yearsExperience: tProfile?.years_experience ?? 0,
     languages: tProfile?.languages ?? ['English'],
     isVerified: tProfile?.is_verified ?? false,

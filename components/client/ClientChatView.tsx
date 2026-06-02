@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import ChatInterface from '@/components/shared/ChatInterface'
 import ClientNav from '@/components/client/ClientNav'
@@ -41,11 +40,9 @@ export default function ClientChatView({
 
   // canSend: has a paid session OR still has free intro messages remaining
   const canSend = hasPaidSession || (freeMessagesLeft !== null && freeMessagesLeft > 0)
-  // Booking prompt shows once the 25-message intro is used up and no session booked
-  const showBookPrompt = !hasPaidSession && freeMessagesLeft === 0
 
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -66,25 +63,6 @@ export default function ClientChatView({
               <p className="text-xs text-[#233551]/40">Your therapist</p>
             </div>
           </div>
-
-          {showBookPrompt && (
-            <div className="flex-shrink-0 px-4 py-2.5 bg-[#7EC0B7]/10 border-b border-[#7EC0B7]/30 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <svg className="w-4 h-4 text-[#3D8A80] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <p className="text-xs text-[#233551]/80 font-medium truncate">
-                  Book your session to keep chatting with your therapist.
-                </p>
-              </div>
-              <Link
-                href="/dashboard/sessions"
-                className="flex-shrink-0 text-xs font-bold text-white bg-[#233551] hover:bg-[#1e2d47] px-3 py-1 rounded-full transition-colors"
-              >
-                Book a session →
-              </Link>
-            </div>
-          )}
 
           <div className="flex-1 overflow-hidden">
             <ChatInterface

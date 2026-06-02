@@ -365,6 +365,11 @@ function ProfileCard({
         <p className="text-xs text-[#233551]/35 text-center mt-2.5">
           Free to start · no payment yet
         </p>
+        {proposal.tier === 'standard' && (
+          <p className="text-xs text-[#233551]/50 text-center mt-3 leading-relaxed">
+            Not sure yet? Start here — you can always switch to a Professional therapist later.
+          </p>
+        )}
       </div>
     </div>
   )

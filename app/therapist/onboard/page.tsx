@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { submitTherapistOnboarding, lookupInvite, type OnboardState } from './actions'
 import { BrandLogo } from '@/components/shared/BrandLogo'
 import { createClient } from '@/lib/supabase/client'
+import { TIMEZONE_OPTIONS } from '@/lib/timezones'
 import { cn } from '@/lib/utils'
 
 const STEPS = ['Invite Code', 'Your Account', 'Credentials', 'Verification', 'Photo', 'Your Profile']
@@ -43,39 +44,6 @@ const COUNTRIES = [
   'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
   'Yemen',
   'Zambia', 'Zimbabwe',
-]
-
-// Common timezone abbreviations — IST pinned at top, then ordered roughly west-to-east.
-const TIMEZONES = [
-  'IST (India)',
-  '──────────',
-  'HST (Hawaii)',
-  'AKST (Alaska)',
-  'PST (US Pacific)',
-  'MST (US Mountain)',
-  'CST (US Central)',
-  'EST (US Eastern)',
-  'AST (Atlantic)',
-  'BRT (Brazil)',
-  'UTC',
-  'GMT (UK / Ireland)',
-  'WET (Western Europe)',
-  'CET (Central Europe)',
-  'EET (Eastern Europe)',
-  'MSK (Moscow)',
-  'GST (Gulf / UAE)',
-  'PKT (Pakistan)',
-  'BST (Bangladesh)',
-  'ICT (Indochina / Thailand)',
-  'WIB (Western Indonesia)',
-  'CST (China)',
-  'HKT (Hong Kong)',
-  'SGT (Singapore)',
-  'JST (Japan / Korea)',
-  'AWST (Western Australia)',
-  'ACST (Central Australia)',
-  'AEST (Eastern Australia)',
-  'NZST (New Zealand)',
 ]
 
 const PRONOUNS_OPTIONS = ['she/her', 'he/him', 'they/them', 'ze/zir', 'xe/xem', 'Other', 'Prefer not to say']
@@ -314,11 +282,11 @@ function StepCredentials({
           }}
         >
           <option value="" disabled>Select your time zone</option>
-          {TIMEZONES.map(tz => (
-            tz.startsWith('──') ? (
-              <option key={tz} value="" disabled>{tz}</option>
+          {TIMEZONE_OPTIONS.map((tz, i) => (
+            tz.value === '' ? (
+              <option key={`divider-${i}`} value="" disabled>{tz.label}</option>
             ) : (
-              <option key={tz} value={tz}>{tz}</option>
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
             )
           ))}
         </select>
@@ -502,11 +470,12 @@ function StepVerification({
 }
 
 function StepPhoto({
-  previewUrl, fileName, error, onClickUpload, onClear,
+  previewUrl, fileName, error, uploading, onClickUpload, onClear,
 }: {
   previewUrl: string | null
   fileName: string | null
   error: string | null
+  uploading: boolean
   onClickUpload: () => void
   onClear: () => void
 }) {
@@ -537,10 +506,11 @@ function StepPhoto({
         <button
           type="button"
           onClick={onClickUpload}
-          className="px-6 py-2.5 rounded-full bg-[#233551] hover:bg-[#2d4568] text-white text-sm font-bold transition-colors"
+          disabled={uploading}
+          className="px-6 py-2.5 rounded-full bg-[#233551] hover:bg-[#2d4568] text-white text-sm font-bold transition-colors disabled:opacity-50"
           style={{ fontFamily: 'var(--font-lato)' }}
         >
-          {previewUrl ? 'Replace photo' : 'Upload photo'}
+          {uploading ? 'Uploading…' : previewUrl ? 'Replace photo' : 'Upload photo'}
         </button>
 
         {fileName && (
@@ -656,10 +626,11 @@ export default function TherapistOnboardPage() {
   })
 
   const photoRef = useRef<HTMLInputElement>(null)
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPath, setPhotoPath] = useState<string | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFileName, setPhotoFileName] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
 
   // Debounced invite code validation + prefill
   useEffect(() => {
@@ -691,43 +662,62 @@ export default function TherapistOnboardPage() {
     }
   }, [photoPreview])
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function resetPhotoState() {
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoPath(null)
+    setPhotoPreview(null)
+    setPhotoFileName(null)
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) {
-      setPhotoFile(null)
-      setPhotoPreview(null)
-      setPhotoFileName(null)
+      resetPhotoState()
       return
     }
     if (file.size > 5 * 1024 * 1024) {
       setPhotoError('Photo must be under 5 MB.')
       if (photoRef.current) photoRef.current.value = ''
-      setPhotoFile(null)
-      setPhotoPreview(null)
-      setPhotoFileName(null)
+      resetPhotoState()
       return
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       setPhotoError('Photo must be JPG, PNG, or WebP.')
       if (photoRef.current) photoRef.current.value = ''
-      setPhotoFile(null)
-      setPhotoPreview(null)
-      setPhotoFileName(null)
+      resetPhotoState()
       return
     }
     setPhotoError(null)
     if (photoPreview) URL.revokeObjectURL(photoPreview)
-    setPhotoFile(file)
     setPhotoPreview(URL.createObjectURL(file))
     setPhotoFileName(file.name)
+
+    // Upload straight to Supabase Storage from the browser so the file never
+    // passes through the Server Action (which caps request bodies at 1 MB).
+    // The account doesn't exist yet, so we write to the anon-writable
+    // `onboarding/` prefix; the server action moves it to the therapist's
+    // folder once the account is created.
+    setPhotoUploading(true)
+    setPhotoPath(null)
+    const supabase = createClient()
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const path = `onboarding/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { contentType: file.type, upsert: false })
+    setPhotoUploading(false)
+    if (error) {
+      setPhotoError(`Upload failed: ${error.message}`)
+      resetPhotoState()
+    } else {
+      setPhotoPath(path)
+    }
+    if (photoRef.current) photoRef.current.value = ''
   }
 
   function clearPhoto() {
     if (photoRef.current) photoRef.current.value = ''
-    if (photoPreview) URL.revokeObjectURL(photoPreview)
-    setPhotoFile(null)
-    setPhotoPreview(null)
-    setPhotoFileName(null)
+    resetPhotoState()
     setPhotoError(null)
   }
 
@@ -760,7 +750,7 @@ export default function TherapistOnboardPage() {
       // address can be added later from the account page.
       return verification.idDocumentUrl.length > 0
     }
-    if (step === 4) return !!photoPreview
+    if (step === 4) return !!photoPath && !photoUploading
     if (step === 5) return profile.bio.trim().length >= 10
     return false
   }
@@ -768,19 +758,16 @@ export default function TherapistOnboardPage() {
   const isLastStep = step === STEPS.length - 1
   const progressPercent = Math.round((step / STEPS.length) * 100)
 
-  // The browser clears <input type="file"> after a failed form submission, so
-  // we keep the selected File in React state and inject it into FormData
-  // manually here. This makes retries work without re-selecting the photo.
+  // The photo is uploaded to storage on selection; only its path travels
+  // through the Server Action (via the hidden profilePhotoPath input), so the
+  // request body stays tiny and well under Next.js's 1 MB limit.
   function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (!photoFile) {
-      e.preventDefault()
+    e.preventDefault()
+    if (!photoPath) {
       setPhotoError('Profile photo is required.')
       return
     }
-    e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    fd.set('profilePhoto', photoFile, photoFile.name)
-    formAction(fd)
+    formAction(new FormData(e.currentTarget))
   }
 
   return (
@@ -836,6 +823,7 @@ export default function TherapistOnboardPage() {
             <input type="hidden" name="pronouns" value={creds.pronouns} />
             <input type="hidden" name="previousExperience" value={creds.previousExperience} />
             <input type="hidden" name="timezone" value={creds.timezone} />
+            <input type="hidden" name="profilePhotoPath" value={photoPath ?? ''} />
             <input type="hidden" name="idDocumentUrl" value={verification.idDocumentUrl} />
             <input type="hidden" name="paypalEmail" value={verification.paypalEmail} />
             <input type="hidden" name="bankAccountName" value={verification.bankAccountName} />
@@ -849,7 +837,6 @@ export default function TherapistOnboardPage() {
             <input
               ref={photoRef}
               type="file"
-              name="profilePhoto"
               accept="image/jpeg,image/png,image/webp"
               onChange={handlePhotoChange}
               className="hidden"
@@ -873,6 +860,7 @@ export default function TherapistOnboardPage() {
                 previewUrl={photoPreview}
                 fileName={photoFileName}
                 error={photoError}
+                uploading={photoUploading}
                 onClickUpload={() => photoRef.current?.click()}
                 onClear={clearPhoto}
               />

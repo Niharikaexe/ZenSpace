@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { updateWeeklyAvailability, type WeeklyAvailability } from '@/app/actions/therapist-availability'
+import { timezoneLabel } from '@/lib/timezones'
 
 // ── Grid constants ────────────────────────────────────────────────────────────
 const TOTAL_CELLS = 48   // 30-min slots across 24 h  (0 = 00:00, 47 = 23:30)
@@ -174,7 +175,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
           </p>
           {therapistTimezone && (
             <p className="text-[10px] text-[#3D8A80] font-semibold mt-0.5">
-              Times are in your timezone: {therapistTimezone}
+              Times are in your timezone: {timezoneLabel(therapistTimezone)}
             </p>
           )}
         </div>

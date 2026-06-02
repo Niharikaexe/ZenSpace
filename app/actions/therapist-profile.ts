@@ -7,45 +7,27 @@ import { sendPayoutRequestEmail } from '@/lib/email'
 export type TherapistProfileState = { error?: string; success?: boolean }
 export type AvatarState = { error?: string; avatarUrl?: string | null }
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
-const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+// ── Avatar: record an already-uploaded photo ─────────────────────────────────
+//
+// The file itself uploads directly from the browser to Supabase Storage (see
+// TherapistAccountForm) so it never passes through this Server Action — that
+// avoids Next.js's 1 MB Server Action body limit. Here we only receive the
+// resulting storage path (a few bytes), verify it belongs to the caller, save
+// its public URL on the profile, and clean up the previous photo.
 
-// ── Avatar upload / delete ──────────────────────────────────────────────────
-
-export async function updateTherapistAvatar(formData: FormData): Promise<AvatarState> {
+export async function saveTherapistAvatar(path: string): Promise<AvatarState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const file = formData.get('avatar')
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: 'Please select a photo to upload.' }
-  }
-  if (file.size > MAX_PHOTO_BYTES) {
-    return { error: 'Photo must be under 5 MB.' }
-  }
-  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
-    return { error: 'Photo must be JPG, PNG, or WebP.' }
+  // The path must live under this user's own folder — never trust the client
+  // to hand us someone else's object path.
+  const expectedPrefix = `therapists/${user.id}/`
+  if (typeof path !== 'string' || !path.startsWith(expectedPrefix)) {
+    return { error: 'Invalid upload. Please try again.' }
   }
 
   const admin = createAdminClient()
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `therapists/${user.id}/avatar-${Date.now()}.${ext}`
-
-  const { error: uploadErr } = await admin.storage
-    .from('avatars')
-    .upload(path, file, { contentType: file.type, upsert: true })
-
-  if (uploadErr) {
-    logger.error('therapist/avatar', 'Upload failed', uploadErr, {
-      userId: user.id,
-      path,
-      contentType: file.type,
-      size: file.size,
-    })
-    return { error: `Upload failed: ${uploadErr.message ?? 'unknown error'}` }
-  }
-
   const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(path)
   const url = publicUrlData.publicUrl
 
