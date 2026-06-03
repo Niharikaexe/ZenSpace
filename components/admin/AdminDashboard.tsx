@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { signOut } from '@/app/actions/auth'
-import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest } from '@/app/admin/actions'
+import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest, markTherapistPayout } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
@@ -142,6 +142,14 @@ export type ActiveMatch = {
   subscription: Subscription | null
 }
 
+export type TherapistPayoutSummary = {
+  therapistId: string
+  therapistName: string
+  outstandingPaise: number
+  outstandingCount: number
+  paidOutPaise: number
+}
+
 interface Props {
   adminName: string
   unmatchedClients: UnmatchedClient[]
@@ -153,6 +161,7 @@ interface Props {
   switchRequests: SwitchRequest[]
   emailLogs: EmailLog[]
   leads: Lead[]
+  therapistPayouts: TherapistPayoutSummary[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -236,7 +245,7 @@ export interface Lead {
   device_os: string | null
 }
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails' | 'payouts'
 type View = 'dashboard' | 'leads'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
@@ -261,7 +270,7 @@ function formatPay(amount: number | null, currency: string | null): string | nul
   return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
 }
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads, therapistPayouts }: Props) {
   const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
@@ -272,6 +281,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appFilter, setAppFilter] = useState<AppFilter>('all')
   const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
+  // Two-step confirm for settling a payout (avoids a native confirm() dialog).
+  const [confirmPayoutId, setConfirmPayoutId] = useState<string | null>(null)
 
   // ── Live data: Supabase Realtime → router.refresh() ─────────────────────────
   // Any insert/update/delete on a table that feeds this dashboard re-runs the
@@ -296,6 +307,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
       'profiles', 'client_profiles', 'questionnaire_responses', 'subscriptions',
       'matches', 'therapist_profiles', 'therapist_applications',
       'therapist_switch_requests', 'email_logs',
+      'sessions', 'payments', 'therapist_payouts',
     ]
     const channel = supabase.channel('admin-dashboard')
     for (const table of tables) {
@@ -346,8 +358,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
+    { key: 'payouts', label: 'Payouts', count: therapistPayouts.filter(p => p.outstandingPaise > 0).length },
     { key: 'emails', label: 'Emails', count: emailLogs.length },
   ]
+
+  const inr = (paise: number) =>
+    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Math.round(paise / 100))
 
   // Application filter buckets — counts shown in the filter chips
   const APP_FILTERS: { key: AppFilter; label: string }[] = [
@@ -1121,6 +1137,74 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     </div>
                   </div>
                 ))}
+              </div>
+            )
+          )}
+
+          {/* ── Payouts Tab ── */}
+          {tab === 'payouts' && (
+            therapistPayouts.length === 0 ? (
+              <div className="py-20 text-center">
+                <p className="font-semibold text-slate-700">No therapists yet</p>
+                <p className="text-sm text-slate-400 mt-1">Payout balances appear once therapists complete paid sessions.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {[...therapistPayouts]
+                  .sort((a, b) => b.outstandingPaise - a.outstandingPaise)
+                  .map(p => {
+                    const confirming = confirmPayoutId === p.therapistId
+                    const nothingDue = p.outstandingPaise <= 0
+                    return (
+                      <div key={p.therapistId} className="px-6 py-4 flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{p.therapistName}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {p.outstandingCount} unsettled session{p.outstandingCount === 1 ? '' : 's'} · {inr(p.paidOutPaise)} paid out to date
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 flex-shrink-0">
+                          <div className="text-right">
+                            <p className="text-[11px] text-slate-400 uppercase tracking-wide">Outstanding</p>
+                            <p className="text-lg font-black text-slate-900">{inr(p.outstandingPaise)}</p>
+                          </div>
+                          {nothingDue ? (
+                            <span className="text-xs font-semibold text-emerald-600 px-4 py-2">Settled</span>
+                          ) : confirming ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                disabled={isPending}
+                                onClick={() => {
+                                  startTransition(async () => {
+                                    await markTherapistPayout(p.therapistId)
+                                    setConfirmPayoutId(null)
+                                    router.refresh()
+                                  })
+                                }}
+                                className="text-xs font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-40"
+                              >
+                                {isPending ? 'Recording…' : `Confirm ${inr(p.outstandingPaise)}`}
+                              </button>
+                              <button
+                                onClick={() => setConfirmPayoutId(null)}
+                                disabled={isPending}
+                                className="text-xs font-medium px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmPayoutId(p.therapistId)}
+                              className="text-xs font-bold px-4 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                            >
+                              Mark paid
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
               </div>
             )
           )}

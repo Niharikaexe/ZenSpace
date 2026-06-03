@@ -10,8 +10,18 @@
 -- edits don't rewrite history, mirroring the per-session `sessions` columns.
 -- ============================================================
 
+-- Shared trigger helper: stamp updated_at on row updates. Defined here (idempotent)
+-- because it isn't created anywhere else in the migration set.
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TABLE IF NOT EXISTS session_bundles (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   match_id UUID REFERENCES matches(id),
   category TEXT,                               -- 'individual' | 'teen' | 'couples' (frozen)

@@ -64,10 +64,10 @@ export async function POST(request: Request) {
 
   const { data: bundle } = await (admin as any)
     .from('session_bundles')
-    .select('id, client_id, status, razorpay_order_id')
+    .select('id, client_id, match_id, amount_paise, status, razorpay_order_id')
     .eq('id', bundleId)
     .maybeSingle() as {
-      data: { id: string; client_id: string; status: string; razorpay_order_id: string | null } | null
+      data: { id: string; client_id: string; match_id: string | null; amount_paise: number; status: string; razorpay_order_id: string | null } | null
       error: unknown
     }
 
@@ -104,6 +104,33 @@ export async function POST(request: Request) {
   logger.info('api/payment/bundle-verify', 'Bundle activated', {
     userId: user.id, bundleId, paymentId: razorpay_payment_id,
   })
+
+  // Record the bundle charge in the unified payment ledger. Therapist payout for
+  // a bundle accrues per-session as credits are consumed, so payout is null here.
+  // Deduped on razorpay_payment_id.
+  let therapistId: string | null = null
+  if (bundle.match_id) {
+    const { data: m } = await (admin as any)
+      .from('matches').select('therapist_id').eq('id', bundle.match_id).maybeSingle() as { data: { therapist_id: string } | null; error: unknown }
+    therapistId = m?.therapist_id ?? null
+  }
+  const { error: payErr } = await (admin as any)
+    .from('payments')
+    .upsert({
+      client_id: bundle.client_id,
+      therapist_id: therapistId,
+      match_id: bundle.match_id,
+      kind: 'bundle',
+      bundle_id: bundleId,
+      amount_paise: bundle.amount_paise,
+      therapist_payout_paise: null,
+      razorpay_order_id,
+      razorpay_payment_id,
+      status: 'paid',
+    }, { onConflict: 'razorpay_payment_id', ignoreDuplicates: true })
+  if (payErr) {
+    logger.error('api/payment/bundle-verify', 'Failed to write payment ledger row', payErr, { bundleId, paymentId: razorpay_payment_id })
+  }
 
   return NextResponse.json({ success: true })
 }

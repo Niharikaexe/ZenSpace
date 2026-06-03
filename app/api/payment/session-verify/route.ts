@@ -68,10 +68,10 @@ export async function POST(request: Request) {
   // Load the pending session and verify ownership + order match.
   const { data: session } = await (admin as any)
     .from('sessions')
-    .select('id, match_id, scheduled_at, payment_status, razorpay_order_id')
+    .select('id, match_id, scheduled_at, payment_status, razorpay_order_id, client_amount_paise, therapist_payout_paise')
     .eq('id', sessionId)
     .maybeSingle() as {
-      data: { id: string; match_id: string; scheduled_at: string; payment_status: string; razorpay_order_id: string | null } | null
+      data: { id: string; match_id: string; scheduled_at: string; payment_status: string; razorpay_order_id: string | null; client_amount_paise: number | null; therapist_payout_paise: number | null } | null
       error: unknown
     }
 
@@ -152,6 +152,26 @@ export async function POST(request: Request) {
   logger.info('api/payment/session-verify', 'Session confirmed', {
     userId: user.id, sessionId, paymentId: razorpay_payment_id,
   })
+
+  // Record the charge in the unified payment ledger. Deduped on
+  // razorpay_payment_id (unique) so a re-posted verify can't double-insert.
+  const { error: payErr } = await (admin as any)
+    .from('payments')
+    .upsert({
+      client_id: match.client_id,
+      therapist_id: match.therapist_id,
+      match_id: session.match_id,
+      kind: 'session',
+      session_id: sessionId,
+      amount_paise: session.client_amount_paise ?? 0,
+      therapist_payout_paise: session.therapist_payout_paise ?? null,
+      razorpay_order_id,
+      razorpay_payment_id,
+      status: 'paid',
+    }, { onConflict: 'razorpay_payment_id', ignoreDuplicates: true })
+  if (payErr) {
+    logger.error('api/payment/session-verify', 'Failed to write payment ledger row', payErr, { sessionId, paymentId: razorpay_payment_id })
+  }
 
   // Notify the therapist about the newly booked session (fire-and-forget).
   try {

@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ClientNav from '@/components/client/ClientNav'
+import type { TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,12 @@ function formatDate(iso: string) {
 
 function initials(name: string) {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+}
+
+// Alternating teal / coral chips — same as the match-selection card.
+function Chip({ label, i }: { label: string; i: number }) {
+  const styles = i % 2 === 0 ? 'bg-[#7EC0B7]/15 text-[#3D8A80]' : 'bg-[#E8926A]/15 text-[#C56A42]'
+  return <span className={`text-xs px-3 py-1 rounded-full font-medium capitalize ${styles}`}>{label}</span>
 }
 
 export default async function MyTherapistPage() {
@@ -58,12 +65,27 @@ export default async function MyTherapistPage() {
 
   const admin = createAdminClient()
   const [tProfileResult, tUserResult] = await Promise.all([
-    (admin as any).from('therapist_profiles').select('specializations, bio, approach, years_experience, languages').eq('user_id', match.therapist_id).maybeSingle(),
+    (admin as any).from('therapist_profiles').select('specializations, bio, approach, years_experience, languages, is_verified, tagline, education, license_country, session_expectations').eq('user_id', match.therapist_id).maybeSingle(),
     (admin as any).from('profiles').select('full_name, avatar_url').eq('id', match.therapist_id).maybeSingle(),
   ])
 
   const tProfile = tProfileResult.data
   const tUser = tUserResult.data
+
+  const therapist: TherapistPanelData | null = tUser && tProfile ? {
+    fullName: tUser.full_name ?? 'Your Therapist',
+    avatarUrl: tUser.avatar_url ?? null,
+    tagline: tProfile.tagline ?? null,
+    specializations: tProfile.specializations ?? [],
+    bio: tProfile.bio ?? null,
+    approach: tProfile.approach ?? null,
+    education: tProfile.education ?? null,
+    licenseCountry: tProfile.license_country ?? null,
+    sessionExpectations: tProfile.session_expectations ?? null,
+    yearsExperience: tProfile.years_experience ?? 0,
+    languages: tProfile.languages ?? ['English'],
+    isVerified: tProfile.is_verified ?? false,
+  } : null
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
@@ -81,55 +103,126 @@ export default async function MyTherapistPage() {
           My Therapist
         </h1>
 
-        {tUser && tProfile && (
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-            <div className="flex flex-col items-center text-center mb-6 pb-6 border-b border-slate-100">
-              {tUser.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={tUser.avatar_url} alt={tUser.full_name} className="w-24 h-24 rounded-full object-cover border-4 border-[#7EC0B7]/20 mb-3" />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-[#233551] text-white font-black text-3xl flex items-center justify-center border-4 border-[#7EC0B7]/20 mb-3" style={{ fontFamily: 'var(--font-lato)' }}>
-                  {initials(tUser.full_name)}
+        {therapist && (() => {
+          const tFirst = therapist.fullName.split(' ')[0]
+          const credentials = [
+            therapist.education,
+            therapist.licenseCountry ? `Licensed · ${therapist.licenseCountry}` : null,
+          ].filter(Boolean) as string[]
+
+          return (
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
+              {/* Top accent bar — same design as the match-selection card */}
+              <div className="h-1.5 bg-gradient-to-r from-[#7EC0B7] via-[#7EC0B7] to-[#E8926A]" />
+
+              <div className="p-6 md:p-7">
+                {/* Hero */}
+                <div className="flex flex-col sm:flex-row gap-5">
+                  {/* Photo */}
+                  <div className="flex-shrink-0 mx-auto sm:mx-0">
+                    <div className="w-32 h-32 rounded-3xl bg-[#FFF5F2] border border-[#E8926A]/15 p-1.5">
+                      {therapist.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={therapist.avatarUrl} alt={therapist.fullName} className="w-full h-full rounded-[1.1rem] object-cover" />
+                      ) : (
+                        <div className="w-full h-full rounded-[1.1rem] bg-[#233551] text-white font-black text-4xl flex items-center justify-center" style={{ fontFamily: 'var(--font-lato)' }}>
+                          {initials(therapist.fullName)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Name + meta */}
+                  <div className="flex-1 min-w-0 text-center sm:text-left">
+                    {therapist.isVerified && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#3D8A80]">
+                        <svg viewBox="0 0 16 16" fill="none" className="w-3.5 h-3.5">
+                          <circle cx="8" cy="8" r="7" fill="#7EC0B7" fillOpacity="0.2" />
+                          <path d="M5 8l2 2 4-4" stroke="#3D8A80" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Verified
+                      </span>
+                    )}
+
+                    <h2 className="text-2xl md:text-3xl font-black text-[#233551] mt-1 leading-tight" style={{ fontFamily: 'var(--font-lato)' }}>
+                      {therapist.fullName}
+                    </h2>
+
+                    {credentials.length > 0 && (
+                      <p className="text-sm text-[#233551]/50 mt-1">{credentials.join(' · ')}</p>
+                    )}
+                    {therapist.yearsExperience > 0 && (
+                      <p className="text-xs text-[#233551]/40 mt-0.5">{therapist.yearsExperience} years of experience</p>
+                    )}
+                    <p className="text-xs text-[#233551]/40 mt-0.5">Matched since {formatDate(match.created_at)}</p>
+
+                    {/* Tagline quote */}
+                    {therapist.tagline && (
+                      <div className="mt-3 pl-3 border-l-2 border-[#7EC0B7]">
+                        <p className="text-base italic text-[#233551]/75 leading-snug" style={{ fontFamily: 'var(--font-lato)' }}>
+                          &ldquo;{therapist.tagline}&rdquo;
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              <h2 className="text-lg font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>{tUser.full_name}</h2>
-              {tProfile.approach && <p className="text-sm text-[#233551]/50 mt-0.5">{tProfile.approach}</p>}
-              <p className="text-xs text-[#233551]/35 mt-0.5">{tProfile.years_experience} years experience</p>
-              <p className="text-xs text-[#233551]/35 mt-2">Matched since {formatDate(match.created_at)}</p>
-            </div>
 
-            {tProfile.bio && (
-              <div className="mb-5">
-                <p className="text-xs font-semibold text-[#233551]/40 uppercase tracking-wider mb-2">About</p>
-                <p className="text-sm text-[#233551]/65 leading-relaxed">{tProfile.bio}</p>
-              </div>
-            )}
+                {/* Specializations */}
+                {therapist.specializations.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-5 justify-center sm:justify-start">
+                    {therapist.specializations.map((s, i) => (
+                      <Chip key={s} label={s} i={i} />
+                    ))}
+                  </div>
+                )}
 
-            {tProfile.specializations?.length > 0 && (
-              <div className="mb-5">
-                <p className="text-xs font-semibold text-[#233551]/40 uppercase tracking-wider mb-2">Specializes in</p>
-                <div className="flex flex-wrap gap-2">
-                  {tProfile.specializations.map((s: string) => (
-                    <span key={s} className="text-xs bg-[#7EC0B7]/15 text-[#3D8A80] px-3 py-1 rounded-full font-medium">{s}</span>
-                  ))}
+                {therapist.approach && (
+                  <p className="text-xs text-[#233551]/45 mt-3 text-center sm:text-left">
+                    <span className="font-semibold text-[#233551]/55">Approach:</span> {therapist.approach}
+                  </p>
+                )}
+
+                {/* About */}
+                {therapist.bio && (
+                  <section className="mt-6 pt-6 border-t border-slate-100">
+                    <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">About {tFirst}</h3>
+                    <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.bio}</p>
+                  </section>
+                )}
+
+                {/* What sessions look like */}
+                {therapist.sessionExpectations && (
+                  <section className="mt-5">
+                    <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">What sessions look like</h3>
+                    <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.sessionExpectations}</p>
+                  </section>
+                )}
+
+                {/* Languages */}
+                {therapist.languages.length > 0 && (
+                  <section className="mt-5">
+                    <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">Speaks</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {therapist.languages.map(l => (
+                        <span key={l} className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 text-[#233551]/60 font-medium">{l}</span>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* Actions */}
+                <div className="mt-6 pt-5 border-t border-slate-100 flex gap-3">
+                  <Link href="/dashboard/chat" className="flex-1 text-center bg-[#233551] text-white text-sm font-bold py-2.5 rounded-full hover:bg-[#2d4568] transition-colors" style={{ fontFamily: 'var(--font-lato)' }}>
+                    Message
+                  </Link>
+                  <Link href="/dashboard/change-therapist" className="flex-1 text-center border-2 border-slate-200 text-[#233551] text-sm font-semibold py-2.5 rounded-full hover:border-[#233551]/30 transition-colors">
+                    Change therapist
+                  </Link>
                 </div>
               </div>
-            )}
-
-            <div className="text-sm text-[#233551]/50">
-              <p><span className="font-medium text-[#233551]/65">Languages:</span> {tProfile.languages?.join(', ')}</p>
             </div>
-
-            <div className="mt-6 pt-5 border-t border-slate-100 flex gap-3">
-              <Link href="/dashboard/chat" className="flex-1 text-center bg-[#233551] text-white text-sm font-bold py-2.5 rounded-full hover:bg-[#2d4568] transition-colors" style={{ fontFamily: 'var(--font-lato)' }}>
-                Message
-              </Link>
-              <Link href="/dashboard/change-therapist" className="flex-1 text-center border-2 border-slate-200 text-[#233551] text-sm font-semibold py-2.5 rounded-full hover:border-[#233551]/30 transition-colors">
-                Change therapist
-              </Link>
-            </div>
-          </div>
-        )}
+          )
+        })()}
       </main>
     </div>
   )

@@ -350,3 +350,65 @@ export async function endMatch(matchId: string) {
 
   revalidatePath('/admin')
 }
+
+// Settle a therapist's outstanding payout: records a payout batch and flips all
+// their completed + paid + unpaid sessions to payout_status='paid'. Off-platform
+// payment is done separately by the admin; this just tracks that it happened so
+// the therapist payment page shows true outstanding amounts (no double-paying).
+export async function markTherapistPayout(therapistId: string, note?: string) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  // All matches this therapist has had (any status — past clients still count).
+  const { data: matches } = await (admin as any)
+    .from('matches').select('id').eq('therapist_id', therapistId) as { data: { id: string }[] | null; error: unknown }
+  const matchIds = (matches ?? []).map(m => m.id)
+  if (matchIds.length === 0) return { ok: true, count: 0, totalPaise: 0 }
+
+  // Outstanding = completed + paid sessions not yet settled.
+  const { data: sessions } = await (admin as any)
+    .from('sessions')
+    .select('id, therapist_payout_paise, scheduled_at')
+    .in('match_id', matchIds)
+    .eq('status', 'completed')
+    .eq('payment_status', 'paid')
+    .eq('payout_status', 'unpaid') as { data: { id: string; therapist_payout_paise: number | null; scheduled_at: string }[] | null; error: unknown }
+
+  const rows = sessions ?? []
+  if (rows.length === 0) return { ok: true, count: 0, totalPaise: 0 }
+
+  const totalPaise = rows.reduce((sum, r) => sum + (r.therapist_payout_paise ?? 0), 0)
+  const times = rows.map(r => new Date(r.scheduled_at).getTime())
+
+  const { data: batch, error: batchErr } = await (admin as any)
+    .from('therapist_payouts')
+    .insert({
+      therapist_id: therapistId,
+      total_paise: totalPaise,
+      session_count: rows.length,
+      period_start: new Date(Math.min(...times)).toISOString(),
+      period_end: new Date(Math.max(...times)).toISOString(),
+      note: note || null,
+      marked_by: adminUser.id,
+    })
+    .select('id')
+    .single() as { data: { id: string } | null; error: unknown }
+
+  if (batchErr || !batch) throw new Error((batchErr as { message?: string } | null)?.message ?? 'Failed to record payout')
+
+  // Flip only the rows still unpaid (guards against a concurrent settle).
+  const { error: updErr } = await (admin as any)
+    .from('sessions')
+    .update({ payout_status: 'paid', payout_paid_at: new Date().toISOString(), payout_batch_id: batch.id })
+    .in('id', rows.map(r => r.id))
+    .eq('payout_status', 'unpaid')
+
+  if (updErr) throw new Error(updErr.message)
+
+  logger.info('admin/markTherapistPayout', 'Payout settled', {
+    therapistId, batchId: batch.id, count: rows.length, totalPaise,
+  })
+
+  revalidatePath('/admin')
+  return { ok: true, count: rows.length, totalPaise }
+}

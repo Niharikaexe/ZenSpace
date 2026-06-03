@@ -91,6 +91,9 @@ DECLARE
   ];
 BEGIN
   FOREACH t IN ARRAY tables LOOP
+    -- Skip tables that don't exist in this database (avoids aborting the whole
+    -- migration if a table's own migration hasn't been applied yet).
+    CONTINUE WHEN to_regclass('public.' || t) IS NULL;
     IF NOT EXISTS (
       SELECT 1 FROM pg_publication_tables
       WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t

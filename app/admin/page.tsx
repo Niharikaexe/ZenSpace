@@ -10,6 +10,7 @@ import type {
   SwitchRequest,
   EmailLog,
   Lead,
+  TherapistPayoutSummary,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -364,6 +365,49 @@ export default async function AdminPage() {
   const leads: Lead[] = [...clientLeads, ...applicationLeads]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+  // ── Therapist payout balances (Payouts tab) ─────────────────────────────────
+  // Across ALL matches (incl. ended), sum each therapist's completed + paid
+  // sessions split by payout_status: outstanding (unpaid) vs already settled.
+  const { data: allMatchesForPayout } = await admin
+    .from('matches').select('id, therapist_id')
+  const matchToTherapist = new Map<string, string>(
+    (allMatchesForPayout ?? []).map((m: any) => [m.id, m.therapist_id])
+  )
+  const payoutMatchIds: string[] = (allMatchesForPayout ?? []).map((m: any) => m.id)
+  const { data: payoutSessions } = payoutMatchIds.length > 0
+    ? await admin.from('sessions')
+        .select('match_id, therapist_payout_paise, payout_status')
+        .in('match_id', payoutMatchIds)
+        .eq('status', 'completed')
+        .eq('payment_status', 'paid')
+    : { data: [] }
+
+  const payoutAgg = new Map<string, { outstandingPaise: number; outstandingCount: number; paidOutPaise: number }>()
+  for (const s of (payoutSessions ?? []) as { match_id: string; therapist_payout_paise: number | null; payout_status: string | null }[]) {
+    const tId = matchToTherapist.get(s.match_id)
+    if (!tId) continue
+    const cur = payoutAgg.get(tId) ?? { outstandingPaise: 0, outstandingCount: 0, paidOutPaise: 0 }
+    const amt = s.therapist_payout_paise ?? 0
+    if (s.payout_status === 'paid') {
+      cur.paidOutPaise += amt
+    } else {
+      cur.outstandingPaise += amt
+      cur.outstandingCount++
+    }
+    payoutAgg.set(tId, cur)
+  }
+
+  const therapistPayouts: TherapistPayoutSummary[] = therapists.map(t => {
+    const agg = payoutAgg.get(t.user_id)
+    return {
+      therapistId: t.user_id,
+      therapistName: t.profile?.full_name ?? 'Therapist',
+      outstandingPaise: agg?.outstandingPaise ?? 0,
+      outstandingCount: agg?.outstandingCount ?? 0,
+      paidOutPaise: agg?.paidOutPaise ?? 0,
+    }
+  })
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -376,6 +420,7 @@ export default async function AdminPage() {
       switchRequests={switchRequests}
       emailLogs={emailLogs}
       leads={leads}
+      therapistPayouts={therapistPayouts}
     />
   )
 }
