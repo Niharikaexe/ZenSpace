@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
 import ClientNav from '@/components/client/ClientNav'
+import { DataLayerEvent } from '@/components/shared/DataLayerEvent'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 import { TherapistMatchSelection, type ProposalView } from '@/components/client/TherapistMatchSelection'
 
@@ -210,6 +211,7 @@ export default async function ClientDashboard() {
 
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
+        <DataLayerEvent event="reached_dashboard" />
         <ClientNav userName={profile.full_name} isMatched={false} />
         <main className="max-w-3xl mx-auto px-4 py-8">
           <TherapistMatchSelection
@@ -224,6 +226,7 @@ export default async function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <DataLayerEvent event="reached_dashboard" />
       <ClientNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
