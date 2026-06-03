@@ -15,6 +15,15 @@ export const metadata: Metadata = {
     'does couples therapy work',
     'marriage counselling india',
   ],
+  alternates: { canonical: 'https://mindcanopy.in/for/couples' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/for/couples',
+    title: 'Online Couples Therapy & Marriage Counselling in India | MindCanopy',
+    description:
+      'Feeling distant, or stuck in the same argument? Online couples counselling with licensed therapists. No taking sides. First session free.',
+  },
 }
 
 export default function CouplesPage() {

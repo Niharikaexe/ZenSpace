@@ -19,39 +19,18 @@ export default async function AccountPage() {
 
   const admin = createAdminClient()
 
-  const [{ data: match }, { data: subscription }] = await Promise.all([
-    (admin as any)
-      .from('matches')
-      .select('id')
-      .eq('client_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle() as Promise<{ data: { id: string } | null; error: unknown }>,
-    (admin as any)
-      .from('subscriptions')
-      .select('id, plan, status, current_period_end, cancelled_at, amount')
-      .eq('client_id', user.id)
-      .not('status', 'eq', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle() as Promise<{
-        data: {
-          id: string
-          plan: string
-          status: string
-          current_period_end: string | null
-          cancelled_at: string | null
-          amount: number
-        } | null
-        error: unknown
-      }>,
-  ])
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('id')
+    .eq('client_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { id: string } | null; error: unknown }
 
   return (
     <AccountForm
       userName={profile.full_name}
       userEmail={user.email ?? ''}
       isMatched={!!match}
-      subscription={subscription}
     />
   )
 }

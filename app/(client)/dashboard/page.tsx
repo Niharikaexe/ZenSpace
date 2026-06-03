@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
 import ClientNav from '@/components/client/ClientNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
+import { TherapistMatchSelection, type ProposalView } from '@/components/client/TherapistMatchSelection'
 
 export const dynamic = 'force-dynamic'
 
@@ -155,6 +156,72 @@ export default async function ClientDashboard() {
     redirect('/dashboard/chat')
   }
 
+  // Pending proposals: admin has hand-picked a Standard + a Professional therapist.
+  // Show the two-tab selection UI so the client can read both and start a free chat.
+  const { data: proposalRows } = await (matchAdmin as any)
+    .from('matches')
+    .select('id, therapist_id, tier, admin_summary, created_at')
+    .eq('client_id', user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true }) as {
+      data: { id: string; therapist_id: string; tier: string | null; admin_summary: string | null; created_at: string }[] | null
+      error: unknown
+    }
+
+  if (proposalRows && proposalRows.length > 0) {
+    const therapistIds = proposalRows.map((p) => p.therapist_id)
+    const [{ data: tProfiles }, { data: tUsers }] = await Promise.all([
+      (matchAdmin as any)
+        .from('therapist_profiles')
+        .select('user_id, tagline, bio, specializations, approach, education, years_experience, languages, license_number, license_country, session_expectations, previous_experience, pronouns, is_verified')
+        .in('user_id', therapistIds),
+      (matchAdmin as any)
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', therapistIds),
+    ])
+
+    const proposals: ProposalView[] = proposalRows.map((p) => {
+      const tp = (tProfiles ?? []).find((t: any) => t.user_id === p.therapist_id)
+      const tu = (tUsers ?? []).find((u: any) => u.id === p.therapist_id)
+      return {
+        matchId: p.id,
+        tier: (p.tier === 'professional' ? 'professional' : 'standard'),
+        adminSummary: p.admin_summary ?? null,
+        therapist: {
+          fullName: tu?.full_name ?? 'Your therapist',
+          avatarUrl: tu?.avatar_url ?? null,
+          tagline: tp?.tagline ?? null,
+          bio: tp?.bio ?? null,
+          specializations: tp?.specializations ?? [],
+          approach: tp?.approach ?? null,
+          education: tp?.education ?? null,
+          yearsExperience: tp?.years_experience ?? 0,
+          languages: tp?.languages ?? ['English'],
+          licenseNumber: tp?.license_number ?? null,
+          licenseCountry: tp?.license_country ?? null,
+          sessionExpectations: tp?.session_expectations ?? null,
+          previousExperience: tp?.previous_experience ?? null,
+          pronouns: tp?.pronouns ?? null,
+          isVerified: tp?.is_verified ?? false,
+        },
+      }
+    })
+
+    return (
+      <div className="min-h-screen bg-[#FAFAFA]">
+        <ClientNav userName={profile.full_name} isMatched={false} />
+        <main className="max-w-3xl mx-auto px-4 py-8">
+          <TherapistMatchSelection
+            clientName={profile.full_name}
+            category={therapyCategory}
+            proposals={proposals}
+          />
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <ClientNav userName={profile.full_name} isMatched={false} />
@@ -162,8 +229,6 @@ export default async function ClientDashboard() {
       <main className="max-w-5xl mx-auto px-4 py-8">
         <PendingDashboard
           userName={profile.full_name}
-          userEmail={user.email ?? ''}
-          hasActiveSubscription={hasActiveSubscription}
           hasQuestionnaire={hasQuestionnaire}
           questionnairePrefs={questionnairePrefs}
           therapyCategory={therapyCategory}

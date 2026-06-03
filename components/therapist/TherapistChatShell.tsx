@@ -29,7 +29,7 @@ export default function TherapistChatShell({
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <TherapistNav
         therapistName={therapistName}
         userId={userId}

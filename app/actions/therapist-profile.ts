@@ -3,50 +3,31 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { sendPayoutRequestEmail } from '@/lib/email'
-import { PLANS, therapistSessionPayout, type PlanKey } from '@/lib/plans'
 
 export type TherapistProfileState = { error?: string; success?: boolean }
 export type AvatarState = { error?: string; avatarUrl?: string | null }
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024
-const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+// ── Avatar: record an already-uploaded photo ─────────────────────────────────
+//
+// The file itself uploads directly from the browser to Supabase Storage (see
+// TherapistAccountForm) so it never passes through this Server Action — that
+// avoids Next.js's 1 MB Server Action body limit. Here we only receive the
+// resulting storage path (a few bytes), verify it belongs to the caller, save
+// its public URL on the profile, and clean up the previous photo.
 
-// ── Avatar upload / delete ──────────────────────────────────────────────────
-
-export async function updateTherapistAvatar(formData: FormData): Promise<AvatarState> {
+export async function saveTherapistAvatar(path: string): Promise<AvatarState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
-  const file = formData.get('avatar')
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: 'Please select a photo to upload.' }
-  }
-  if (file.size > MAX_PHOTO_BYTES) {
-    return { error: 'Photo must be under 5 MB.' }
-  }
-  if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
-    return { error: 'Photo must be JPG, PNG, or WebP.' }
+  // The path must live under this user's own folder — never trust the client
+  // to hand us someone else's object path.
+  const expectedPrefix = `therapists/${user.id}/`
+  if (typeof path !== 'string' || !path.startsWith(expectedPrefix)) {
+    return { error: 'Invalid upload. Please try again.' }
   }
 
   const admin = createAdminClient()
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `therapists/${user.id}/avatar-${Date.now()}.${ext}`
-
-  const { error: uploadErr } = await admin.storage
-    .from('avatars')
-    .upload(path, file, { contentType: file.type, upsert: true })
-
-  if (uploadErr) {
-    logger.error('therapist/avatar', 'Upload failed', uploadErr, {
-      userId: user.id,
-      path,
-      contentType: file.type,
-      size: file.size,
-    })
-    return { error: `Upload failed: ${uploadErr.message ?? 'unknown error'}` }
-  }
-
   const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(path)
   const url = publicUrlData.publicUrl
 
@@ -147,6 +128,13 @@ export async function updateTherapistProfile(
   const bankAccountName = (formData.get('bankAccountName') as string | null)?.trim() ?? ''
   const bankAccountNumber = (formData.get('bankAccountNumber') as string | null)?.trim() ?? ''
   const bankIfsc = (formData.get('bankIfsc') as string | null)?.trim().toUpperCase() ?? ''
+  const tagline = (formData.get('tagline') as string | null)?.trim() ?? ''
+  const education = (formData.get('education') as string | null)?.trim() ?? ''
+  const licenseCountry = (formData.get('licenseCountry') as string | null)?.trim() ?? ''
+  const sessionExpectations = (formData.get('sessionExpectations') as string | null)?.trim() ?? ''
+  const pronouns = (formData.get('pronouns') as string | null)?.trim() ?? ''
+  const previousExperience = (formData.get('previousExperience') as string | null)?.trim() ?? ''
+  const linkedinUrl = (formData.get('linkedinUrl') as string | null)?.trim() ?? ''
 
   // Lightweight payment-field validation — empty values are allowed
   if (paypalEmail && !/^\S+@\S+\.\S+$/.test(paypalEmail)) {
@@ -209,6 +197,13 @@ export async function updateTherapistProfile(
       bank_account_name: bankAccountName || null,
       bank_account_number: bankAccountNumber || null,
       bank_ifsc: bankIfsc || null,
+      tagline: tagline || null,
+      education: education || null,
+      license_country: licenseCountry || null,
+      session_expectations: sessionExpectations || null,
+      pronouns: pronouns || null,
+      previous_experience: previousExperience || null,
+      linkedin_url: linkedinUrl || null,
     })
     .eq('user_id', user.id)
 
@@ -259,54 +254,30 @@ export async function requestPayout(): Promise<{ error?: string; success?: boole
     const tProfile = tProfileResult.data
     const matchList = (matchesResult.data ?? []) as { id: string; client_id: string }[]
     const matchIds = matchList.map(m => m.id)
-    const clientIds = Array.from(new Set(matchList.map(m => m.client_id)))
-    const clientByMatch = new Map(matchList.map(m => [m.id, m.client_id]))
 
-    // Count + price the last-7-day completed sessions to match the dashboard's
-    // "Pending payout" headline.
+    // Sum the frozen per-session payout for completed + paid sessions in the
+    // last 7 days, matching the dashboard's "Pending payout" headline.
     const weekStart = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
 
     let sessionsThisWeek = 0
     let pendingPayoutRupees = 0
 
-    if (matchIds.length > 0 && clientIds.length > 0) {
-      const [sessionsResult, subsResult] = await Promise.all([
-        (admin as any)
-          .from('sessions')
-          .select('match_id, scheduled_at')
-          .in('match_id', matchIds)
-          .eq('status', 'completed')
-          .gte('scheduled_at', weekStart),
-        (admin as any)
-          .from('subscriptions')
-          .select('client_id, plan, created_at')
-          .in('client_id', clientIds)
-          .order('created_at', { ascending: false }),
-      ])
+    if (matchIds.length > 0) {
+      const { data: sessions, error: sessionsErr } = await (admin as any)
+        .from('sessions')
+        .select('therapist_payout_paise')
+        .in('match_id', matchIds)
+        .eq('status', 'completed')
+        .eq('payment_status', 'paid')
+        .gte('scheduled_at', weekStart) as { data: { therapist_payout_paise: number | null }[] | null; error: unknown }
 
-      if (sessionsResult.error) {
-        logger.error('therapist/payout', 'Failed to load sessions', sessionsResult.error, { userId: user.id })
-        return { error: 'Could not calculate your pending payout. Please try again.' }
-      }
-      if (subsResult.error) {
-        logger.error('therapist/payout', 'Failed to load subscriptions', subsResult.error, { userId: user.id })
+      if (sessionsErr) {
+        logger.error('therapist/payout', 'Failed to load sessions', sessionsErr, { userId: user.id })
         return { error: 'Could not calculate your pending payout. Please try again.' }
       }
 
-      // Most-recent subscription plan per client.
-      const planByClient = new Map<string, PlanKey>()
-      for (const s of (subsResult.data ?? []) as { client_id: string; plan: string }[]) {
-        if (!planByClient.has(s.client_id) && s.plan in PLANS) {
-          planByClient.set(s.client_id, s.plan as PlanKey)
-        }
-      }
-
-      for (const s of (sessionsResult.data ?? []) as { match_id: string }[]) {
-        const clientId = clientByMatch.get(s.match_id)
-        if (!clientId) continue
-        const planKey = planByClient.get(clientId)
-        if (!planKey) continue
-        pendingPayoutRupees += therapistSessionPayout(planKey)
+      for (const s of sessions ?? []) {
+        pendingPayoutRupees += Math.round((s.therapist_payout_paise ?? 0) / 100)
         sessionsThisWeek++
       }
     }

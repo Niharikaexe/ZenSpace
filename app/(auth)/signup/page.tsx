@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { signUp, type AuthState } from '@/app/actions/auth'
+import { attributionFields } from '@/lib/attribution'
 import RotatingTestimonial from '@/components/auth/RotatingTestimonial'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-const initialState = { error: undefined, success: false }
+const initialState: AuthState = {}
 
 const usps = [
   {
@@ -39,6 +40,12 @@ const usps = [
 // Client-side debug wrapper around the server action so we can see in
 // browser DevTools exactly what FormData is sent and what came back.
 async function signUpWithLogging(prev: AuthState, fd: FormData): Promise<AuthState> {
+  // Attach marketing attribution (read from localStorage) just before
+  // submission. Only set keys are appended; organic visitors with no UTMs
+  // pass through cleanly.
+  for (const [key, value] of Object.entries(attributionFields())) {
+    fd.append(key, value)
+  }
   // eslint-disable-next-line no-console
   console.log('[signup] submit →', {
     fullName: fd.get('fullName'),
@@ -46,6 +53,7 @@ async function signUpWithLogging(prev: AuthState, fd: FormData): Promise<AuthSta
     password: typeof fd.get('password') === 'string' ? `(${(fd.get('password') as string).length} chars)` : null,
     role: fd.get('role'),
     hasQuestionnaire: !!fd.get('questionnaireData'),
+    attribution: !!fd.get('first_utm_source') || !!fd.get('referrer'),
   })
   try {
     const result = await signUp(prev, fd)

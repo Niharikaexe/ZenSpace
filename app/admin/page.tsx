@@ -8,6 +8,9 @@ import type {
   InviteCode,
   TherapistApplication,
   SwitchRequest,
+  EmailLog,
+  Lead,
+  TherapistPayoutSummary,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -40,7 +43,7 @@ export default async function AdminPage() {
     { data: rawSwitchRequests },
   ] = await Promise.all([
     admin.from('profiles')
-      .select('id, full_name, avatar_url, created_at')
+      .select('id, full_name, avatar_url, email, created_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params, journey, device_type, device_browser, device_os')
       .eq('role', 'client')
       .order('created_at', { ascending: false }),
     admin.from('matches')
@@ -73,6 +76,7 @@ export default async function AdminPage() {
     { data: questionnaireResponses },
     { data: allSubscriptions },
     { data: therapistUsers },
+    authUsersResp,
   ] = await Promise.all([
     clientIds.length > 0
       ? admin.from('client_profiles').select('*').in('user_id', clientIds)
@@ -86,7 +90,16 @@ export default async function AdminPage() {
     therapistUserIds.length > 0
       ? admin.from('profiles').select('id, full_name, avatar_url').in('id', therapistUserIds)
       : Promise.resolve({ data: [] }),
+    // Auth users for email_confirmed_at — caps at 1000 (Supabase listUsers limit).
+    // Past that, switch to paginated scan keyed on a stored cursor.
+    admin.auth.admin.listUsers({ perPage: 1000 }),
   ])
+
+  // Map<userId, { email_confirmed_at: string | null }>
+  const authMap = new Map<string, { email_confirmed_at: string | null }>()
+  for (const u of (authUsersResp?.data?.users ?? [])) {
+    authMap.set(u.id, { email_confirmed_at: u.email_confirmed_at ?? null })
+  }
 
   // ── Build unmatched clients ──────────────────────────────────────────────────
   const unmatchedClients: UnmatchedClient[] = (allClients ?? [])
@@ -96,6 +109,7 @@ export default async function AdminPage() {
       full_name: c.full_name,
       avatar_url: c.avatar_url ?? null,
       created_at: c.created_at,
+      email_confirmed_at: authMap.get(c.id)?.email_confirmed_at ?? null,
       clientProfile: (clientProfiles ?? []).find((cp: any) => cp.user_id === c.id) ?? null,
       questionnaire: (questionnaireResponses ?? []).find((q: any) => q.client_id === c.id) ?? null,
       subscription: (allSubscriptions ?? []).find((s: any) => s.client_id === c.id) ?? null,
@@ -131,6 +145,7 @@ export default async function AdminPage() {
     client_id: m.client_id,
     therapist_id: m.therapist_id,
     status: m.status,
+    tier: m.tier ?? null,
     notes: m.notes ?? null,
     started_at: m.started_at ?? null,
     created_at: m.created_at,
@@ -189,6 +204,7 @@ export default async function AdminPage() {
         id: a.id,
         full_name: a.full_name,
         email: a.email,
+        email_verified_at: a.email_verified_at ?? null,
         phone: a.phone ?? null,
         city: a.city ?? null,
         state: a.state ?? null,
@@ -201,6 +217,8 @@ export default async function AdminPage() {
         license_body: a.license_body ?? null,
         years_experience: a.years_experience ?? 0,
         education: a.education ?? null,
+        expected_session_pay: a.expected_session_pay ?? null,
+        expected_session_pay_currency: a.expected_session_pay_currency ?? null,
         specializations: a.specializations ?? [],
         specialization_other: a.specialization_other ?? null,
         languages: a.languages ?? [],
@@ -211,7 +229,9 @@ export default async function AdminPage() {
         certificate_signed_urls: certificateSignedUrls,
         certificate_download_urls: certificateDownloadUrls,
         status: a.status,
+        admin_notes: a.admin_notes ?? null,
         submitted_at: a.submitted_at,
+        reviewed_at: a.reviewed_at ?? null,
       }
     })
   )
@@ -236,6 +256,30 @@ export default async function AdminPage() {
     ? await admin.from('profiles').select('id, full_name').in('id', switchTherapistIds)
     : { data: [] }
 
+  // ── Email logs (most recent 200) ────────────────────────────────────────────
+  const { data: rawEmailLogs } = await admin
+    .from('email_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  const emailLogs: EmailLog[] = (rawEmailLogs ?? []).map((row: any) => ({
+    id: row.id,
+    resend_id: row.resend_id ?? null,
+    recipient: row.recipient,
+    template: row.template,
+    subject: row.subject ?? null,
+    related_user_id: row.related_user_id ?? null,
+    related_application_id: row.related_application_id ?? null,
+    related_match_id: row.related_match_id ?? null,
+    send_status: row.send_status,
+    send_error: row.send_error ?? null,
+    resend_status_code: row.resend_status_code ?? null,
+    last_status: row.last_status ?? null,
+    last_status_at: row.last_status_at ?? null,
+    created_at: row.created_at,
+  }))
+
   const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
     const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)
     const matchRow = (switchMatches ?? []).find((m: any) => m.id === r.match_id)
@@ -255,6 +299,115 @@ export default async function AdminPage() {
     }
   })
 
+  // ── Leads: unified view of client signups + therapist applications ──────────
+  // For the Leads tab we want ALL therapist applications regardless of status,
+  // so we fetch them again unfiltered. Client leads come from the existing
+  // allClients query (already filtered to role=client).
+  const { data: allApplicationsForLeads } = await admin
+    .from('therapist_applications')
+    .select('id, full_name, email, status, submitted_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params, journey, device_type, device_browser, device_os')
+    .order('submitted_at', { ascending: false })
+
+  const clientLeads: Lead[] = (allClients ?? []).map((c: any) => ({
+    id: `client-${c.id}`,
+    lead_type: 'client',
+    name: c.full_name ?? '(no name)',
+    email: c.email ?? '',
+    created_at: c.created_at,
+    status: 'signed_up',
+    first_utm_source: c.first_utm_source ?? null,
+    first_utm_medium: c.first_utm_medium ?? null,
+    first_utm_campaign: c.first_utm_campaign ?? null,
+    first_utm_term: c.first_utm_term ?? null,
+    first_utm_content: c.first_utm_content ?? null,
+    last_utm_source: c.last_utm_source ?? null,
+    last_utm_medium: c.last_utm_medium ?? null,
+    last_utm_campaign: c.last_utm_campaign ?? null,
+    last_utm_term: c.last_utm_term ?? null,
+    last_utm_content: c.last_utm_content ?? null,
+    referrer: c.referrer ?? null,
+    landing_page: c.landing_page ?? null,
+    first_seen_at: c.first_seen_at ?? null,
+    extra_params: c.extra_params ?? null,
+    journey: c.journey ?? null,
+    device_type: c.device_type ?? null,
+    device_browser: c.device_browser ?? null,
+    device_os: c.device_os ?? null,
+  }))
+
+  const applicationLeads: Lead[] = (allApplicationsForLeads ?? []).map((a: any) => ({
+    id: `app-${a.id}`,
+    lead_type: 'therapist',
+    name: a.full_name ?? '(no name)',
+    email: a.email ?? '',
+    created_at: a.submitted_at,
+    status: a.status ?? 'pending',
+    first_utm_source: a.first_utm_source ?? null,
+    first_utm_medium: a.first_utm_medium ?? null,
+    first_utm_campaign: a.first_utm_campaign ?? null,
+    first_utm_term: a.first_utm_term ?? null,
+    first_utm_content: a.first_utm_content ?? null,
+    last_utm_source: a.last_utm_source ?? null,
+    last_utm_medium: a.last_utm_medium ?? null,
+    last_utm_campaign: a.last_utm_campaign ?? null,
+    last_utm_term: a.last_utm_term ?? null,
+    last_utm_content: a.last_utm_content ?? null,
+    referrer: a.referrer ?? null,
+    landing_page: a.landing_page ?? null,
+    first_seen_at: a.first_seen_at ?? null,
+    extra_params: a.extra_params ?? null,
+    journey: a.journey ?? null,
+    device_type: a.device_type ?? null,
+    device_browser: a.device_browser ?? null,
+    device_os: a.device_os ?? null,
+  }))
+
+  const leads: Lead[] = [...clientLeads, ...applicationLeads]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  // ── Therapist payout balances (Payouts tab) ─────────────────────────────────
+  // Across ALL matches (incl. ended), sum each therapist's completed + paid
+  // sessions split by payout_status: outstanding (unpaid) vs already settled.
+  const { data: allMatchesForPayout } = await admin
+    .from('matches').select('id, therapist_id')
+  const matchToTherapist = new Map<string, string>(
+    (allMatchesForPayout ?? []).map((m: any) => [m.id, m.therapist_id])
+  )
+  const payoutMatchIds: string[] = (allMatchesForPayout ?? []).map((m: any) => m.id)
+  const { data: payoutSessions } = payoutMatchIds.length > 0
+    ? await admin.from('sessions')
+        .select('match_id, therapist_payout_paise, payout_status')
+        .in('match_id', payoutMatchIds)
+        .eq('status', 'completed')
+        .eq('payment_status', 'paid')
+    : { data: [] }
+
+  const payoutAgg = new Map<string, { outstandingPaise: number; outstandingCount: number; paidOutPaise: number }>()
+  for (const s of (payoutSessions ?? []) as { match_id: string; therapist_payout_paise: number | null; payout_status: string | null }[]) {
+    const tId = matchToTherapist.get(s.match_id)
+    if (!tId) continue
+    const cur = payoutAgg.get(tId) ?? { outstandingPaise: 0, outstandingCount: 0, paidOutPaise: 0 }
+    const amt = s.therapist_payout_paise ?? 0
+    if (s.payout_status === 'paid') {
+      cur.paidOutPaise += amt
+    } else {
+      cur.outstandingPaise += amt
+      cur.outstandingCount++
+    }
+    payoutAgg.set(tId, cur)
+  }
+
+  const therapistPayouts: TherapistPayoutSummary[] = therapists.map(t => {
+    const agg = payoutAgg.get(t.user_id)
+    return {
+      therapistId: t.user_id,
+      therapistName: t.profile?.full_name ?? 'Therapist',
+      outstandingPaise: agg?.outstandingPaise ?? 0,
+      outstandingCount: agg?.outstandingCount ?? 0,
+      paidOutPaise: agg?.paidOutPaise ?? 0,
+    }
+  })
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -265,6 +418,9 @@ export default async function AdminPage() {
       inviteCodes={inviteCodes}
       applications={applications}
       switchRequests={switchRequests}
+      emailLogs={emailLogs}
+      leads={leads}
+      therapistPayouts={therapistPayouts}
     />
   )
 }

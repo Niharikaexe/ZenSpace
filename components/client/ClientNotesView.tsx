@@ -36,7 +36,7 @@ function formatTime(iso: string) {
 
 export default function ClientNotesView({ clientName, therapist, sessions }: Props) {
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">

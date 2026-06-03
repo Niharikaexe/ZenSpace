@@ -27,43 +27,32 @@ export default async function ClientChatPage() {
 
   if (!match) redirect('/dashboard')
 
-  const [{ data: subscription }, { data: questionnaire }, { count: totalMessageCount }] = await Promise.all([
+  const [{ count: paidSessionCount }, { count: totalMessageCount }] = await Promise.all([
     (admin as any)
-      .from('subscriptions')
-      .select('status, current_period_end')
-      .eq('client_id', user.id)
-      .in('status', ['active', 'cancelled'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle() as Promise<{ data: { status: string; current_period_end: string | null } | null; error: unknown }>,
-    (admin as any)
-      .from('questionnaire_responses')
-      .select('responses')
-      .eq('client_id', user.id)
-      .maybeSingle() as Promise<{ data: { responses: Record<string, unknown> } | null; error: unknown }>,
+      .from('sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', match.id)
+      .eq('payment_status', 'paid') as Promise<{ count: number | null; error: unknown }>,
     (admin as any)
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('match_id', match.id) as Promise<{ count: number | null; error: unknown }>,
   ])
 
-  const isSubscribed = !!(subscription && (
-    subscription.status === 'active' ||
-    (subscription.status === 'cancelled' && subscription.current_period_end && new Date(subscription.current_period_end) > new Date())
-  ))
-
-  // Free intro chat: 25 messages total (client + therapist combined), no time
-  // window. Once 25 messages exist, the client must subscribe to send more.
+  // Pay-as-you-go: a client who has booked (paid for) at least one session keeps
+  // unlimited chat. Otherwise the free intro is 25 messages total (client +
+  // therapist combined); after that they must book a session to keep chatting.
+  const hasPaidSession = (paidSessionCount ?? 0) > 0
   const INTRO_LIMIT = 25
-  // null = subscribed (no gate); 0 = exhausted; >0 = messages remaining
-  const freeMessagesLeft: number | null = isSubscribed
+  // null = unlocked (no gate); 0 = intro exhausted; >0 = messages remaining
+  const freeMessagesLeft: number | null = hasPaidSession
     ? null
     : Math.max(0, INTRO_LIMIT - (totalMessageCount ?? 0))
-  const therapyType = (questionnaire?.responses?.type as string) ?? null
+
   const [tProfileResult, tUserResult, messagesResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, is_verified')
+      .select('specializations, bio, approach, years_experience, languages, is_verified, tagline, education, license_country, session_expectations, pronouns, previous_experience')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -86,9 +75,15 @@ export default async function ClientChatPage() {
   const therapist = {
     fullName: tUser?.full_name ?? 'Your Therapist',
     avatarUrl: tUser?.avatar_url ?? null,
+    tagline: tProfile?.tagline ?? null,
     specializations: tProfile?.specializations ?? [],
     bio: tProfile?.bio ?? null,
     approach: tProfile?.approach ?? null,
+    education: tProfile?.education ?? null,
+    licenseCountry: tProfile?.license_country ?? null,
+    sessionExpectations: tProfile?.session_expectations ?? null,
+    pronouns: tProfile?.pronouns ?? null,
+    previousExperience: tProfile?.previous_experience ?? null,
     yearsExperience: tProfile?.years_experience ?? 0,
     languages: tProfile?.languages ?? ['English'],
     isVerified: tProfile?.is_verified ?? false,
@@ -101,9 +96,8 @@ export default async function ClientChatPage() {
       clientName={profile?.full_name ?? ''}
       therapist={therapist}
       initialMessages={messages}
-      isSubscribed={isSubscribed}
+      hasPaidSession={hasPaidSession}
       freeMessagesLeft={freeMessagesLeft}
-      therapyType={therapyType}
     />
   )
 }

@@ -1,9 +1,20 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { SubscriptionManager } from '@/components/dashboard/SubscriptionManager'
-import type { SubscriptionData } from '@/components/dashboard/SubscriptionManager'
+import SubscriptionView from './SubscriptionView'
+import {
+  sessionPriceInr,
+  monthlyBundleInr,
+  MONTHLY_BUNDLE_SESSIONS,
+  MONTHLY_BUNDLE_DISCOUNT,
+  type SessionCategory,
+  type ProposalTier,
+} from '@/lib/plans'
 
 export const dynamic = 'force-dynamic'
+
+function normalizeCategory(raw: unknown): SessionCategory {
+  return raw === 'couples' || raw === 'teen' ? raw : 'individual'
+}
 
 export default async function SubscriptionPage() {
   const supabase = await createClient()
@@ -19,29 +30,72 @@ export default async function SubscriptionPage() {
   if (profile?.role !== 'client') redirect('/dashboard')
 
   const admin = createAdminClient()
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('id, therapist_id, tier')
+    .eq('client_id', user.id)
+    .eq('status', 'active')
+    .maybeSingle() as { data: { id: string; therapist_id: string; tier: string | null } | null; error: unknown }
 
-  const [{ data: subscription }, { data: match }] = await Promise.all([
+  // No active match yet → can't price a bundle. Show the "get matched first" state.
+  if (!match) {
+    return (
+      <SubscriptionView
+        userName={profile?.full_name ?? ''}
+        isMatched={false}
+        therapistName={null}
+        perSessionInr={0}
+        bundleInr={0}
+        bundleSessions={MONTHLY_BUNDLE_SESSIONS}
+        discountPct={Math.round(MONTHLY_BUNDLE_DISCOUNT * 100)}
+        activeCreditsRemaining={null}
+        activeCreditsTotal={null}
+        razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
+        userEmail=""
+      />
+    )
+  }
+
+  const tier: ProposalTier = match.tier === 'professional' ? 'professional' : 'standard'
+
+  const { data: questionnaire } = await (admin as any)
+    .from('questionnaire_responses')
+    .select('responses')
+    .eq('client_id', user.id)
+    .maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
+  const category = normalizeCategory(questionnaire?.responses?.type)
+
+  const perSessionInr = sessionPriceInr(category, tier)
+  const bundleInr = monthlyBundleInr(perSessionInr)
+
+  const [tUserResult, bundleResult, userResult] = await Promise.all([
+    (admin as any).from('profiles').select('full_name').eq('id', match.therapist_id).single(),
     (admin as any)
-      .from('subscriptions')
-      .select('id, plan, status, current_period_start, current_period_end, cancelled_at, amount, currency')
-      .eq('client_id', user.id)
-      .not('status', 'eq', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle() as Promise<{ data: SubscriptionData | null; error: unknown }>,
-    (admin as any)
-      .from('matches')
-      .select('id')
+      .from('session_bundles')
+      .select('credits_remaining, credits_total')
       .eq('client_id', user.id)
       .eq('status', 'active')
-      .maybeSingle() as Promise<{ data: { id: string } | null; error: unknown }>,
+      .maybeSingle(),
+    admin.auth.admin.getUserById(user.id),
   ])
 
+  const therapistName = (tUserResult.data?.full_name as string | undefined) ?? 'your therapist'
+  const activeBundle = bundleResult.data as { credits_remaining: number; credits_total: number } | null
+  const userEmail = userResult.data?.user?.email ?? ''
+
   return (
-    <SubscriptionManager
+    <SubscriptionView
       userName={profile?.full_name ?? ''}
-      isMatched={!!match}
-      subscription={subscription}
+      isMatched={true}
+      therapistName={therapistName}
+      perSessionInr={perSessionInr}
+      bundleInr={bundleInr}
+      bundleSessions={MONTHLY_BUNDLE_SESSIONS}
+      discountPct={Math.round(MONTHLY_BUNDLE_DISCOUNT * 100)}
+      activeCreditsRemaining={activeBundle?.credits_remaining ?? null}
+      activeCreditsTotal={activeBundle?.credits_total ?? null}
+      razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
+      userEmail={userEmail}
     />
   )
 }

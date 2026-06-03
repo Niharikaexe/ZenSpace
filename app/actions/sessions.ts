@@ -29,27 +29,23 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
     .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
 
   if (senderProfile?.role === 'client') {
-    // B-14: allow access while current_period_end is in the future, even if
-    // status='cancelled' (user paid for the period; Razorpay cancel_at_cycle_end
-    // means they keep access until period_end, not immediately).
-    const { data: activeSub } = await (admin as any)
-      .from('subscriptions')
-      .select('id')
-      .eq('client_id', user.id)
-      .in('status', ['active', 'cancelled'])
-      .gt('current_period_end', new Date().toISOString())
-      .maybeSingle() as { data: { id: string } | null; error: unknown }
+    // Free intro chat: 25 messages total (client + therapist combined), no
+    // time window. Once the conversation reaches 25 messages, the client must
+    // have booked (and paid for) at least one session to keep chatting —
+    // pay-as-you-go, no subscription.
+    const { count } = await (admin as any)
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('match_id', matchId) as { count: number | null; error: unknown }
 
-    if (!activeSub) {
-      // Free intro chat: 25 messages total (client + therapist combined), no
-      // time window. Once the conversation reaches 25 messages, the client
-      // must subscribe to send more.
-      const { count } = await (admin as any)
-        .from('messages')
+    if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) {
+      const { count: paidSessions } = await (admin as any)
+        .from('sessions')
         .select('*', { count: 'exact', head: true })
-        .eq('match_id', matchId) as { count: number | null; error: unknown }
+        .eq('match_id', matchId)
+        .eq('payment_status', 'paid') as { count: number | null; error: unknown }
 
-      if ((count ?? 0) >= INTRO_MESSAGE_LIMIT) return { error: 'subscribe_required' }
+      if ((paidSessions ?? 0) === 0) return { error: 'session_required' }
     }
   }
 
@@ -108,8 +104,21 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
 }
 
 export async function markMessagesRead(matchId: string): Promise<void> {
-  const { user, supabase } = await getAuthUser()
-  await (supabase as any)
+  const { user } = await getAuthUser()
+  const admin = createAdminClient()
+
+  // IDOR guard: only a participant of this match may mark its messages read.
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('client_id, therapist_id')
+    .eq('id', matchId)
+    .maybeSingle() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
+  if (!match || (match.client_id !== user.id && match.therapist_id !== user.id)) return
+
+  // Use the admin client: `messages` has no RLS UPDATE policy, so the regular
+  // (RLS-enforced) client silently updated zero rows — which is why read
+  // receipts never cleared. Only flips is_read on messages the caller RECEIVED.
+  await (admin as any)
     .from('messages')
     .update({ is_read: true })
     .eq('match_id', matchId)

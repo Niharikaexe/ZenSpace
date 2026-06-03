@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { SubscriptionPlans } from './SubscriptionPlans'
-import type { PlanCategory } from '@/lib/plans'
 
 const SAMPLE_THERAPISTS = [
   {
@@ -81,8 +79,6 @@ type QuestionnairePrefs = {
 
 interface Props {
   userName: string
-  userEmail: string
-  hasActiveSubscription: boolean
   hasQuestionnaire: boolean
   questionnairePrefs: QuestionnairePrefs
   therapyCategory: 'individual' | 'couples' | 'teen'
@@ -205,29 +201,39 @@ function TherapistCarousel() {
 
 export function PendingDashboard({
   userName,
-  userEmail,
-  hasActiveSubscription,
   hasQuestionnaire,
   questionnairePrefs,
   therapyCategory,
 }: Props) {
   const firstName = userName.split(' ')[0]
-  const planCategory: PlanCategory = (therapyCategory === 'couples' || questionnairePrefs?.type === 'couples') ? 'couples' : 'individual'
 
   function buildPreferencesList(): string[] {
     if (!questionnairePrefs) return []
     const lines: string[] = []
+
     if (questionnairePrefs.type === 'couples') {
-      lines.push('A therapist experienced in couples and relationship dynamics')
+      lines.push('A therapist who works with couples — someone who can hold both sides of the relationship, not just one')
     } else if (questionnairePrefs.type === 'teen') {
-      lines.push('A therapist experienced in working with young adults (14–20)')
+      lines.push('A therapist who genuinely understands young adults (14–20), without talking down to them')
     }
+
     if (questionnairePrefs.concerns.length > 0) {
-      lines.push(`A therapist experienced in: ${questionnairePrefs.concerns.slice(0, 3).join(', ')}`)
+      const concerns = questionnairePrefs.concerns.slice(0, 3).join(', ')
+      lines.push(`Real experience with what you're navigating — ${concerns}`)
     }
-    if (questionnairePrefs.therapistGender && questionnairePrefs.therapistGender !== 'No preference') {
-      lines.push(`Preferred therapist gender: ${questionnairePrefs.therapistGender}`)
+
+    // Only surface gender when the client expressed an actual preference.
+    // The questionnaire stores "No strong preference" for no-preference, so check
+    // for the specific gender keywords rather than excluding a single string.
+    const gender = questionnairePrefs.therapistGender?.toLowerCase() ?? ''
+    if (gender.includes('female')) {
+      lines.push("A female therapist, since that's who you said you'd feel most at ease with")
+    } else if (gender.includes('male')) {
+      lines.push("A male therapist, since that's who you said you'd feel most at ease with")
+    } else if (gender.includes('non-binary') || gender.includes('gender-diverse')) {
+      lines.push('A non-binary or gender-diverse therapist, as you asked for')
     }
+
     return lines
   }
 
@@ -238,7 +244,7 @@ export function PendingDashboard({
       {/* Welcome */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-          {firstName}, your therapist is on their way.
+          {firstName}, we&apos;re matching you with the most aligned therapists.
         </h1>
       </div>
 
@@ -252,14 +258,8 @@ export function PendingDashboard({
         <div>
           <p className="text-sm font-semibold text-[#233551]">We&apos;re finding your match</p>
           <p className="text-sm text-[#233551]/60 mt-0.5 leading-relaxed">
-            Thank you for sharing your preferences. Our team is personally reviewing your responses to find the right therapist for you. This usually takes 24–48 hours.
+            Thank you for sharing your preferences. Our team is personally reviewing your responses to hand-pick therapists for you. This usually takes 24–48 hours — we&apos;ll let you know the moment they&apos;re ready. No payment needed yet.
           </p>
-          {hasActiveSubscription && (
-            <div className="inline-flex items-center gap-1.5 mt-2 bg-[#3D8A80] text-white text-xs font-semibold px-3 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-              Subscription active
-            </div>
-          )}
         </div>
       </div>
 
@@ -281,29 +281,6 @@ export function PendingDashboard({
               style={{ fontFamily: 'var(--font-lato)' }}
             >
               Answer now →
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Subscribe prompt — shown if no active subscription */}
-      {!hasActiveSubscription && (
-        <div className="bg-[#233551] text-white rounded-2xl px-5 py-4 mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-black" style={{ fontFamily: 'var(--font-lato)' }}>
-                Ready when your therapist is
-              </p>
-              <p className="text-sm text-white/60 mt-1">
-                Subscribe now so your first session starts the moment you&apos;re matched.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/subscribe"
-              className="flex-shrink-0 bg-[#7EC0B7] text-[#233551] text-xs font-bold px-4 py-2 rounded-full hover:bg-[#6db0a7] transition-colors"
-              style={{ fontFamily: 'var(--font-lato)' }}
-            >
-              See plans →
             </Link>
           </div>
         </div>
@@ -417,23 +394,9 @@ export function PendingDashboard({
           <TherapistCarousel />
         </div>
         <p className="text-xs text-[#233551]/30 text-center mt-5">
-          Profiles are anonymised for privacy. Your matched therapist will be revealed once assigned.
+          Profiles are anonymised for privacy. Your matched therapists will be revealed once they&apos;re ready.
         </p>
       </section>
-
-      {/* Subscription plans — if not subscribed */}
-      {!hasActiveSubscription && (
-        <section className="mb-10">
-          <div className="border-t border-slate-100 mb-8" />
-          <h2 className="text-lg font-black text-[#233551] mb-1" style={{ fontFamily: 'var(--font-lato)' }}>
-            Choose your plan
-          </h2>
-          <p className="text-sm text-[#233551]/55 mb-5">
-            Subscribe now so you&apos;re ready the moment you&apos;re matched.
-          </p>
-          <SubscriptionPlans userName={userName} userEmail={userEmail} category={planCategory} />
-        </section>
-      )}
 
     </div>
   )

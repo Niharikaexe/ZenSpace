@@ -4,6 +4,14 @@ import Footer from '@/components/home/Footer'
 export const metadata = {
   title: 'Privacy Policy — MindCanopy',
   description: 'How MindCanopy collects, uses, and protects your personal and health data.',
+  alternates: { canonical: 'https://mindcanopy.in/privacy' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/privacy',
+    title: 'Privacy Policy — MindCanopy',
+    description: 'How MindCanopy collects, uses, and protects your personal and health data.',
+  },
 }
 
 export const revalidate = 86400

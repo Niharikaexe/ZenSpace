@@ -5,9 +5,6 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { sendAdminTherapistOnboardedEmail, sendNotificationEmail } from '@/lib/email'
 
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024 // 5 MB
-const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
 const TEST_CODE = 'MINDCANOPY2026'
 
 // ─── Invite lookup (called from client during onboarding) ─────────────────────
@@ -60,6 +57,7 @@ const onboardSchema = z.object({
   pronouns: z.string().optional(),
   previousExperience: z.string().optional(),
   timezone: z.string().min(1, 'Time zone is required'),
+  profilePhotoPath: z.string().min(1, 'Profile photo is required'),
   idDocumentUrl: z.string().min(1, 'Proof of identification is required'),
   // Address fields removed from onboarding — therapists can fill these in
   // later from the account page.
@@ -79,20 +77,11 @@ export async function submitTherapistOnboarding(
   _: OnboardState,
   formData: FormData
 ): Promise<OnboardState> {
-  const profilePhoto = formData.get('profilePhoto')
-
-  if (!(profilePhoto instanceof File) || profilePhoto.size === 0) {
-    return { error: 'Profile photo is required.' }
-  }
-  if (profilePhoto.size > MAX_PHOTO_BYTES) {
-    return { error: 'Profile photo must be under 5 MB.' }
-  }
-  if (!ALLOWED_PHOTO_TYPES.includes(profilePhoto.type)) {
-    return { error: 'Profile photo must be a JPG, PNG, or WebP image.' }
-  }
-
+  // The profile photo is uploaded directly from the browser to the `avatars`
+  // bucket (see the onboarding form) so it never passes through this Server
+  // Action — that avoids Next.js's 1 MB Server Action body limit. We only
+  // receive its storage path here.
   const fields = Object.fromEntries(formData)
-  delete (fields as Record<string, unknown>).profilePhoto
 
   const parsed = onboardSchema.safeParse(fields)
   if (!parsed.success) {
@@ -214,39 +203,31 @@ export async function submitTherapistOnboarding(
     return { error: `Could not save profile: ${(profileError as any).message ?? 'unknown error'}` }
   }
 
-  const ext = profilePhoto.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const photoPath = `therapists/${userId}/avatar-${Date.now()}.${ext}`
+  // The photo was already uploaded from the browser to the `onboarding/` prefix
+  // (anonymous, before this account existed). Move it under the therapist's own
+  // folder so all avatars share the `therapists/<uid>/` convention; if the move
+  // fails for any reason, fall back to the original onboarding path rather than
+  // failing the whole onboarding over a photo location.
+  const uploadedPath = v.profilePhotoPath
+  const ext = uploadedPath.split('.').pop()?.toLowerCase() || 'jpg'
+  const finalPath = `therapists/${userId}/avatar-${Date.now()}.${ext}`
 
-  // eslint-disable-next-line no-console
-  console.log('[therapist/onboard] uploading profile photo', {
-    userId,
-    path: photoPath,
-    contentType: profilePhoto.type,
-    size: profilePhoto.size,
-    name: profilePhoto.name,
-  })
-
-  const { error: uploadError } = await admin.storage
-    .from('avatars')
-    .upload(photoPath, profilePhoto, {
-      contentType: profilePhoto.type,
-      upsert: true,
-    })
-
-  if (uploadError) {
-    // eslint-disable-next-line no-console
-    console.error('[therapist/onboard] avatar upload failed', {
-      userId,
-      path: photoPath,
-      contentType: profilePhoto.type,
-      size: profilePhoto.size,
-      message: (uploadError as any).message,
-      name: (uploadError as any).name,
-      statusCode: (uploadError as any).statusCode,
-      error: uploadError,
-    })
-    await admin.auth.admin.deleteUser(userId)
-    return { error: `Failed to upload profile photo: ${(uploadError as any).message ?? 'unknown error'}` }
+  let photoPath = uploadedPath
+  if (uploadedPath.startsWith('onboarding/')) {
+    const { error: moveError } = await admin.storage
+      .from('avatars')
+      .move(uploadedPath, finalPath)
+    if (!moveError) {
+      photoPath = finalPath
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn('[therapist/onboard] avatar move failed, keeping onboarding path', {
+        userId,
+        from: uploadedPath,
+        to: finalPath,
+        message: (moveError as any).message,
+      })
+    }
   }
 
   const { data: publicUrlData } = admin.storage.from('avatars').getPublicUrl(photoPath)

@@ -8,9 +8,8 @@ const _rl = new Map<string, number[]>()
 const RL_WINDOW_MS = 60_000
 
 const RL_LIMITS: Record<string, number> = {
-  '/api/payment/create-subscription': 5,
-  '/api/payment/create-order':        10,
-  '/api/payment/verify':              10,
+  '/api/payment/session-order':  10,
+  '/api/payment/session-verify': 10,
 }
 
 function checkRateLimit(key: string, limit: number): boolean {

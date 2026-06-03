@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ChatInterface from '@/components/shared/ChatInterface'
-import SubscriptionModal from '@/components/client/SubscriptionModal'
 import ClientNav from '@/components/client/ClientNav'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
@@ -20,9 +19,8 @@ interface Props {
   clientName: string
   therapist: TherapistPanelData
   initialMessages: Message[]
-  isSubscribed: boolean
-  freeMessagesLeft: number | null  // null = subscribed; 0 = exhausted; >0 = remaining
-  therapyType: string | null
+  hasPaidSession: boolean
+  freeMessagesLeft: number | null  // null = unlocked; 0 = intro exhausted; >0 = remaining
 }
 
 function initials(name: string) {
@@ -35,19 +33,16 @@ export default function ClientChatView({
   clientName,
   therapist,
   initialMessages,
-  isSubscribed,
+  hasPaidSession,
   freeMessagesLeft,
-  therapyType,
 }: Props) {
-  const [showSubModal, setShowSubModal] = useState(false)
+  const router = useRouter()
 
-  // canSend: subscribed OR has free intro messages remaining
-  const canSend = isSubscribed || (freeMessagesLeft !== null && freeMessagesLeft > 0)
-  // showExpiredBanner: not subscribed AND intro exhausted (freeMessagesLeft === 0)
-  const showExpiredBanner = !isSubscribed && freeMessagesLeft === 0
+  // canSend: has a paid session OR still has free intro messages remaining
+  const canSend = hasPaidSession || (freeMessagesLeft !== null && freeMessagesLeft > 0)
 
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFA] overflow-hidden">
+    <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -69,25 +64,6 @@ export default function ClientChatView({
             </div>
           </div>
 
-          {showExpiredBanner && (
-            <div className="flex-shrink-0 px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs text-amber-800 font-medium truncate">
-                  Subscribe to keep messaging and book sessions.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowSubModal(true)}
-                className="flex-shrink-0 text-xs font-bold text-amber-800 bg-amber-200 hover:bg-amber-300 px-3 py-1 rounded-full transition-colors"
-              >
-                Subscribe →
-              </button>
-            </div>
-          )}
-
           <div className="flex-1 overflow-hidden">
             <ChatInterface
               matchId={matchId}
@@ -96,15 +72,11 @@ export default function ClientChatView({
               otherPartyName={therapist.fullName}
               initialMessages={initialMessages}
               sendDisabled={!canSend}
-              onSendDisabled={() => setShowSubModal(true)}
+              onSendDisabled={() => router.push('/dashboard/sessions')}
             />
           </div>
         </div>
       </div>
-
-      {showSubModal && (
-        <SubscriptionModal trigger="chat" onClose={() => setShowSubModal(false)} therapyType={therapyType} />
-      )}
     </div>
   )
 }

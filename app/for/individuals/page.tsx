@@ -18,6 +18,15 @@ export const metadata: Metadata = {
     'online therapy india',
     'therapy for burnout',
   ],
+  alternates: { canonical: 'https://mindcanopy.in/for/individuals' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/for/individuals',
+    title: 'Online Anxiety & Stress Therapy for Adults in India | MindCanopy',
+    description:
+      'Feeling burned out, anxious, or just off? Talk to a real therapist online. Free intro chat before you pay. No waiting rooms, no judgment.',
+  },
 }
 
 export default function IndividualsPage() {

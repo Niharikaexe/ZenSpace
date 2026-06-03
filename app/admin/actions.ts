@@ -4,8 +4,11 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import { randomBytes } from 'crypto'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -79,6 +82,70 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
       therapistFullName,
       adminMatchNote: notes || '',
     },
+  }).catch(() => {})
+
+  revalidatePath('/admin')
+}
+
+type Proposal = { therapistId: string; summary: string }
+
+/**
+ * Dual-therapist match: admin proposes a Standard (basic-tier) and a
+ * Professional (premium-tier) therapist as two `pending` matches. The client
+ * picks one via "Start a free chat" (see app/actions/choose-therapist.ts).
+ *
+ * Only the client is notified here — therapists are notified when chosen.
+ */
+export async function createMatchProposals(
+  clientId: string,
+  standard: Proposal,
+  professional: Proposal,
+) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  if (!standard.therapistId || !professional.therapistId) {
+    throw new Error('Pick both a Standard and a Professional therapist.')
+  }
+  if (standard.therapistId === professional.therapistId) {
+    throw new Error('The Standard and Professional therapists must be different people.')
+  }
+
+  // Reject if the client already has an active match OR pending proposals.
+  const { data: existing } = await (admin as any)
+    .from('matches')
+    .select('id')
+    .eq('client_id', clientId)
+    .in('status', ['active', 'pending']) as { data: { id: string }[] | null; error: unknown }
+
+  if (existing && existing.length > 0) {
+    throw new Error('This client already has an active match or pending proposals. End those first.')
+  }
+
+  const now = new Date().toISOString()
+  const rows = [
+    { tier: 'standard', ...standard },
+    { tier: 'professional', ...professional },
+  ].map((p) => ({
+    client_id: clientId,
+    therapist_id: p.therapistId,
+    matched_by: adminUser.id,
+    tier: p.tier,
+    admin_summary: p.summary || null,
+    status: 'pending',
+    created_at: now,
+  }))
+
+  const { error } = await (admin as any).from('matches').insert(rows)
+  if (error) throw new Error(error.message)
+
+  // Notify the client that two therapists are ready to review.
+  createNotification({
+    userId: clientId,
+    type: 'client_proposals_ready',
+    title: 'Your therapist matches are ready',
+    body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
+    metadata: { proposals: 2 },
   }).catch(() => {})
 
   revalidatePath('/admin')
@@ -285,4 +352,99 @@ export async function endMatch(matchId: string) {
   }
 
   revalidatePath('/admin')
+}
+
+// Re-send the email-verification link to a therapist applicant whose email is
+// not yet verified. Generates a token if the application doesn't have one.
+export async function sendApplicationVerificationEmail(applicationId: string) {
+  await assertAdmin()
+  const admin = createAdminClient()
+
+  const { data: app } = await (admin as any)
+    .from('therapist_applications')
+    .select('id, full_name, email, email_verified_at, email_verification_token')
+    .eq('id', applicationId)
+    .maybeSingle() as { data: { id: string; full_name: string; email: string; email_verified_at: string | null; email_verification_token: string | null } | null; error: unknown }
+
+  if (!app) throw new Error('Application not found')
+  if (app.email_verified_at) return { ok: true, alreadyVerified: true }
+
+  let token = app.email_verification_token
+  if (!token) {
+    token = randomBytes(32).toString('hex')
+    const { error } = await (admin as any)
+      .from('therapist_applications')
+      .update({ email_verification_token: token })
+      .eq('id', applicationId)
+    if (error) throw new Error(error.message)
+  }
+
+  const verifyUrl = `${SITE_URL}/therapist/verify-email?token=${token}`
+  await sendApplicationReceivedEmail({ to: app.email, name: app.full_name, verifyUrl })
+
+  logger.info('admin/sendApplicationVerificationEmail', 'Verification email re-sent', { applicationId, email: app.email })
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
+// Settle a therapist's outstanding payout: records a payout batch and flips all
+// their completed + paid + unpaid sessions to payout_status='paid'. Off-platform
+// payment is done separately by the admin; this just tracks that it happened so
+// the therapist payment page shows true outstanding amounts (no double-paying).
+export async function markTherapistPayout(therapistId: string, note?: string) {
+  const adminUser = await assertAdmin()
+  const admin = createAdminClient()
+
+  // All matches this therapist has had (any status — past clients still count).
+  const { data: matches } = await (admin as any)
+    .from('matches').select('id').eq('therapist_id', therapistId) as { data: { id: string }[] | null; error: unknown }
+  const matchIds = (matches ?? []).map(m => m.id)
+  if (matchIds.length === 0) return { ok: true, count: 0, totalPaise: 0 }
+
+  // Outstanding = completed + paid sessions not yet settled.
+  const { data: sessions } = await (admin as any)
+    .from('sessions')
+    .select('id, therapist_payout_paise, scheduled_at')
+    .in('match_id', matchIds)
+    .eq('status', 'completed')
+    .eq('payment_status', 'paid')
+    .eq('payout_status', 'unpaid') as { data: { id: string; therapist_payout_paise: number | null; scheduled_at: string }[] | null; error: unknown }
+
+  const rows = sessions ?? []
+  if (rows.length === 0) return { ok: true, count: 0, totalPaise: 0 }
+
+  const totalPaise = rows.reduce((sum, r) => sum + (r.therapist_payout_paise ?? 0), 0)
+  const times = rows.map(r => new Date(r.scheduled_at).getTime())
+
+  const { data: batch, error: batchErr } = await (admin as any)
+    .from('therapist_payouts')
+    .insert({
+      therapist_id: therapistId,
+      total_paise: totalPaise,
+      session_count: rows.length,
+      period_start: new Date(Math.min(...times)).toISOString(),
+      period_end: new Date(Math.max(...times)).toISOString(),
+      note: note || null,
+      marked_by: adminUser.id,
+    })
+    .select('id')
+    .single() as { data: { id: string } | null; error: unknown }
+
+  if (batchErr || !batch) throw new Error((batchErr as { message?: string } | null)?.message ?? 'Failed to record payout')
+
+  // Flip only the rows still unpaid (guards against a concurrent settle).
+  const { error: updErr } = await (admin as any)
+    .from('sessions')
+    .update({ payout_status: 'paid', payout_paid_at: new Date().toISOString(), payout_batch_id: batch.id })
+    .in('id', rows.map(r => r.id))
+    .eq('payout_status', 'unpaid')
+
+  if (updErr) throw new Error(updErr.message)
+
+  logger.info('admin/markTherapistPayout', 'Payout settled', {
+    therapistId, batchId: batch.id, count: rows.length, totalPaise,
+  })
+
+  revalidatePath('/admin')
+  return { ok: true, count: rows.length, totalPaise }
 }
