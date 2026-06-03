@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { signOut } from '@/app/actions/auth'
-import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest, markTherapistPayout } from '@/app/admin/actions'
+import { toggleTherapistVerification, endMatch, generateInviteCode, revokeInviteCode, approveApplication, rejectApplication, actionSwitchRequest, markTherapistPayout, sendApplicationVerificationEmail } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
@@ -283,6 +283,8 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
   // Two-step confirm for settling a payout (avoids a native confirm() dialog).
   const [confirmPayoutId, setConfirmPayoutId] = useState<string | null>(null)
+  // Track which application just had a verification email sent (for the chip).
+  const [verifyEmailSentId, setVerifyEmailSentId] = useState<string | null>(null)
 
   // ── Live data: Supabase Realtime → router.refresh() ─────────────────────────
   // Any insert/update/delete on a table that feeds this dashboard re-runs the
@@ -545,10 +547,26 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                               Email verified
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                              Email unverified
-                            </span>
+                            <>
+                              <span className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                Email unverified
+                              </span>
+                              <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  startTransition(async () => {
+                                    await sendApplicationVerificationEmail(app.id)
+                                    setVerifyEmailSentId(app.id)
+                                  })
+                                }}
+                                className="text-xs font-semibold px-2 py-0.5 rounded-full border border-slate-300 text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition-colors disabled:opacity-50"
+                              >
+                                {verifyEmailSentId === app.id ? '✓ Sent' : 'Send verification email'}
+                              </button>
+                            </>
                           )}
                           {app.city && (
                             <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">{app.city}</span>

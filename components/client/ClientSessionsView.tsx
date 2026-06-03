@@ -73,8 +73,9 @@ function buildWeek(
   therapistTimezone: string,
 ): DayEntry[] {
   // Normalize the stored timezone (which may be a legacy label like "IST
-  // (India)") into a valid IANA zone before it reaches Intl. Falls back to IST.
-  const tz = toIanaTimeZone(therapistTimezone) ?? 'Asia/Kolkata'
+  // (India)") into a valid IANA zone before it reaches Intl. Falls back to UTC
+  // (neutral) — the real per-therapist zone is captured + stored on save.
+  const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
   const now = new Date()
   const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
   const days: DayEntry[] = []

@@ -101,6 +101,13 @@ interface Props {
     bankAccountName: string
     bankAccountNumber: string
     bankIfsc: string
+    tagline: string
+    education: string
+    licenseCountry: string
+    sessionExpectations: string
+    pronouns: string
+    previousExperience: string
+    linkedinUrl: string
   }
 }
 
@@ -112,6 +119,13 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [fullName, setFullName] = useState(initialData.fullName)
   const [bio, setBio] = useState(initialData.bio)
   const [approach, setApproach] = useState(initialData.approach)
+  const [tagline, setTagline] = useState(initialData.tagline)
+  const [education, setEducation] = useState(initialData.education)
+  const [licenseCountry, setLicenseCountry] = useState(initialData.licenseCountry)
+  const [sessionExpectations, setSessionExpectations] = useState(initialData.sessionExpectations)
+  const [pronouns, setPronouns] = useState(initialData.pronouns)
+  const [previousExperience, setPreviousExperience] = useState(initialData.previousExperience)
+  const [linkedinUrl, setLinkedinUrl] = useState(initialData.linkedinUrl)
   const [yearsExp, setYearsExp] = useState(String(initialData.yearsExperience))
   const [capacity, setCapacity] = useState(String(initialData.weeklyCapacity))
   // Strip any "free text" values not in the predefined list back into the Other field
@@ -334,6 +348,18 @@ export function TherapistAccountForm({ initialData }: Props) {
       <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">
         <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Professional Details</p>
 
+        <Field label="Tagline" hint="One line shown on your client card">
+          <input
+            name="tagline"
+            type="text"
+            value={tagline}
+            onChange={e => setTagline(e.target.value)}
+            placeholder="e.g. Helping you find calm in the chaos"
+            maxLength={120}
+            className={inputCls}
+          />
+        </Field>
+
         <Field label="Bio" required hint="Shown to matched clients">
           <textarea
             name="bio"
@@ -341,6 +367,17 @@ export function TherapistAccountForm({ initialData }: Props) {
             value={bio}
             onChange={e => setBio(e.target.value)}
             placeholder="Describe your background, approach, and what clients can expect..."
+            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
+          />
+        </Field>
+
+        <Field label="What clients can expect" hint="How your sessions work">
+          <textarea
+            name="sessionExpectations"
+            rows={3}
+            value={sessionExpectations}
+            onChange={e => setSessionExpectations(e.target.value)}
+            placeholder="What a typical session with you looks like..."
             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
           />
         </Field>
@@ -397,6 +434,67 @@ export function TherapistAccountForm({ initialData }: Props) {
               No
             </button>
           </div>
+        </Field>
+      </section>
+
+      {/* Section: Background & Credentials */}
+      <section className="bg-white border border-slate-100 rounded-2xl p-6 space-y-5">
+        <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Background &amp; Credentials</p>
+
+        <Field label="Education" hint="Degrees, institutions">
+          <input
+            name="education"
+            type="text"
+            value={education}
+            onChange={e => setEducation(e.target.value)}
+            placeholder="e.g. MSc Clinical Psychology, University of Delhi"
+            className={inputCls}
+          />
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Country of license" hint="Where you're licensed to practise">
+            <input
+              name="licenseCountry"
+              type="text"
+              value={licenseCountry}
+              onChange={e => setLicenseCountry(e.target.value)}
+              placeholder="e.g. United Kingdom"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Pronouns">
+            <input
+              name="pronouns"
+              type="text"
+              value={pronouns}
+              onChange={e => setPronouns(e.target.value)}
+              placeholder="e.g. she/her"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <Field label="Previous experience" hint="Prior roles, settings, populations">
+          <textarea
+            name="previousExperience"
+            rows={3}
+            value={previousExperience}
+            onChange={e => setPreviousExperience(e.target.value)}
+            placeholder="Where you've worked and who you've worked with..."
+            className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
+          />
+        </Field>
+
+        <Field label="LinkedIn URL">
+          <input
+            name="linkedinUrl"
+            type="url"
+            value={linkedinUrl}
+            onChange={e => setLinkedinUrl(e.target.value)}
+            placeholder="https://linkedin.com/in/your-handle"
+            className={inputCls}
+          />
         </Field>
       </section>
 

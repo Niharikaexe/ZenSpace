@@ -6,8 +6,19 @@ import { logger } from '@/lib/logger'
 type Slot = { hour: number; minute: number }
 export type WeeklyAvailability = Record<string, Slot[]>
 
+// Confirm a string is a real IANA zone Intl can use (rejects junk before storing).
+function isValidIanaZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function updateWeeklyAvailability(
   schedule: WeeklyAvailability,
+  timezone?: string,
 ): Promise<{ error?: string; success?: boolean }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -23,10 +34,18 @@ export async function updateWeeklyAvailability(
     }
   }
 
+  // Persist the therapist's actual timezone alongside the slots, so the client
+  // booking view can convert wall-clock slots → the client's timezone correctly
+  // regardless of where the therapist is. Availability is meaningless without it.
+  const update: Record<string, unknown> = { weekly_availability: schedule }
+  if (timezone && isValidIanaZone(timezone)) {
+    update.timezone = timezone
+  }
+
   const admin = createAdminClient()
   const { error } = await (admin as any)
     .from('therapist_profiles')
-    .update({ weekly_availability: schedule })
+    .update(update)
     .eq('user_id', user.id)
 
   if (error) {

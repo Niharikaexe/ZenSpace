@@ -57,7 +57,7 @@ export default async function ClientSessionsPage() {
   const [tProfileResult, tUserResult, sessionsResult, userResult] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified, timezone, tagline, education, license_country, session_expectations')
+      .select('specializations, bio, approach, years_experience, languages, weekly_availability, is_verified, timezone, tagline, education, license_country, session_expectations, pronouns, previous_experience')
       .eq('user_id', match.therapist_id)
       .maybeSingle(),
     (admin as any)
@@ -86,12 +86,17 @@ export default async function ClientSessionsPage() {
     education: tp?.education ?? null,
     licenseCountry: tp?.license_country ?? null,
     sessionExpectations: tp?.session_expectations ?? null,
+    pronouns: tp?.pronouns ?? null,
+    previousExperience: tp?.previous_experience ?? null,
     yearsExperience: tp?.years_experience ?? 0,
     languages: tp?.languages ?? ['English'],
     isVerified: tp?.is_verified ?? false,
   }
   const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
-  const therapistTimezone = (tp?.timezone as string | null) ?? 'UTC'
+  // Slots are stored in the therapist's own timezone (captured + saved when they
+  // edit availability). UTC is only a neutral fallback for legacy rows saved
+  // before timezone capture — those therapists just need to re-save once.
+  const therapistTimezone = (tp?.timezone as string | null) || 'UTC'
   const allSessions: Session[] = sessionsResult.data ?? []
   const userEmail = userResult.data?.user?.email ?? ''
 

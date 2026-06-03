@@ -173,7 +173,7 @@ export default async function ClientDashboard() {
     const [{ data: tProfiles }, { data: tUsers }] = await Promise.all([
       (matchAdmin as any)
         .from('therapist_profiles')
-        .select('user_id, tagline, bio, specializations, approach, education, years_experience, languages, license_number, license_country, session_expectations, previous_experience, is_verified')
+        .select('user_id, tagline, bio, specializations, approach, education, years_experience, languages, license_number, license_country, session_expectations, previous_experience, pronouns, is_verified')
         .in('user_id', therapistIds),
       (matchAdmin as any)
         .from('profiles')
@@ -202,6 +202,7 @@ export default async function ClientDashboard() {
           licenseCountry: tp?.license_country ?? null,
           sessionExpectations: tp?.session_expectations ?? null,
           previousExperience: tp?.previous_experience ?? null,
+          pronouns: tp?.pronouns ?? null,
           isVerified: tp?.is_verified ?? false,
         },
       }

@@ -128,6 +128,13 @@ export async function updateTherapistProfile(
   const bankAccountName = (formData.get('bankAccountName') as string | null)?.trim() ?? ''
   const bankAccountNumber = (formData.get('bankAccountNumber') as string | null)?.trim() ?? ''
   const bankIfsc = (formData.get('bankIfsc') as string | null)?.trim().toUpperCase() ?? ''
+  const tagline = (formData.get('tagline') as string | null)?.trim() ?? ''
+  const education = (formData.get('education') as string | null)?.trim() ?? ''
+  const licenseCountry = (formData.get('licenseCountry') as string | null)?.trim() ?? ''
+  const sessionExpectations = (formData.get('sessionExpectations') as string | null)?.trim() ?? ''
+  const pronouns = (formData.get('pronouns') as string | null)?.trim() ?? ''
+  const previousExperience = (formData.get('previousExperience') as string | null)?.trim() ?? ''
+  const linkedinUrl = (formData.get('linkedinUrl') as string | null)?.trim() ?? ''
 
   // Lightweight payment-field validation — empty values are allowed
   if (paypalEmail && !/^\S+@\S+\.\S+$/.test(paypalEmail)) {
@@ -190,6 +197,13 @@ export async function updateTherapistProfile(
       bank_account_name: bankAccountName || null,
       bank_account_number: bankAccountNumber || null,
       bank_ifsc: bankIfsc || null,
+      tagline: tagline || null,
+      education: education || null,
+      license_country: licenseCountry || null,
+      session_expectations: sessionExpectations || null,
+      pronouns: pronouns || null,
+      previous_experience: previousExperience || null,
+      linkedin_url: linkedinUrl || null,
     })
     .eq('user_id', user.id)
 

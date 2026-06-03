@@ -97,6 +97,15 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
   const [saveErr, setSaveErr] = useState<string | null>(null)
   const [hoverCell, setHoverCell] = useState<{ ci: number; dayKey: string } | null>(null)
 
+  // The therapist's actual timezone, detected from their browser. Set on mount
+  // (client-only, avoids SSR hydration mismatch) and saved with the schedule so
+  // the slots can be converted to each client's timezone — no region assumption.
+  const [browserTz, setBrowserTz] = useState<string | null>(null)
+  useEffect(() => {
+    try { setBrowserTz(Intl.DateTimeFormat().resolvedOptions().timeZone) } catch { /* keep null */ }
+  }, [])
+  const effectiveTz = browserTz ?? therapistTimezone ?? null
+
   // Drag state (ref so it doesn't cause re-renders)
   const drag = useRef<{
     dayKey:    string | null   // null = every-day row
@@ -152,7 +161,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
     for (const d of DAYS) schedule[d.key] = computeSlots(sel[d.key] ?? new Set())
-    const result = await updateWeeklyAvailability(schedule)
+    const result = await updateWeeklyAvailability(schedule, browserTz ?? undefined)
     setSaving(false)
     if (result.error) { setSaveErr(result.error) }
     else { setSaved(true); setTimeout(() => setSaved(false), 2500) }
@@ -173,9 +182,9 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
           <p className="text-xs text-[#233551]/40 mt-0.5">
             Click or drag to mark available ranges — each generates 50-min slots for clients
           </p>
-          {therapistTimezone && (
+          {effectiveTz && (
             <p className="text-[10px] text-[#3D8A80] font-semibold mt-0.5">
-              Times are in your timezone: {timezoneLabel(therapistTimezone)}
+              Times are in your timezone: {timezoneLabel(effectiveTz)} — clients see them in theirs
             </p>
           )}
         </div>

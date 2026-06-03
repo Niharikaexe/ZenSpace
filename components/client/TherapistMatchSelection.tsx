@@ -29,6 +29,7 @@ export type ProposalView = {
     licenseCountry: string | null
     sessionExpectations: string | null
     previousExperience: string | null
+    pronouns: string | null
     isVerified: boolean
   }
 }
@@ -242,8 +243,13 @@ function ProfileCard({
             {credentials.length > 0 && (
               <p className="text-sm text-[#233551]/50 mt-1">{credentials.join(' · ')}</p>
             )}
-            {t.yearsExperience > 0 && (
-              <p className="text-xs text-[#233551]/40 mt-0.5">{t.yearsExperience} years of experience</p>
+            {(t.yearsExperience > 0 || t.pronouns) && (
+              <p className="text-xs text-[#233551]/40 mt-0.5">
+                {[
+                  t.yearsExperience > 0 ? `${t.yearsExperience} years of experience` : null,
+                  t.pronouns,
+                ].filter(Boolean).join(' · ')}
+              </p>
             )}
 
             {/* Tagline quote */}
@@ -289,6 +295,16 @@ function ProfileCard({
               What sessions look like
             </h3>
             <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{t.sessionExpectations}</p>
+          </section>
+        )}
+
+        {/* Experience */}
+        {t.previousExperience && (
+          <section className="mt-5">
+            <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">
+              Experience
+            </h3>
+            <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{t.previousExperience}</p>
           </section>
         )}
 

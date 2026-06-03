@@ -13,6 +13,8 @@ export type TherapistPanelData = {
   education: string | null
   licenseCountry: string | null
   sessionExpectations: string | null
+  pronouns: string | null
+  previousExperience: string | null
   yearsExperience: number
   languages: string[]
   isVerified: boolean
@@ -96,6 +98,9 @@ export default function TherapistSidePanel({ therapist }: { therapist: Therapist
             {therapist.yearsExperience > 0 && (
               <span className="text-xs text-[#233551]/40">{therapist.yearsExperience} years of experience</span>
             )}
+            {therapist.pronouns && (
+              <span className="text-xs text-[#233551]/40">· {therapist.pronouns}</span>
+            )}
           </div>
 
           {credentials.length > 0 && (
@@ -143,6 +148,13 @@ export default function TherapistSidePanel({ therapist }: { therapist: Therapist
           <section>
             <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">What sessions look like</h3>
             <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.sessionExpectations}</p>
+          </section>
+        )}
+
+        {therapist.previousExperience && (
+          <section>
+            <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">Experience</h3>
+            <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.previousExperience}</p>
           </section>
         )}
 

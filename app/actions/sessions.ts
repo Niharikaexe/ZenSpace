@@ -104,8 +104,21 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
 }
 
 export async function markMessagesRead(matchId: string): Promise<void> {
-  const { user, supabase } = await getAuthUser()
-  await (supabase as any)
+  const { user } = await getAuthUser()
+  const admin = createAdminClient()
+
+  // IDOR guard: only a participant of this match may mark its messages read.
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('client_id, therapist_id')
+    .eq('id', matchId)
+    .maybeSingle() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
+  if (!match || (match.client_id !== user.id && match.therapist_id !== user.id)) return
+
+  // Use the admin client: `messages` has no RLS UPDATE policy, so the regular
+  // (RLS-enforced) client silently updated zero rows — which is why read
+  // receipts never cleared. Only flips is_read on messages the caller RECEIVED.
+  await (admin as any)
     .from('messages')
     .update({ is_read: true })
     .eq('match_id', matchId)

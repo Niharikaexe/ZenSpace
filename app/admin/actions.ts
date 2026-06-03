@@ -4,8 +4,11 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import { randomBytes } from 'crypto'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
 async function assertAdmin() {
   const supabase = await createClient()
@@ -349,6 +352,39 @@ export async function endMatch(matchId: string) {
   }
 
   revalidatePath('/admin')
+}
+
+// Re-send the email-verification link to a therapist applicant whose email is
+// not yet verified. Generates a token if the application doesn't have one.
+export async function sendApplicationVerificationEmail(applicationId: string) {
+  await assertAdmin()
+  const admin = createAdminClient()
+
+  const { data: app } = await (admin as any)
+    .from('therapist_applications')
+    .select('id, full_name, email, email_verified_at, email_verification_token')
+    .eq('id', applicationId)
+    .maybeSingle() as { data: { id: string; full_name: string; email: string; email_verified_at: string | null; email_verification_token: string | null } | null; error: unknown }
+
+  if (!app) throw new Error('Application not found')
+  if (app.email_verified_at) return { ok: true, alreadyVerified: true }
+
+  let token = app.email_verification_token
+  if (!token) {
+    token = randomBytes(32).toString('hex')
+    const { error } = await (admin as any)
+      .from('therapist_applications')
+      .update({ email_verification_token: token })
+      .eq('id', applicationId)
+    if (error) throw new Error(error.message)
+  }
+
+  const verifyUrl = `${SITE_URL}/therapist/verify-email?token=${token}`
+  await sendApplicationReceivedEmail({ to: app.email, name: app.full_name, verifyUrl })
+
+  logger.info('admin/sendApplicationVerificationEmail', 'Verification email re-sent', { applicationId, email: app.email })
+  revalidatePath('/admin')
+  return { ok: true }
 }
 
 // Settle a therapist's outstanding payout: records a payout batch and flips all

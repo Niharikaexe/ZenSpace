@@ -65,7 +65,7 @@ export default async function MyTherapistPage() {
 
   const admin = createAdminClient()
   const [tProfileResult, tUserResult] = await Promise.all([
-    (admin as any).from('therapist_profiles').select('specializations, bio, approach, years_experience, languages, is_verified, tagline, education, license_country, session_expectations').eq('user_id', match.therapist_id).maybeSingle(),
+    (admin as any).from('therapist_profiles').select('specializations, bio, approach, years_experience, languages, is_verified, tagline, education, license_country, session_expectations, pronouns, previous_experience').eq('user_id', match.therapist_id).maybeSingle(),
     (admin as any).from('profiles').select('full_name, avatar_url').eq('id', match.therapist_id).maybeSingle(),
   ])
 
@@ -82,6 +82,8 @@ export default async function MyTherapistPage() {
     education: tProfile.education ?? null,
     licenseCountry: tProfile.license_country ?? null,
     sessionExpectations: tProfile.session_expectations ?? null,
+    pronouns: tProfile.pronouns ?? null,
+    previousExperience: tProfile.previous_experience ?? null,
     yearsExperience: tProfile.years_experience ?? 0,
     languages: tProfile.languages ?? ['English'],
     isVerified: tProfile.is_verified ?? false,
@@ -151,8 +153,13 @@ export default async function MyTherapistPage() {
                     {credentials.length > 0 && (
                       <p className="text-sm text-[#233551]/50 mt-1">{credentials.join(' · ')}</p>
                     )}
-                    {therapist.yearsExperience > 0 && (
-                      <p className="text-xs text-[#233551]/40 mt-0.5">{therapist.yearsExperience} years of experience</p>
+                    {(therapist.yearsExperience > 0 || therapist.pronouns) && (
+                      <p className="text-xs text-[#233551]/40 mt-0.5">
+                        {[
+                          therapist.yearsExperience > 0 ? `${therapist.yearsExperience} years of experience` : null,
+                          therapist.pronouns,
+                        ].filter(Boolean).join(' · ')}
+                      </p>
                     )}
                     <p className="text-xs text-[#233551]/40 mt-0.5">Matched since {formatDate(match.created_at)}</p>
 
@@ -195,6 +202,14 @@ export default async function MyTherapistPage() {
                   <section className="mt-5">
                     <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">What sessions look like</h3>
                     <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.sessionExpectations}</p>
+                  </section>
+                )}
+
+                {/* Experience */}
+                {therapist.previousExperience && (
+                  <section className="mt-5">
+                    <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">Experience</h3>
+                    <p className="text-sm text-[#233551]/70 leading-relaxed whitespace-pre-wrap">{therapist.previousExperience}</p>
                   </section>
                 )}
 
