@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   title: "Blog — Mental Health, Work, Relationships & Anxiety",
   description:
     "Honest writing about anxiety, burnout, relationships, and what therapy actually does. No wellness speak. No poster copy. Just things worth reading.",
+  alternates: { canonical: "https://mindcanopy.in/blog" },
   openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: "https://mindcanopy.in/blog",
     title: "MindCanopy Blog — Mental Health in Plain Language",
     description:
       "Honest writing about anxiety, burnout, relationships, and what therapy actually does.",

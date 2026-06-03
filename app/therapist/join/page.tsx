@@ -6,6 +6,15 @@ export const metadata = {
   title: 'Practice with us — MindCanopy',
   description:
     "Practice through MindCanopy. No clinic rent, no hard contracts, weekly payouts. We bring you clients — you do the work you trained for.",
+  alternates: { canonical: 'https://mindcanopy.in/therapist/join' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/therapist/join',
+    title: 'Practice with us — MindCanopy',
+    description:
+      'Practice through MindCanopy. No clinic rent, no hard contracts, weekly payouts. We bring you clients, you do the work you trained for.',
+  },
 }
 
 export const revalidate = 3600

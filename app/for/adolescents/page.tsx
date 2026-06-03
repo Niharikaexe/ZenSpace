@@ -17,6 +17,15 @@ export const metadata: Metadata = {
     'therapy for students india',
     'exam anxiety therapy',
   ],
+  alternates: { canonical: 'https://mindcanopy.in/for/adolescents' },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    url: 'https://mindcanopy.in/for/adolescents',
+    title: 'Online Therapy for Teenagers & Adolescents in India | MindCanopy',
+    description:
+      'Exam pressure, social stress, feeling alone. Online therapy for Indian teenagers aged 14 to 20. Private, confidential, and on their schedule.',
+  },
 }
 
 export default function AdolescentsPage() {

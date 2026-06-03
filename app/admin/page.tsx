@@ -9,6 +9,7 @@ import type {
   TherapistApplication,
   SwitchRequest,
   EmailLog,
+  Lead,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -41,7 +42,7 @@ export default async function AdminPage() {
     { data: rawSwitchRequests },
   ] = await Promise.all([
     admin.from('profiles')
-      .select('id, full_name, avatar_url, created_at')
+      .select('id, full_name, avatar_url, email, created_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params, journey, device_type, device_browser, device_os')
       .eq('role', 'client')
       .order('created_at', { ascending: false }),
     admin.from('matches')
@@ -297,6 +298,72 @@ export default async function AdminPage() {
     }
   })
 
+  // ── Leads: unified view of client signups + therapist applications ──────────
+  // For the Leads tab we want ALL therapist applications regardless of status,
+  // so we fetch them again unfiltered. Client leads come from the existing
+  // allClients query (already filtered to role=client).
+  const { data: allApplicationsForLeads } = await admin
+    .from('therapist_applications')
+    .select('id, full_name, email, status, submitted_at, first_utm_source, first_utm_medium, first_utm_campaign, first_utm_term, first_utm_content, last_utm_source, last_utm_medium, last_utm_campaign, last_utm_term, last_utm_content, referrer, landing_page, first_seen_at, extra_params, journey, device_type, device_browser, device_os')
+    .order('submitted_at', { ascending: false })
+
+  const clientLeads: Lead[] = (allClients ?? []).map((c: any) => ({
+    id: `client-${c.id}`,
+    lead_type: 'client',
+    name: c.full_name ?? '(no name)',
+    email: c.email ?? '',
+    created_at: c.created_at,
+    status: 'signed_up',
+    first_utm_source: c.first_utm_source ?? null,
+    first_utm_medium: c.first_utm_medium ?? null,
+    first_utm_campaign: c.first_utm_campaign ?? null,
+    first_utm_term: c.first_utm_term ?? null,
+    first_utm_content: c.first_utm_content ?? null,
+    last_utm_source: c.last_utm_source ?? null,
+    last_utm_medium: c.last_utm_medium ?? null,
+    last_utm_campaign: c.last_utm_campaign ?? null,
+    last_utm_term: c.last_utm_term ?? null,
+    last_utm_content: c.last_utm_content ?? null,
+    referrer: c.referrer ?? null,
+    landing_page: c.landing_page ?? null,
+    first_seen_at: c.first_seen_at ?? null,
+    extra_params: c.extra_params ?? null,
+    journey: c.journey ?? null,
+    device_type: c.device_type ?? null,
+    device_browser: c.device_browser ?? null,
+    device_os: c.device_os ?? null,
+  }))
+
+  const applicationLeads: Lead[] = (allApplicationsForLeads ?? []).map((a: any) => ({
+    id: `app-${a.id}`,
+    lead_type: 'therapist',
+    name: a.full_name ?? '(no name)',
+    email: a.email ?? '',
+    created_at: a.submitted_at,
+    status: a.status ?? 'pending',
+    first_utm_source: a.first_utm_source ?? null,
+    first_utm_medium: a.first_utm_medium ?? null,
+    first_utm_campaign: a.first_utm_campaign ?? null,
+    first_utm_term: a.first_utm_term ?? null,
+    first_utm_content: a.first_utm_content ?? null,
+    last_utm_source: a.last_utm_source ?? null,
+    last_utm_medium: a.last_utm_medium ?? null,
+    last_utm_campaign: a.last_utm_campaign ?? null,
+    last_utm_term: a.last_utm_term ?? null,
+    last_utm_content: a.last_utm_content ?? null,
+    referrer: a.referrer ?? null,
+    landing_page: a.landing_page ?? null,
+    first_seen_at: a.first_seen_at ?? null,
+    extra_params: a.extra_params ?? null,
+    journey: a.journey ?? null,
+    device_type: a.device_type ?? null,
+    device_browser: a.device_browser ?? null,
+    device_os: a.device_os ?? null,
+  }))
+
+  const leads: Lead[] = [...clientLeads, ...applicationLeads]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -308,6 +375,7 @@ export default async function AdminPage() {
       applications={applications}
       switchRequests={switchRequests}
       emailLogs={emailLogs}
+      leads={leads}
     />
   )
 }
