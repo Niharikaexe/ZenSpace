@@ -5,6 +5,7 @@ import { TherapistNav } from '@/components/therapist/TherapistNav'
 import LiveRefresh from '@/components/shared/LiveRefresh'
 import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
+import { RangeAvailabilityEditor } from '@/components/therapist/RangeAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 import { logger } from '@/lib/logger'
 import { toIanaTimeZone } from '@/lib/timezones'
@@ -232,11 +233,19 @@ export default async function TherapistDashboard() {
           </div>
         </div>
 
-        {/* Weekly availability — moved above clients */}
-        <WeeklyAvailabilityEditor
-          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
-          therapistTimezone={(tProfile?.timezone as string | null) ?? null}
-        />
+        {/* Weekly availability — range picker on mobile (no dragging), drag grid on desktop */}
+        <div className="md:hidden">
+          <RangeAvailabilityEditor
+            initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+            therapistTimezone={(tProfile?.timezone as string | null) ?? null}
+          />
+        </div>
+        <div className="hidden md:block">
+          <WeeklyAvailabilityEditor
+            initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+            therapistTimezone={(tProfile?.timezone as string | null) ?? null}
+          />
+        </div>
 
         {isMatched ? (
           <>
