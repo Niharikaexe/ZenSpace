@@ -113,12 +113,42 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     mode:      'add' | 'remove'
     pre:       Record<string, Set<number>> // snapshot before drag started
   } | null>(null)
+  const gridRef = useRef<HTMLDivElement>(null)
 
-  // Release drag on global mouseup (handles releasing outside the grid)
+  // Release drag on global mouseup / touchend (handles releasing outside the grid)
   useEffect(() => {
     const stop = () => { drag.current = null }
     window.addEventListener('mouseup', stop)
-    return () => window.removeEventListener('mouseup', stop)
+    window.addEventListener('touchend', stop)
+    window.addEventListener('touchcancel', stop)
+    return () => {
+      window.removeEventListener('mouseup', stop)
+      window.removeEventListener('touchend', stop)
+      window.removeEventListener('touchcancel', stop)
+    }
+  }, [])
+
+  // Touch drag: phones have no hover, so we track the finger via touchmove +
+  // elementFromPoint (each cell carries data-ci) and paint as it passes over
+  // cells. Non-passive so we can preventDefault and stop the page from scrolling
+  // while a selection drag is in progress.
+  useEffect(() => {
+    const el = gridRef.current
+    if (!el) return
+    function onTouchMove(e: TouchEvent) {
+      if (!drag.current) return
+      e.preventDefault()
+      const t = e.touches[0]
+      if (!t) return
+      const target = document.elementFromPoint(t.clientX, t.clientY) as HTMLElement | null
+      const cell = target?.closest('[data-ci]') as HTMLElement | null
+      if (!cell) return
+      const ci = Number(cell.dataset.ci)
+      if (!Number.isNaN(ci)) applyDrag(ci)
+    }
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    return () => el.removeEventListener('touchmove', onTouchMove)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Drag helpers ────────────────────────────────────────────────────────────
@@ -180,7 +210,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
         <div>
           <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Weekly Availability</p>
           <p className="text-xs text-[#233551]/40 mt-0.5">
-            Click or drag to mark available ranges — each generates 50-min slots for clients
+            Tap or drag to mark available ranges — each generates 50-min slots for clients
           </p>
           {effectiveTz && (
             <p className="text-[10px] text-[#3D8A80] font-semibold mt-0.5">
@@ -205,7 +235,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
 
       {/* Scrollable grid */}
       <div className="overflow-x-auto">
-        <div style={{ minWidth: 640 }}>
+        <div style={{ minWidth: 640 }} ref={gridRef}>
 
           {/* Hour-label row */}
           <div className="flex mb-1.5">
@@ -252,6 +282,8 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                       return (
                         <div
                           key={ci}
+                          data-ci={ci}
+                          style={{ touchAction: 'none' }}
                           className={[
                             'flex-1 h-full cursor-crosshair transition-colors duration-75',
                             on
@@ -264,6 +296,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                           onMouseDown={e => { e.preventDefault(); startDrag(key, ci) }}
                           onMouseEnter={() => { applyDrag(ci); setHoverCell({ ci, dayKey: key }) }}
                           onMouseLeave={() => setHoverCell(null)}
+                          onTouchStart={() => startDrag(key, ci)}
                         />
                       )
                     })}
@@ -287,6 +320,8 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                   return (
                     <div
                       key={ci}
+                      data-ci={ci}
+                      style={{ touchAction: 'none' }}
                       className={[
                         'flex-1 h-full cursor-crosshair transition-colors duration-75',
                         allOn  ? 'bg-[#3D8A80]' :
@@ -297,6 +332,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                       onMouseDown={e => { e.preventDefault(); startDrag(null, ci) }}
                       onMouseEnter={() => { applyDrag(ci); setHoverCell({ ci, dayKey: 'all' }) }}
                       onMouseLeave={() => setHoverCell(null)}
+                      onTouchStart={() => startDrag(null, ci)}
                     />
                   )
                 })}

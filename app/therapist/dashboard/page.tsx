@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
@@ -203,6 +204,8 @@ export default async function TherapistDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Live-refresh when a client is matched/assigned to this therapist */}
+      <LiveRefresh table="matches" filter={`therapist_id=eq.${user.id}`} channel={`therapist-matches-${user.id}`} />
       <TherapistNav
         therapistName={profile!.full_name}
         userId={user.id}

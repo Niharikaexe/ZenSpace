@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger'
 import ClientNav from '@/components/client/ClientNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 import { TherapistMatchSelection, type ProposalView } from '@/components/client/TherapistMatchSelection'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 
 export const dynamic = 'force-dynamic'
 
@@ -210,6 +211,7 @@ export default async function ClientDashboard() {
 
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
+        <LiveRefresh table="matches" filter={`client_id=eq.${user.id}`} channel={`client-matches-${user.id}`} />
         <ClientNav userName={profile.full_name} isMatched={false} />
         <main className="max-w-3xl mx-auto px-4 py-8">
           <TherapistMatchSelection
@@ -224,6 +226,7 @@ export default async function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <LiveRefresh table="matches" filter={`client_id=eq.${user.id}`} channel={`client-matches-${user.id}`} />
       <ClientNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
