@@ -107,6 +107,7 @@ const Footer = () => {
               {[
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
+                { label: "Refunds & Cancellations", href: "/refunds" },
                 { label: "About Us", href: "/about" },
                 { label: "Contact", href: "/contact" },
               ].map(l => (
