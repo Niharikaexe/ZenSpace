@@ -169,9 +169,16 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
   function applyDrag(currentCell: number) {
     if (!drag.current) return
     const { dayKey, startCell, mode, pre } = drag.current
-    const [from, to] = startCell <= currentCell
+    let [from, to] = startCell <= currentCell
       ? [startCell, currentCell]
       : [currentCell, startCell]
+    // A 50-min session needs a full 1-hour (2-cell) block. Expand any shorter ADD
+    // selection (e.g. a single click) up to one hour so it always yields a slot —
+    // never a silent empty save that leaves clients with no bookable times.
+    if (mode === 'add' && to - from < 1) {
+      if (from + 1 <= TOTAL_CELLS - 1) to = from + 1
+      else from = to - 1
+    }
     const keys = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
 
     setSel(prev => {
@@ -199,6 +206,12 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
 
   function clearDay(k: string) { setSel(prev => ({ ...prev, [k]: new Set() })) }
 
+  // Live feedback: how many bookable 50-min slots the current selection yields.
+  // Surfacing this stops a therapist from silently saving an empty schedule (which
+  // is exactly what leaves clients with no slots to book).
+  const totalSlots = DAYS.reduce((n, d) => n + computeSlots(sel[d.key] ?? new Set()).length, 0)
+  const markedButNoSlots = totalSlots === 0 && DAYS.some(d => (sel[d.key]?.size ?? 0) > 0)
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div
@@ -218,19 +231,24 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
             </p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 disabled:opacity-50 ${
-            saved
-              ? 'bg-[#7EC0B7] text-white'
-              : 'bg-[#233551] text-white hover:bg-[#2d4568]'
-          }`}
-          style={{ fontFamily: 'var(--font-lato)' }}
-        >
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
-        </button>
+        <div className="flex flex-col items-end gap-1.5">
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className={`px-5 py-2 rounded-full text-xs font-bold transition-all duration-200 disabled:opacity-50 ${
+              saved
+                ? 'bg-[#7EC0B7] text-white'
+                : 'bg-[#233551] text-white hover:bg-[#2d4568]'
+            }`}
+            style={{ fontFamily: 'var(--font-lato)' }}
+          >
+            {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save'}
+          </button>
+          <span className="text-[10px] font-semibold text-[#233551]/40 tabular-nums whitespace-nowrap">
+            {totalSlots} bookable slot{totalSlots === 1 ? '' : 's'} / week
+          </span>
+        </div>
       </div>
 
       {/* Scrollable grid */}
@@ -359,6 +377,11 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
         </div>
       </div>
 
+      {markedButNoSlots && (
+        <p className="text-xs text-amber-600 mt-3">
+          Mark at least a 1-hour block — a 50-minute session needs a full hour.
+        </p>
+      )}
       {saveErr && <p className="text-xs text-red-500 mt-3">{saveErr}</p>}
     </div>
   )
