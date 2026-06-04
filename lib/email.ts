@@ -791,6 +791,47 @@ export async function sendApplicationInviteEmail({
   return sendEmail(to, FROM_ADMIN, 'Your MindCanopy therapist application has been approved', tplApplicationApproved(name, inviteUrl, inviteCode, adminNotes), 'application-invite')
 }
 
+// ── Exported sender, admin free-compose ──────────────────────────────────────
+// One-off, fully custom email wrapped in the MindCanopy brand shell (navy
+// header + owl, signature, footer) — same look as every other email we send.
+// Powers the admin "Send Email" tab. The admin only types plain text; we never
+// expose raw HTML. Logged in email_logs like every other send.
+
+export async function sendCustomEmail({
+  to, subject, heading, body, ctaLabel, ctaUrl, fromAdmin = false,
+}: {
+  to: string
+  subject: string
+  heading?: string
+  body: string
+  ctaLabel?: string
+  ctaUrl?: string
+  fromAdmin?: boolean
+}): Promise<boolean> {
+  // Blank lines separate paragraphs; single newlines become line breaks.
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map(block => block.trim())
+    .filter(Boolean)
+    .map(block => p(escapeHtml(block).replace(/\n/g, '<br/>')))
+    .join('')
+
+  const headingHtml = heading && heading.trim() ? h1(escapeHtml(heading.trim())) : ''
+  const ctaHtml =
+    ctaLabel && ctaLabel.trim() && ctaUrl && ctaUrl.trim()
+      ? btn(escapeHtml(ctaLabel.trim()), escapeHtml(ctaUrl.trim()))
+      : ''
+
+  const html = base(`
+    ${headingHtml}
+    ${paragraphs}
+    ${ctaHtml}
+    ${signOff}
+  `, 'client')
+
+  return sendEmail(to, fromAdmin ? FROM_ADMIN : FROM, subject, html, 'admin-compose')
+}
+
 // ── Exported senders, admin-facing ───────────────────────────────────────────
 
 export async function sendNewApplicationAdminEmail(fullName: string): Promise<boolean> {

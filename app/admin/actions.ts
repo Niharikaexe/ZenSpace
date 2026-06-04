@@ -4,9 +4,10 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail, sendApplicationReceivedEmail } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { randomBytes } from 'crypto'
+import { z } from 'zod'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
@@ -356,6 +357,68 @@ export async function endMatch(matchId: string) {
 
 // Re-send the email-verification link to a therapist applicant whose email is
 // not yet verified. Generates a token if the application doesn't have one.
+// ── Free-compose: admin sends a one-off branded email to anyone ──────────────
+
+const composeEmailSchema = z.object({
+  to: z.string().trim().email('Enter a valid recipient email address.'),
+  subject: z.string().trim().min(1, 'Subject is required.').max(200, 'Subject is too long.'),
+  heading: z.string().trim().max(200, 'Heading is too long.').optional(),
+  body: z.string().trim().min(1, 'Write a message before sending.').max(10000, 'Message is too long.'),
+  ctaLabel: z.string().trim().max(60, 'Button label is too long.').optional(),
+  ctaUrl: z.string().trim().url('The button link must be a full URL (https://…).').optional().or(z.literal('')),
+  from: z.enum(['marketing', 'admin']).catch('marketing'),
+})
+
+export async function sendComposedEmail(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin()
+
+  const parsed = composeEmailSchema.safeParse({
+    to: formData.get('to') ?? '',
+    subject: formData.get('subject') ?? '',
+    heading: (formData.get('heading') as string) || undefined,
+    body: formData.get('body') ?? '',
+    ctaLabel: (formData.get('ctaLabel') as string) || undefined,
+    ctaUrl: (formData.get('ctaUrl') as string) || undefined,
+    from: (formData.get('from') as string) || 'marketing',
+  })
+
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Please check the form and try again.' }
+  }
+
+  const { to, subject, heading, body, ctaLabel, ctaUrl, from } = parsed.data
+
+  // A button needs both a label and a link — or neither.
+  const hasLabel = !!ctaLabel && ctaLabel.length > 0
+  const hasUrl = !!ctaUrl && ctaUrl.length > 0
+  if (hasLabel !== hasUrl) {
+    return { ok: false, error: 'The button needs both a label and a link, or leave both empty.' }
+  }
+
+  const sent = await sendCustomEmail({
+    to,
+    subject,
+    heading,
+    body,
+    ctaLabel: hasLabel ? ctaLabel : undefined,
+    ctaUrl: hasUrl ? ctaUrl : undefined,
+    fromAdmin: from === 'admin',
+  })
+
+  if (!sent) {
+    return {
+      ok: false,
+      error: 'Send failed. Make sure RESEND_API_KEY is set for this environment, then check the Emails tab for the error.',
+    }
+  }
+
+  logger.info('admin/sendComposedEmail', 'Custom email sent', { to, subject })
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
 export async function sendApplicationVerificationEmail(applicationId: string) {
   await assertAdmin()
   const admin = createAdminClient()
