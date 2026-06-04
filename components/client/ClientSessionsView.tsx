@@ -378,6 +378,10 @@ export default function ClientSessionsView({
 
   const week = buildWeek(weeklyAvailability, therapistTimezone)
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
+  // Did the therapist publish ANY weekly slots at all? (Distinguishes "no
+  // availability set" from "nothing free in the next 7 days".)
+  const hasAnyAvailability = Object.values(weeklyAvailability ?? {}).some(arr => Array.isArray(arr) && arr.length > 0)
+  const hasBookableSlots = week.some(d => d.slots.length > 0)
 
   function selectDay(entry: DayEntry) {
     setSelectedDay(selectedDay === entry.dateStr ? null : entry.dateStr)
@@ -422,7 +426,24 @@ export default function ClientSessionsView({
                 </div>
               )}
 
+              {/* No availability published by the therapist at all */}
+              {!hasAnyAvailability && (
+                <div className="rounded-xl bg-[#FFF5F2] border border-[#E8926A]/25 px-4 py-4 text-center">
+                  <p className="text-sm font-semibold text-[#233551]">Your therapist hasn&apos;t set their availability yet.</p>
+                  <p className="text-xs text-[#233551]/55 mt-1">Message them in chat to nudge — booking opens as soon as they publish times.</p>
+                </div>
+              )}
+
+              {/* Availability exists, but nothing free in the next 7 days */}
+              {hasAnyAvailability && !hasBookableSlots && (
+                <div className="rounded-xl bg-[#FFF5F2] border border-[#E8926A]/25 px-4 py-4 text-center">
+                  <p className="text-sm font-semibold text-[#233551]">No open slots in the next 7 days.</p>
+                  <p className="text-xs text-[#233551]/55 mt-1">Check back soon — new times open up as the week rolls forward.</p>
+                </div>
+              )}
+
               {/* ── Day row ──────────────────────────────────────────────── */}
+              {hasBookableSlots && (
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {week.map(entry => {
                   const isSelected  = selectedDay === entry.dateStr
@@ -460,6 +481,7 @@ export default function ClientSessionsView({
                   )
                 })}
               </div>
+              )}
 
               {/* ── Time slots for selected day ──────────────────────────── */}
               {selectedDayEntry && (
@@ -487,7 +509,7 @@ export default function ClientSessionsView({
                 </div>
               )}
 
-              {!selectedDay && (
+              {hasBookableSlots && !selectedDay && (
                 <p className="mt-3 text-xs text-[#233551]/35">
                   Select a day above to see available times. You pay per session when you book.
                 </p>

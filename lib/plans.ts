@@ -173,7 +173,7 @@ export const PLAN_KEYS = Object.keys(PLANS) as PlanKey[]
 // ── Per-session pricing (dual-therapist proposal flow) ────────────────────────
 // Shown at the bottom of each therapist's profile card when a client chooses
 // between their matched Standard and Professional therapists. Clients pay as
-// they go per session, or take a monthly bundle (4 sessions) for 15% off.
+// they go per session, or take a monthly bundle (4 sessions) for 10% off.
 //
 // Per-session client pricing (INR) depends on the client's category
 // (Adult/Individual, Teen, Couples) and the therapist's tier.
@@ -199,9 +199,9 @@ export function sessionPriceInr(category: SessionCategory, tier: ProposalTier): 
 /** Sessions billed in a monthly bundle. */
 export const MONTHLY_BUNDLE_SESSIONS = 4
 /** Discount applied to the monthly bundle vs paying per session. */
-export const MONTHLY_BUNDLE_DISCOUNT = 0.15
+export const MONTHLY_BUNDLE_DISCOUNT = 0.10
 
-/** Monthly bundle price (4 sessions, 15% off), rounded to the nearest rupee. */
+/** Monthly bundle price (4 sessions, 10% off), rounded to the nearest rupee. */
 export function monthlyBundleInr(perSessionInr: number): number {
   return Math.round(perSessionInr * MONTHLY_BUNDLE_SESSIONS * (1 - MONTHLY_BUNDLE_DISCOUNT))
 }
