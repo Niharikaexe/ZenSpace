@@ -199,11 +199,17 @@ export async function scheduleSession(
     }
   }
 
+  // Therapist-arranged sessions are confirmed immediately (no client checkout) —
+  // mark them paid so they show on BOTH the therapist and client session lists.
+  // (The client sessions view + therapist views only show payment_status='paid'
+  // to hide abandoned pay-as-you-go checkouts that leave a 'pending' row.)
   const { error } = await (admin as any).from('sessions').insert({
     match_id: matchId,
     session_type: sessionType,
     scheduled_at: scheduledAt,
     status: 'scheduled',
+    payment_status: 'paid',
+    paid_at: new Date().toISOString(),
     daily_room_url: dailyRoomUrl,
     daily_room_name: dailyRoomName,
   })

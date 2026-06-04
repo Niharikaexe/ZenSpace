@@ -127,6 +127,7 @@ export default async function TherapistDashboard() {
             .from('sessions')
             .select('id, scheduled_at, session_type, daily_room_url')
             .eq('match_id', m.id)
+            .eq('payment_status', 'paid') // confirmed only
             .in('status', ['scheduled', 'ongoing'])
             .gte('scheduled_at', new Date().toISOString())
             .lte('scheduled_at', twoWeeksOut)

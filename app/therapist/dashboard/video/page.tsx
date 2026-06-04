@@ -66,6 +66,7 @@ export default async function TherapistSessionsPage() {
           .from('sessions')
           .select('id, session_type, status, scheduled_at, daily_room_url, therapist_notes')
           .eq('match_id', m.id)
+          .eq('payment_status', 'paid') // confirmed only — hide abandoned pay-as-you-go checkouts
           .order('scheduled_at', { ascending: false }),
       ])
 
