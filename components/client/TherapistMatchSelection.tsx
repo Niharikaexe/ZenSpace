@@ -64,6 +64,8 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
 
   if (!active) return null
 
+  const single = ordered.length === 1
+
   function handleChoose(matchId: string) {
     setError(null)
     setPendingMatchId(matchId)
@@ -82,21 +84,23 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
       {/* Header */}
       <div className="mb-7 text-center">
         <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest mb-2">
-          Your matches are ready
+          {single ? 'Your match is ready' : 'Your matches are ready'}
         </p>
         <h1
           className="text-2xl md:text-3xl font-black text-[#233551] leading-tight"
           style={{ fontFamily: 'var(--font-lato)' }}
         >
-          {firstName}, meet your therapists.
+          {firstName}, meet your therapist{single ? '' : 's'}.
         </h1>
         <p className="text-sm text-[#233551]/60 mt-2 max-w-xl mx-auto leading-relaxed">
-          We&apos;ve hand-picked two therapists for you. Read through both, then start a free chat
-          with whoever feels right — there&apos;s no payment until you book a session.
+          {single
+            ? <>We&apos;ve hand-picked a therapist for you. Read through their profile, then start a free chat — there&apos;s no payment until you book a session.</>
+            : <>We&apos;ve hand-picked two therapists for you. Read through both, then start a free chat with whoever feels right — there&apos;s no payment until you book a session.</>}
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — only when there's more than one therapist to choose between */}
+      {!single && (
       <div className="grid grid-cols-2 gap-2 bg-white border border-slate-100 rounded-2xl p-1.5 mb-6 shadow-sm">
         {ordered.map((p) => {
           const isActive = p.tier === activeTier
@@ -123,6 +127,7 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
           )
         })}
       </div>
+      )}
 
       {/* Profile card */}
       <ProfileCard

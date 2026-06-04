@@ -24,7 +24,7 @@ const TIER_META: Record<Tier, { label: string; blurb: string; accent: string; ri
   },
   professional: {
     label: 'Professional',
-    blurb: 'Premium-tier therapist — more experience, higher per-session price.',
+    blurb: 'Premium-tier therapist — more experience, higher per-session price. Optional.',
     accent: 'text-amber-700',
     ring: 'border-amber-500 bg-amber-50',
     bg: 'bg-amber-100 text-amber-700',
@@ -37,23 +37,25 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
+  const pickedCount = (selected.standard ? 1 : 0) + (selected.professional ? 1 : 0)
+
   const handleSubmit = () => {
-    if (!selected.standard || !selected.professional) {
-      setError('Pick both a Standard and a Professional therapist.')
+    const picked: { tier: Tier; therapistId: string; summary: string }[] = []
+    if (selected.standard) picked.push({ tier: 'standard', therapistId: selected.standard, summary: summaries.standard })
+    if (selected.professional) picked.push({ tier: 'professional', therapistId: selected.professional, summary: summaries.professional })
+
+    if (picked.length === 0) {
+      setError('Pick at least one therapist.')
       return
     }
-    if (selected.standard === selected.professional) {
-      setError('The Standard and Professional therapists must be different people.')
+    if (picked.length === 2 && selected.standard === selected.professional) {
+      setError('The two therapists must be different people.')
       return
     }
     setError(null)
     startTransition(async () => {
       try {
-        await createMatchProposals(
-          client.id,
-          { therapistId: selected.standard, summary: summaries.standard },
-          { therapistId: selected.professional, summary: summaries.professional },
-        )
+        await createMatchProposals(client.id, picked)
         onClose()
       } catch (e) {
         // eslint-disable-next-line no-console
@@ -67,7 +69,11 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
     })
   }
 
-  function TierSection({ tier }: { tier: Tier }) {
+  // NOTE: this is a render *function* called inline ({renderTier('standard')}),
+  // NOT a nested <Component/>. Declaring a component inside MatchModal would give
+  // it a new identity on every render, remounting the section and making the
+  // textarea/radios lose focus after each keystroke.
+  const renderTier = (tier: Tier) => {
     const meta = TIER_META[tier]
     const otherTier: Tier = tier === 'standard' ? 'professional' : 'standard'
     return (
@@ -162,9 +168,9 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Propose two therapists</h2>
+            <h2 className="text-base font-semibold text-slate-900">Propose therapist(s)</h2>
             <p className="text-sm text-slate-500 mt-0.5">
-              for {client.full_name} — they’ll pick one via a free chat
+              for {client.full_name} — one is enough; add a second to let them choose
             </p>
           </div>
           <button
@@ -232,8 +238,8 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
                 ({therapists.length} verified &amp; available)
               </span>
             </p>
-            <TierSection tier="standard" />
-            <TierSection tier="professional" />
+            {renderTier('standard')}
+            {renderTier('professional')}
           </div>
         </div>
 
@@ -248,10 +254,10 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isPending || !selected.standard || !selected.professional}
+              disabled={isPending || pickedCount === 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[140px]"
             >
-              {isPending ? 'Sending…' : 'Send both proposals'}
+              {isPending ? 'Sending…' : pickedCount > 1 ? 'Send both proposals' : 'Send proposal'}
             </Button>
           </div>
         </div>

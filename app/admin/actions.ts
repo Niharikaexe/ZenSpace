@@ -88,28 +88,33 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   revalidatePath('/admin')
 }
 
-type Proposal = { therapistId: string; summary: string }
+type Proposal = { tier: 'standard' | 'professional'; therapistId: string; summary: string }
 
 /**
- * Dual-therapist match: admin proposes a Standard (basic-tier) and a
- * Professional (premium-tier) therapist as two `pending` matches. The client
- * picks one via "Start a free chat" (see app/actions/choose-therapist.ts).
+ * Therapist match proposals: the admin proposes ONE or TWO therapists as
+ * `pending` matches — typically a Standard (basic-tier) and a Professional
+ * (premium-tier) therapist, but the second is optional. The client picks one
+ * via "Start a free chat" (see app/actions/choose-therapist.ts); if only one
+ * was proposed they simply see that single profile.
  *
  * Only the client is notified here — therapists are notified when chosen.
  */
 export async function createMatchProposals(
   clientId: string,
-  standard: Proposal,
-  professional: Proposal,
+  proposals: Proposal[],
 ) {
   const adminUser = await assertAdmin()
   const admin = createAdminClient()
 
-  if (!standard.therapistId || !professional.therapistId) {
-    throw new Error('Pick both a Standard and a Professional therapist.')
+  const picked = proposals.filter((p) => p.therapistId)
+  if (picked.length < 1) {
+    throw new Error('Pick at least one therapist to propose.')
   }
-  if (standard.therapistId === professional.therapistId) {
-    throw new Error('The Standard and Professional therapists must be different people.')
+  if (picked.length > 2) {
+    throw new Error('You can propose at most two therapists.')
+  }
+  if (picked.length === 2 && picked[0].therapistId === picked[1].therapistId) {
+    throw new Error('The two therapists must be different people.')
   }
 
   // Reject if the client already has an active match OR pending proposals.
@@ -124,10 +129,7 @@ export async function createMatchProposals(
   }
 
   const now = new Date().toISOString()
-  const rows = [
-    { tier: 'standard', ...standard },
-    { tier: 'professional', ...professional },
-  ].map((p) => ({
+  const rows = picked.map((p) => ({
     client_id: clientId,
     therapist_id: p.therapistId,
     matched_by: adminUser.id,
@@ -140,13 +142,16 @@ export async function createMatchProposals(
   const { error } = await (admin as any).from('matches').insert(rows)
   if (error) throw new Error(error.message)
 
-  // Notify the client that two therapists are ready to review.
+  // Notify the client that their match(es) are ready to review.
+  const many = picked.length > 1
   createNotification({
     userId: clientId,
     type: 'client_proposals_ready',
-    title: 'Your therapist matches are ready',
-    body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
-    metadata: { proposals: 2 },
+    title: many ? 'Your therapist matches are ready' : 'Your therapist match is ready',
+    body: many
+      ? 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.'
+      : 'We’ve hand-picked a therapist for you. Take a look and start a free chat.',
+    metadata: { proposals: picked.length },
   }).catch(() => {})
 
   revalidatePath('/admin')
