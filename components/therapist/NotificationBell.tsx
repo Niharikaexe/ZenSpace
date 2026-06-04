@@ -113,7 +113,7 @@ export function NotificationBell({ userId, initialNotifications }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-100 rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-1.5 w-80 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-100 rounded-xl shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-2">

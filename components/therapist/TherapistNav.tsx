@@ -51,8 +51,8 @@ export function TherapistNav({
     exact ? pathname === href : pathname.startsWith(href)
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-100">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-[#FFF5F2] border-b border-[#E8926A]/20">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Logo */}
         <BrandLogo href="/therapist/dashboard" className="flex-shrink-0" />
@@ -81,16 +81,16 @@ export function TherapistNav({
         </nav>
 
         {/* Right: Help + Name dropdowns */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-2 min-w-0">
 
           {/* Notifications — real-time bell */}
           <NotificationBell userId={userId} initialNotifications={initialNotifications} />
 
-          {/* Home text link */}
+          {/* Home link — hidden on mobile (the logo already links home) */}
           <Link
             href="/therapist/dashboard"
             className={cn(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              'hidden sm:block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
               pathname === '/therapist/dashboard'
                 ? 'bg-[#233551]/8 text-[#233551]'
                 : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50',
@@ -140,7 +140,7 @@ export function TherapistNav({
             <button
               onClick={() => { setAccountOpen(o => !o); setHelpOpen(false) }}
               className={cn(
-                'flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-1.5 sm:pl-2 sm:pr-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
                 accountOpen
                   ? 'bg-slate-100 text-[#233551]'
                   : 'text-[#233551] hover:bg-slate-50',
@@ -155,9 +155,9 @@ export function TherapistNav({
               </svg>
             </button>
             {accountOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-50">
+              <div className="absolute right-0 top-full mt-1.5 w-52 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-50">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
-                  <p className="text-xs font-semibold text-[#233551]">{therapistName}</p>
+                  <p className="text-xs font-semibold text-[#233551] truncate">{therapistName}</p>
                   <p className="text-xs text-[#233551]/40">Therapist</p>
                 </div>
                 <Link
