@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import JoinButton from '@/components/shared/JoinButton'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
-import MultiScheduleForm from '@/components/therapist/MultiScheduleForm'
 import NoteEditor from '@/components/shared/NoteEditor'
 import { updateSessionStatus } from '@/app/actions/sessions'
 import { getNotifications } from '@/app/actions/notifications'
@@ -78,8 +77,6 @@ export default async function TherapistSessionsPage() {
     })
   )
 
-  const clientOptions = matchData.map(m => ({ matchId: m.matchId, clientName: m.clientName }))
-
   const now = new Date()
   const cutoff = new Date(now.getTime() - 3600000) // 1 hr grace window
 
@@ -113,17 +110,14 @@ export default async function TherapistSessionsPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
 
-        {/* Header + schedule button */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-              Sessions
-            </h1>
-            <p className="text-sm text-[#233551]/45 mt-0.5">
-              Schedule, manage, and add notes to your sessions.
-            </p>
-          </div>
-          <MultiScheduleForm clients={clientOptions} />
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+            Sessions
+          </h1>
+          <p className="text-sm text-[#233551]/45 mt-0.5">
+            Your clients book sessions from your availability. Manage and add notes here.
+          </p>
         </div>
 
         {/* Upcoming sessions */}
@@ -131,7 +125,7 @@ export default async function TherapistSessionsPage() {
           <h2 className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-3">Upcoming</h2>
           {upcoming.length === 0 ? (
             <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
-              <p className="text-sm text-[#233551]/45">No upcoming sessions. Schedule one above.</p>
+              <p className="text-sm text-[#233551]/45">No upcoming sessions. Your clients will book from your availability.</p>
             </div>
           ) : (
             <div className="space-y-3">

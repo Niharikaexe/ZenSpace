@@ -31,7 +31,7 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
   const firstName = userName.split(' ')[0]
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-100">
+    <header className="sticky top-0 z-30 bg-[#FFF5F2] border-b border-[#E8926A]/20">
       <div className="max-w-6xl mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Logo */}

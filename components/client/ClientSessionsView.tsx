@@ -80,42 +80,60 @@ function localTimeToUTC(year: number, month: number, day: number, hour: number, 
   return new Date(naive.getTime() * 2 - tzUTC)
 }
 
+const DOW_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+
 function buildWeek(
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>,
   therapistTimezone: string,
 ): DayEntry[] {
-  // Normalize the stored timezone (which may be a legacy label like "IST
-  // (India)") into a valid IANA zone before it reaches Intl. Falls back to UTC
-  // (neutral) — the real per-therapist zone is captured + stored on save.
+  // Normalize the stored timezone (may be a legacy label like "IST (India)")
+  // into a valid IANA zone before it reaches Intl. Falls back to UTC.
   const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
   const now = new Date()
-  const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
-  const days: DayEntry[] = []
+  const cutoff = now.getTime() + 2 * 3_600_000 // slots must be 2h+ away
 
+  // The availability is a weekly schedule keyed by day-of-week in the THERAPIST's
+  // timezone. A slot's real instant therefore depends on the therapist's calendar
+  // date — and an overnight block (e.g. Thu 10pm–Fri 6:30am Dubai) spills across
+  // two *client* days once converted. So: generate every future slot instant by
+  // walking the therapist's local dates, then bucket each by the CLIENT's local
+  // date. (The old code keyed slots by the client's day-of-week, which mis-placed
+  // and dropped overnight cross-timezone slots.)
+  const dowFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' })
+  const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+
+  const byClientDate = new Map<string, TimeSlot[]>()
+
+  // Walk a window of therapist-local dates wide enough to cover the next 7 client
+  // days plus overnight spill at both ends.
+  for (let i = -1; i <= 8; i++) {
+    const base = new Date(now.getTime() + i * 86_400_000)
+    const dow = DOW_INDEX[dowFmt.format(base)]
+    const [ty, tm, td] = ymdFmt.format(base).split('-').map(Number) // therapist-local Y-M-D
+    for (const { hour, minute } of weeklyAvailability[String(dow)] ?? []) {
+      const slotDate = localTimeToUTC(ty, tm - 1, td, hour, minute, tz)
+      if (slotDate.getTime() <= cutoff) continue
+      const clientDateStr = slotDate.toLocaleDateString('en-CA') // client-local day
+      const arr = byClientDate.get(clientDateStr) ?? []
+      arr.push({
+        time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        label12: slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }),
+        date: clientDateStr,
+        iso: slotDate.toISOString(),
+      })
+    }
+  }
+
+  const days: DayEntry[] = []
   for (let i = 0; i < 7; i++) {
     const d = new Date(now)
     d.setDate(now.getDate() + i)
     d.setHours(0, 0, 0, 0)
-
-    const slots: TimeSlot[] = (weeklyAvailability[String(d.getDay())] ?? [])
-      .map(({ hour, minute }) => {
-        // Convert the therapist's local hour:minute on this calendar date → UTC
-        const slotDate = localTimeToUTC(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, tz)
-        if (slotDate <= cutoff) return null
-        // Display time in client's browser timezone (IST for most users)
-        const label12 = slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })
-        return {
-          time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-          label12,
-          date: d.toLocaleDateString('en-CA'), // YYYY-MM-DD in client's locale
-          iso: slotDate.toISOString(),
-        }
-      })
-      .filter((s): s is TimeSlot => s !== null)
-
+    const dateStr = d.toLocaleDateString('en-CA')
+    const slots = (byClientDate.get(dateStr) ?? []).sort((a, b) => a.iso.localeCompare(b.iso))
     days.push({
       date: d,
-      dateStr: d.toLocaleDateString('en-CA'),
+      dateStr,
       dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
       dayNum: String(d.getDate()),
       slots,
@@ -455,7 +473,7 @@ export default function ClientSessionsView({
                   <div className="flex flex-wrap gap-2">
                     {selectedDayEntry.slots.map(slot => (
                       <button
-                        key={slot.time}
+                        key={slot.iso}
                         onClick={() => setOpenSlot(slot)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold text-[#233551] hover:border-[#7EC0B7] transition-all"
                       >
