@@ -154,7 +154,7 @@ export function AccountForm({ userName, userEmail, isMatched }: Props) {
           </h2>
           <p className="text-sm text-[#233551]/50 mb-4 leading-relaxed">
             No subscription, no commitment. You pay per session when you book one — securely via
-            Razorpay. Sessions are non-refundable.
+            Cashfree. Sessions are non-refundable.
           </p>
           {isMatched && (
             <Link

@@ -6,11 +6,15 @@ import { useRouter } from 'next/navigation'
 import ClientNav from '@/components/client/ClientNav'
 import { formatInr } from '@/lib/plans'
 
-function loadRazorpayScript(): Promise<boolean> {
+// RAZORPAY loader (disabled — kept for rollback):
+// function loadRazorpayScript(): Promise<boolean> { ...checkout.razorpay.com/v1/checkout.js... }
+
+// Cashfree v3 JS SDK loader.
+function loadCashfreeScript(): Promise<boolean> {
   return new Promise(resolve => {
-    if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
+    if (typeof window !== 'undefined' && (window as any).Cashfree) return resolve(true)
     const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
     script.onload = () => resolve(true)
     script.onerror = () => resolve(false)
     document.body.appendChild(script)
@@ -27,8 +31,7 @@ interface Props {
   discountPct: number
   activeCreditsRemaining: number | null
   activeCreditsTotal: number | null
-  razorpayKeyId: string | null
-  userEmail: string
+  paymentsEnabled: boolean
 }
 
 export default function SubscriptionView({
@@ -41,8 +44,7 @@ export default function SubscriptionView({
   discountPct,
   activeCreditsRemaining,
   activeCreditsTotal,
-  razorpayKeyId,
-  userEmail,
+  paymentsEnabled,
 }: Props) {
   const router = useRouter()
   const [phase, setPhase] = useState<'idle' | 'opening' | 'confirming'>('idle')
@@ -56,7 +58,7 @@ export default function SubscriptionView({
 
   async function handleBuyBundle() {
     setError(null)
-    if (!razorpayKeyId) {
+    if (!paymentsEnabled) {
       setError('Payments aren’t configured yet. Please contact support.')
       return
     }
@@ -70,63 +72,38 @@ export default function SubscriptionView({
         return
       }
 
-      const loaded = await loadRazorpayScript()
+      const loaded = await loadCashfreeScript()
       if (!loaded) {
         setError('Could not load the payment gateway. Check your connection and try again.')
         setPhase('idle')
         return
       }
 
-      const { order_id, amount, key, bundleId } = orderData
+      const { order_id, payment_session_id, mode, bundleId } = orderData
 
-      const rzp = new (window as any).Razorpay({
-        key,
-        order_id,
-        amount,
-        currency: 'INR',
-        name: 'MindCanopy',
-        description: `Monthly bundle · ${bundleSessions} sessions`,
-        theme: { color: '#233551' },
-        prefill: { name: userName, email: userEmail },
-        modal: { ondismiss: () => setPhase('idle') },
-        handler: async function (response: {
-          razorpay_payment_id: string
-          razorpay_order_id: string
-          razorpay_signature: string
-        }) {
-          setPhase('confirming')
-          try {
-            const verifyRes = await fetch('/api/payment/bundle-verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                bundleId,
-              }),
-            })
-            const verifyData = await verifyRes.json()
-            if (!verifyRes.ok) {
-              setError(verifyData.error ?? 'Payment went through but we couldn’t activate your bundle. Contact support with payment ID: ' + response.razorpay_payment_id)
-              setPhase('idle')
-              return
-            }
-            router.refresh()
-            setPhase('idle')
-          } catch {
-            setError('Something went wrong after payment. Contact support with payment ID: ' + response.razorpay_payment_id)
-            setPhase('idle')
-          }
-        },
-      })
+      const cashfree = (window as any).Cashfree({ mode: mode === 'sandbox' ? 'sandbox' : 'production' })
+      const result = await cashfree.checkout({ paymentSessionId: payment_session_id, redirectTarget: '_modal' })
 
-      rzp.on('payment.failed', function (resp: any) {
-        setError(resp.error?.description ?? 'Payment failed. Please try again.')
+      if (result?.error) {
+        setError(result.error.message ?? 'Payment was cancelled or didn’t complete.')
         setPhase('idle')
-      })
+        return
+      }
 
-      rzp.open()
+      setPhase('confirming')
+      const verifyRes = await fetch('/api/payment/bundle-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id, bundleId }),
+      })
+      const verifyData = await verifyRes.json()
+      if (!verifyRes.ok) {
+        setError(verifyData.error ?? `Payment went through but we couldn’t activate your bundle. Contact support with order ID: ${order_id}`)
+        setPhase('idle')
+        return
+      }
+      router.refresh()
+      setPhase('idle')
     } catch {
       setError('Something went wrong. Please try again.')
       setPhase('idle')

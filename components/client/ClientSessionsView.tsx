@@ -31,7 +31,7 @@ interface Props {
   timezone: string | null
   therapistTimezone: string
   perSessionInr: number
-  razorpayKeyId: string | null
+  paymentsEnabled: boolean
   upcoming: Session[]
   past: Session[]
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>
@@ -40,11 +40,23 @@ interface Props {
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
 
-function loadRazorpayScript(): Promise<boolean> {
+// RAZORPAY loader (disabled — kept for rollback):
+// function loadRazorpayScript(): Promise<boolean> {
+//   return new Promise(resolve => {
+//     if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
+//     const script = document.createElement('script')
+//     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+//     script.onload = () => resolve(true); script.onerror = () => resolve(false)
+//     document.body.appendChild(script)
+//   })
+// }
+
+// Cashfree v3 JS SDK loader.
+function loadCashfreeScript(): Promise<boolean> {
   return new Promise(resolve => {
-    if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
+    if (typeof window !== 'undefined' && (window as any).Cashfree) return resolve(true)
     const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
     script.onload = () => resolve(true)
     script.onerror = () => resolve(false)
     document.body.appendChild(script)
@@ -139,9 +151,7 @@ function PaySessionModal({
   therapistName,
   matchId,
   perSessionInr,
-  userName,
-  userEmail,
-  razorpayKeyId,
+  paymentsEnabled,
   onClose,
   onBooked,
 }: {
@@ -150,9 +160,7 @@ function PaySessionModal({
   therapistName: string
   matchId: string
   perSessionInr: number
-  userName: string
-  userEmail: string
-  razorpayKeyId: string | null
+  paymentsEnabled: boolean
   onClose: () => void
   onBooked: (label: string) => void
 }) {
@@ -169,7 +177,7 @@ function PaySessionModal({
 
   async function handlePay() {
     setError(null)
-    if (!razorpayKeyId) {
+    if (!paymentsEnabled) {
       setError('Payments aren’t configured yet. Please contact support.')
       return
     }
@@ -194,62 +202,40 @@ function PaySessionModal({
         return
       }
 
-      const loaded = await loadRazorpayScript()
+      const loaded = await loadCashfreeScript()
       if (!loaded) {
         setError('Could not load the payment gateway. Check your connection and try again.')
         setPhase('idle')
         return
       }
 
-      const { order_id, amount, key, sessionId } = orderData
+      const { order_id, payment_session_id, mode, sessionId } = orderData
 
-      const rzp = new (window as any).Razorpay({
-        key,
-        order_id,
-        amount,
-        currency: 'INR',
-        name: 'MindCanopy',
-        description: `Session with ${therapistName} · ${dayLabel}, ${slot.label12}`,
-        theme: { color: '#233551' },
-        prefill: { name: userName, email: userEmail },
-        modal: { ondismiss: () => setPhase('idle') },
-        handler: async function (response: {
-          razorpay_payment_id: string
-          razorpay_order_id: string
-          razorpay_signature: string
-        }) {
-          setPhase('confirming')
-          try {
-            const verifyRes = await fetch('/api/payment/session-verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                sessionId,
-              }),
-            })
-            const verifyData = await verifyRes.json()
-            if (!verifyRes.ok) {
-              setError(verifyData.error ?? 'Payment went through but we couldn’t confirm the session. Contact support with payment ID: ' + response.razorpay_payment_id)
-              setPhase('idle')
-              return
-            }
-            onBooked(`${dayLabel} · ${slot.label12}`)
-          } catch {
-            setError('Something went wrong after payment. Contact support with payment ID: ' + response.razorpay_payment_id)
-            setPhase('idle')
-          }
-        },
-      })
+      // Open Cashfree checkout in a modal. The promise resolves when the modal
+      // closes (success, failure, or dismissal); order status is then confirmed
+      // server-side, which is the source of truth.
+      const cashfree = (window as any).Cashfree({ mode: mode === 'sandbox' ? 'sandbox' : 'production' })
+      const result = await cashfree.checkout({ paymentSessionId: payment_session_id, redirectTarget: '_modal' })
 
-      rzp.on('payment.failed', function (resp: any) {
-        setError(resp.error?.description ?? 'Payment failed. Please try again.')
+      if (result?.error) {
+        setError(result.error.message ?? 'Payment was cancelled or didn’t complete.')
         setPhase('idle')
-      })
+        return
+      }
 
-      rzp.open()
+      setPhase('confirming')
+      const verifyRes = await fetch('/api/payment/session-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id, sessionId }),
+      })
+      const verifyData = await verifyRes.json()
+      if (!verifyRes.ok) {
+        setError(verifyData.error ?? `Payment went through but we couldn’t confirm the session. Contact support with order ID: ${order_id}`)
+        setPhase('idle')
+        return
+      }
+      onBooked(`${dayLabel} · ${slot.label12}`)
     } catch {
       setError('Something went wrong. Please try again.')
       setPhase('idle')
@@ -334,12 +320,11 @@ export default function ClientSessionsView({
   matchId,
   therapistUserId,
   clientName,
-  userEmail,
   therapist,
   timezone,
   therapistTimezone,
   perSessionInr,
-  razorpayKeyId,
+  paymentsEnabled,
   upcoming,
   past,
   weeklyAvailability,
@@ -569,9 +554,7 @@ export default function ClientSessionsView({
           therapistName={therapist.fullName}
           matchId={matchId}
           perSessionInr={perSessionInr}
-          userName={clientName}
-          userEmail={userEmail}
-          razorpayKeyId={razorpayKeyId}
+          paymentsEnabled={paymentsEnabled}
           onClose={() => setOpenSlot(null)}
           onBooked={handleBooked}
         />

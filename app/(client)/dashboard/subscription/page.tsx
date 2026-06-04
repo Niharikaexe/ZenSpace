@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SubscriptionView from './SubscriptionView'
+import { cashfreeConfigured } from '@/lib/cashfree'
 import {
   sessionPriceInr,
   monthlyBundleInr,
@@ -50,8 +51,7 @@ export default async function SubscriptionPage() {
         discountPct={Math.round(MONTHLY_BUNDLE_DISCOUNT * 100)}
         activeCreditsRemaining={null}
         activeCreditsTotal={null}
-        razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
-        userEmail=""
+        paymentsEnabled={cashfreeConfigured()}
       />
     )
   }
@@ -68,7 +68,7 @@ export default async function SubscriptionPage() {
   const perSessionInr = sessionPriceInr(category, tier)
   const bundleInr = monthlyBundleInr(perSessionInr)
 
-  const [tUserResult, bundleResult, userResult] = await Promise.all([
+  const [tUserResult, bundleResult] = await Promise.all([
     (admin as any).from('profiles').select('full_name').eq('id', match.therapist_id).single(),
     (admin as any)
       .from('session_bundles')
@@ -76,12 +76,10 @@ export default async function SubscriptionPage() {
       .eq('client_id', user.id)
       .eq('status', 'active')
       .maybeSingle(),
-    admin.auth.admin.getUserById(user.id),
   ])
 
   const therapistName = (tUserResult.data?.full_name as string | undefined) ?? 'your therapist'
   const activeBundle = bundleResult.data as { credits_remaining: number; credits_total: number } | null
-  const userEmail = userResult.data?.user?.email ?? ''
 
   return (
     <SubscriptionView
@@ -94,8 +92,7 @@ export default async function SubscriptionPage() {
       discountPct={Math.round(MONTHLY_BUNDLE_DISCOUNT * 100)}
       activeCreditsRemaining={activeBundle?.credits_remaining ?? null}
       activeCreditsTotal={activeBundle?.credits_total ?? null}
-      razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
-      userEmail={userEmail}
+      paymentsEnabled={cashfreeConfigured()}
     />
   )
 }

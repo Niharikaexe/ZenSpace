@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientSessionsView from '@/components/client/ClientSessionsView'
 import { sessionPriceInr, type SessionCategory, type ProposalTier } from '@/lib/plans'
+import { cashfreeConfigured } from '@/lib/cashfree'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,7 +122,7 @@ export default async function ClientSessionsPage() {
       timezone={profile?.timezone ?? null}
       therapistTimezone={therapistTimezone}
       perSessionInr={perSessionInr}
-      razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
+      paymentsEnabled={cashfreeConfigured()}
       upcoming={upcoming}
       past={past}
       weeklyAvailability={weeklyAvailability}

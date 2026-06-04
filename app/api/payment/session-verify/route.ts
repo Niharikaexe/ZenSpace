@@ -2,18 +2,17 @@ import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { createNotification } from '@/lib/notifications'
-import crypto from 'crypto'
+import { getCashfreeOrder, getSuccessfulPaymentId } from '@/lib/cashfree'
 import { z } from 'zod'
 
-// Confirms a pay-as-you-go session after Razorpay checkout. Verifies the order
-// signature, marks the session 'paid', creates the Daily.co room, and notifies
-// the therapist. Idempotent — a re-posted verify for an already-paid session is
-// a no-op success.
+// Confirms a pay-as-you-go session after Cashfree checkout. Fetches the order
+// status from Cashfree (order_status === 'PAID' is the source of truth — no
+// client signature), marks the session 'paid', creates the Daily.co room, and
+// notifies the therapist. Idempotent — a re-posted verify for an already-paid
+// session is a no-op success.
 
 const schema = z.object({
-  razorpay_payment_id: z.string(),
-  razorpay_order_id: z.string(),
-  razorpay_signature: z.string(),
+  order_id: z.string(),
   sessionId: z.string().uuid(),
 })
 
@@ -39,29 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, sessionId } = parsed.data
-
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keySecret) {
-    logger.error('api/payment/session-verify', 'RAZORPAY_KEY_SECRET env var missing')
-    return NextResponse.json({ error: 'Payment not configured' }, { status: 500 })
-  }
-
-  // Razorpay order signature: HMAC(order_id + "|" + payment_id, key_secret)
-  const expectedSignature = crypto
-    .createHmac('sha256', keySecret)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest('hex')
-
-  const signaturesMatch =
-    expectedSignature.length === razorpay_signature.length &&
-    crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))
-  if (!signaturesMatch) {
-    logger.warn('api/payment/session-verify', 'Invalid payment signature', {
-      userId: user.id, sessionId, orderId: razorpay_order_id,
-    })
-    return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 })
-  }
+  const { order_id, sessionId } = parsed.data
 
   const admin = createAdminClient()
 
@@ -75,7 +52,7 @@ export async function POST(request: Request) {
       error: unknown
     }
 
-  if (!session || session.razorpay_order_id !== razorpay_order_id) {
+  if (!session || session.razorpay_order_id !== order_id) {
     logger.error('api/payment/session-verify', 'Session not found or order mismatch', { userId: user.id, sessionId })
     return NextResponse.json({ error: 'Session not found' }, { status: 404 })
   }
@@ -95,6 +72,27 @@ export async function POST(request: Request) {
   if (session.payment_status === 'paid') {
     return NextResponse.json({ success: true })
   }
+
+  /* ── RAZORPAY signature verification (disabled — kept for rollback) ──────────
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  // const expectedSignature = crypto.createHmac('sha256', keySecret!)
+  //   .update(`${order_id}|${razorpay_payment_id}`).digest('hex')
+  // ...timingSafeEqual against razorpay_signature...
+  * ──────────────────────────────────────────────────────────────────────────── */
+
+  // ── CASHFREE: order status is the source of truth ───────────────────────────
+  const cfOrder = await getCashfreeOrder(order_id)
+  if (!cfOrder.ok) {
+    logger.error('api/payment/session-verify', 'Cashfree order lookup failed', { userId: user.id, sessionId, order_id, status: cfOrder.status, error: cfOrder.error })
+    return NextResponse.json({ error: 'Could not verify payment. Please try again.' }, { status: 502 })
+  }
+  if (cfOrder.status !== 'PAID') {
+    logger.warn('api/payment/session-verify', 'Cashfree order not paid', { userId: user.id, sessionId, order_id, orderStatus: cfOrder.status })
+    return NextResponse.json({ error: 'Payment not completed.' }, { status: 400 })
+  }
+
+  // cf_payment_id for the ledger (best-effort).
+  const razorpay_payment_id = (await getSuccessfulPaymentId(order_id)) ?? order_id
 
   // Create the Daily.co room now that payment is confirmed.
   let dailyRoomUrl: string | null = null
@@ -165,7 +163,7 @@ export async function POST(request: Request) {
       session_id: sessionId,
       amount_paise: session.client_amount_paise ?? 0,
       therapist_payout_paise: session.therapist_payout_paise ?? null,
-      razorpay_order_id,
+      razorpay_order_id: order_id, // reused column → Cashfree order_id
       razorpay_payment_id,
       status: 'paid',
     }, { onConflict: 'razorpay_payment_id', ignoreDuplicates: true })
