@@ -32,10 +32,10 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-100">
-      <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Logo */}
-        <BrandLogo href="/dashboard/chat" />
+        <BrandLogo href="/dashboard/chat" className="flex-shrink-0" />
 
         {/* Center nav tabs — desktop only */}
         {isMatched ? (
@@ -81,21 +81,21 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
           </Link>
         </nav>
         ) : (
-        <nav className="hidden md:flex items-center gap-1">
-          <Link
-            href="/dashboard"
-            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-              pathname === '/dashboard'
-                ? 'bg-[#233551] text-white'
-                : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50'
-            }`}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Home
-          </Link>
-        </nav>
+        /* Waiting-for-match state: compact home icon (no text), visible on all sizes */
+        <Link
+          href="/dashboard"
+          aria-label="Home"
+          title="Home"
+          className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
+            pathname === '/dashboard'
+              ? 'bg-[#233551] text-white'
+              : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+        </Link>
         )}
 
         {/* Right: Help + Account dropdowns */}
@@ -142,7 +142,7 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
               <span className="w-6 h-6 rounded-full bg-[#233551] text-white text-xs flex items-center justify-center font-black flex-shrink-0">
                 {firstInitial}
               </span>
-              <span className="max-w-[110px] truncate">{firstName}</span>
+              <span className="hidden sm:inline max-w-[110px] truncate">{firstName}</span>
               <svg viewBox="0 0 16 16" fill="none" className={`w-3.5 h-3.5 text-[#233551]/40 transition-transform duration-200 ${accountOpen ? 'rotate-180' : ''}`}>
                 <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
@@ -185,31 +185,29 @@ export default function ClientNav({ userName, isMatched = true }: Props) {
         </div>
       </div>
 
-      {/* Mobile nav strip */}
-      <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
-        {(isMatched
-          ? [
-              { href: '/dashboard/chat',     label: 'Chat' },
-              { href: '/dashboard/sessions', label: 'Sessions' },
-              { href: '/dashboard/notes',    label: 'Notes' },
-            ]
-          : [
-              { href: '/dashboard', label: 'Home' },
-            ]
-        ).map(link => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold min-h-[44px] flex items-center transition-colors whitespace-nowrap ${
-              pathname === link.href
-                ? 'bg-[#233551] text-white'
-                : 'text-[#233551]/55 hover:bg-slate-100'
-            }`}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
+      {/* Mobile nav strip — only when matched (Chat/Sessions/Notes). On the
+          waiting page the single home icon lives in the top bar, so no strip. */}
+      {isMatched && (
+        <div className="md:hidden flex items-center gap-1 px-4 py-2 border-t border-slate-50 overflow-x-auto">
+          {[
+            { href: '/dashboard/chat',     label: 'Chat' },
+            { href: '/dashboard/sessions', label: 'Sessions' },
+            { href: '/dashboard/notes',    label: 'Notes' },
+          ].map(link => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-semibold min-h-[44px] flex items-center transition-colors whitespace-nowrap ${
+                pathname === link.href
+                  ? 'bg-[#233551] text-white'
+                  : 'text-[#233551]/55 hover:bg-slate-100'
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      )}
     </header>
   )
 }
