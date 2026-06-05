@@ -115,9 +115,12 @@ export function RangeAvailabilityEditor({ initialData, therapistTimezone }: Prop
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
     for (const d of DAYS) schedule[d.key] = sel[d.key] ?? []
+    // Capture the IANA timezone synchronously at save time (see grid editor).
+    let tz: string | undefined
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone } catch { tz = browserTz ?? undefined }
     // eslint-disable-next-line no-console
-    console.log('[availability:range] saving', { tz: browserTz, schedule })
-    const result = await updateWeeklyAvailability(schedule, browserTz ?? undefined)
+    console.log('[availability:range] saving', { tz, schedule })
+    const result = await updateWeeklyAvailability(schedule, tz)
     // eslint-disable-next-line no-console
     console.log('[availability:range] save result', result)
     setSaving(false)

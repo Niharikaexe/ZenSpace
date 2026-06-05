@@ -198,9 +198,14 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
     for (const d of DAYS) schedule[d.key] = computeSlots(sel[d.key] ?? new Set())
+    // Capture the IANA timezone synchronously at save time — never rely on the
+    // effect-set state (which can still be null on first save, leaving the
+    // therapist's zone empty and the client converting from UTC).
+    let tz: string | undefined
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone } catch { tz = browserTz ?? undefined }
     // eslint-disable-next-line no-console
-    console.log('[availability:grid] saving', { tz: browserTz, schedule })
-    const result = await updateWeeklyAvailability(schedule, browserTz ?? undefined)
+    console.log('[availability:grid] saving', { tz, schedule })
+    const result = await updateWeeklyAvailability(schedule, tz)
     // eslint-disable-next-line no-console
     console.log('[availability:grid] save result', result)
     setSaving(false)
