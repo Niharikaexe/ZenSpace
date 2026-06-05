@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientNotesView from '@/components/client/ClientNotesView'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import type { TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
 export const dynamic = 'force-dynamic'
@@ -81,10 +82,13 @@ export default async function ClientNotesPage() {
     .map(s => ({ ...s, therapist_notes: s.therapist_notes as string }))
 
   return (
-    <ClientNotesView
-      clientName={profile?.full_name ?? ''}
-      therapist={therapist}
-      sessions={sessions}
-    />
+    <>
+      <LiveRefresh table="sessions" filter={`match_id=eq.${match.id}`} channel={`client-notes-${match.id}`} />
+      <ClientNotesView
+        clientName={profile?.full_name ?? ''}
+        therapist={therapist}
+        sessions={sessions}
+      />
+    </>
   )
 }

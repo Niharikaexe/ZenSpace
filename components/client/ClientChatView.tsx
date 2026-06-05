@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ChatInterface from '@/components/shared/ChatInterface'
 import ClientNav from '@/components/client/ClientNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
 type Message = {
@@ -45,6 +46,8 @@ export default function ClientChatView({
 
   return (
     <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
+      {/* Live: match changes (e.g. re-match / end) */}
+      <LiveRefresh table="matches" filter={`client_id=eq.${currentUserId}`} channel={`client-chat-matches-${currentUserId}`} />
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">

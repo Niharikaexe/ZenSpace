@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import ClientNav from '@/components/client/ClientNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
 import { formatInr } from '@/lib/plans'
@@ -397,6 +398,8 @@ export default function ClientSessionsView({
 
   return (
     <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
+      {/* Live: therapist schedules/cancels/completes a session for this match */}
+      <LiveRefresh table="sessions" filter={`match_id=eq.${matchId}`} channel={`client-sessions-${matchId}`} />
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">

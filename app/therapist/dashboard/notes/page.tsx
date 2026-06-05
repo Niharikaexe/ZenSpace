@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistNotesView from './TherapistNotesView'
 
 export const dynamic = 'force-dynamic'
@@ -70,6 +71,7 @@ export default async function TherapistNotesPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <LiveRefresh table="sessions" channel={`ther-notes-${user.id}`} />
       <TherapistNav therapistName={profile!.full_name} userId={user.id} isMatched={true} />
       <TherapistNotesView sessionGroups={sessionGroups} />
     </div>

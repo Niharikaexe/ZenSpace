@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import JoinButton from '@/components/shared/JoinButton'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import NoteEditor from '@/components/shared/NoteEditor'
 import { updateSessionStatus } from '@/app/actions/sessions'
 import { getNotifications } from '@/app/actions/notifications'
@@ -101,6 +102,9 @@ export default async function TherapistSessionsPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Live: a client booking/cancelling/completing a session, or a new match */}
+      <LiveRefresh table="sessions" channel={`ther-sessions-${user.id}`} />
+      <LiveRefresh table="matches" filter={`therapist_id=eq.${user.id}`} channel={`ther-sess-matches-${user.id}`} />
       <TherapistNav
         therapistName={profile!.full_name}
         userId={user.id}

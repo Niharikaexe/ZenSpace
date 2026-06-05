@@ -206,8 +206,9 @@ export default async function TherapistDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Live-refresh when a client is matched/assigned to this therapist */}
+      {/* Live-refresh when a client is matched/assigned, or a session changes */}
       <LiveRefresh table="matches" filter={`therapist_id=eq.${user.id}`} channel={`therapist-matches-${user.id}`} />
+      <LiveRefresh table="sessions" channel={`therapist-home-sessions-${user.id}`} />
       <TherapistNav
         therapistName={profile!.full_name}
         userId={user.id}
