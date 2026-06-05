@@ -122,6 +122,7 @@ function buildWeek(
         date: clientDateStr,
         iso: slotDate.toISOString(),
       })
+      byClientDate.set(clientDateStr, arr) // ← was missing: fresh arrays were never stored
     }
   }
 
