@@ -141,6 +141,16 @@ function buildWeek(
     })
   }
 
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[buildWeek]', {
+      therapistTimezone, resolvedTz: tz,
+      inputKeys: Object.keys(weeklyAvailability ?? {}),
+      inputSlotCounts: Object.fromEntries(Object.entries(weeklyAvailability ?? {}).map(([k, v]) => [k, (v as unknown[]).length])),
+      outputSlotsPerDay: days.map(d => `${d.dateStr}:${d.slots.length}`),
+    })
+  }
+
   return days
 }
 

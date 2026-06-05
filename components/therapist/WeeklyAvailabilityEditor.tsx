@@ -198,7 +198,11 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
     for (const d of DAYS) schedule[d.key] = computeSlots(sel[d.key] ?? new Set())
+    // eslint-disable-next-line no-console
+    console.log('[availability:grid] saving', { tz: browserTz, schedule })
     const result = await updateWeeklyAvailability(schedule, browserTz ?? undefined)
+    // eslint-disable-next-line no-console
+    console.log('[availability:grid] save result', result)
     setSaving(false)
     if (result.error) { setSaveErr(result.error) }
     else { setSaved(true); setTimeout(() => setSaved(false), 2500) }

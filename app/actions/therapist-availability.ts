@@ -43,15 +43,35 @@ export async function updateWeeklyAvailability(
   }
 
   const admin = createAdminClient()
-  const { error } = await (admin as any)
+  logger.info('therapist/availability', 'Saving weekly availability', {
+    userId: user.id,
+    timezone: update.timezone ?? '(unchanged)',
+    slotCounts: Object.fromEntries(Object.entries(schedule).map(([k, v]) => [k, v.length])),
+  })
+
+  const { data: updated, error } = await (admin as any)
     .from('therapist_profiles')
     .update(update)
     .eq('user_id', user.id)
+    .select('user_id, timezone, weekly_availability')
 
   if (error) {
     logger.error('therapist/availability', 'Failed to save weekly availability', error, { userId: user.id })
     return { error: 'Failed to save. Please try again.' }
   }
+
+  // .update() affecting 0 rows is NOT an error in PostgREST — it just means no
+  // therapist_profiles row matched user_id. Surface that explicitly.
+  if (!updated || updated.length === 0) {
+    logger.error('therapist/availability', 'Save matched 0 rows — no therapist_profiles for user', null, { userId: user.id })
+    return { error: 'Could not find your therapist profile to save to. Contact support.' }
+  }
+
+  logger.info('therapist/availability', 'Saved weekly availability', {
+    userId: user.id,
+    storedTimezone: updated[0]?.timezone,
+    storedKeys: Object.keys(updated[0]?.weekly_availability ?? {}),
+  })
 
   return { success: true }
 }

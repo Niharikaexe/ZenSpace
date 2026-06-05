@@ -115,7 +115,11 @@ export function RangeAvailabilityEditor({ initialData, therapistTimezone }: Prop
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
     for (const d of DAYS) schedule[d.key] = sel[d.key] ?? []
+    // eslint-disable-next-line no-console
+    console.log('[availability:range] saving', { tz: browserTz, schedule })
     const result = await updateWeeklyAvailability(schedule, browserTz ?? undefined)
+    // eslint-disable-next-line no-console
+    console.log('[availability:range] save result', result)
     setSaving(false)
     if (result.error) setSaveErr(result.error)
     else { setSaved(true); setTimeout(() => setSaved(false), 2500) }

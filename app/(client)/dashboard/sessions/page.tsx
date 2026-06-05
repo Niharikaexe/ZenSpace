@@ -94,6 +94,13 @@ export default async function ClientSessionsPage() {
     isVerified: tp?.is_verified ?? false,
   }
   const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
+  // eslint-disable-next-line no-console
+  console.log('[sessions/page] therapist availability read', {
+    therapistId: match.therapist_id,
+    timezone: tp?.timezone,
+    keys: Object.keys(weeklyAvailability),
+    slotCounts: Object.fromEntries(Object.entries(weeklyAvailability).map(([k, v]) => [k, (v as unknown[]).length])),
+  })
   // Slots are stored in the therapist's own timezone (captured + saved when they
   // edit availability). UTC is only a neutral fallback for legacy rows saved
   // before timezone capture — those therapists just need to re-save once.
