@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
@@ -184,7 +185,10 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     // the account is actually active: in the immediate-session branch below
     // (when email confirmation is disabled in Supabase) or in /auth/callback
     // (after the user clicks the verification link).
-    await sendAdminNewClientSignupEmail(fullName, email)
+    // Sent via after() so the Resend round-trip runs AFTER the response is
+    // flushed — it never blocks the signup redirect. The helper swallows its
+    // own errors, so a failed send won't surface as an unhandled rejection.
+    after(() => sendAdminNewClientSignupEmail(fullName, email))
   }
 
   // Save questionnaire data if present (client sign-ups only)
@@ -218,7 +222,9 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     // immediately and no /auth/callback will fire. Send the welcome email now.
     if (role === 'client') {
       const firstName = fullName.split(' ')[0] || 'there'
-      await sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} })
+      // after() — runs post-response so the welcome email doesn't delay the
+      // redirect into the dashboard.
+      after(() => sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} }))
     }
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     const userRole = currentUser?.user_metadata?.role ?? role
