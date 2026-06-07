@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import ClientNav from '@/components/client/ClientNav'
 import { formatInr } from '@/lib/plans'
 
-// RAZORPAY loader (disabled — kept for rollback):
-// function loadRazorpayScript(): Promise<boolean> { ...checkout.razorpay.com/v1/checkout.js... }
 
 // Cashfree v3 JS SDK loader.
 function loadCashfreeScript(): Promise<boolean> {
@@ -218,7 +216,7 @@ export default function SubscriptionView({
                   : `Get the monthly bundle · ${formatInr(bundleInr)}`}
               </button>
               <p className="text-center text-xs text-[#233551]/35 mt-3">
-                Secure payment via Razorpay · Non-refundable
+                Secure payment via Cashfree · Non-refundable
               </p>
             </div>
 

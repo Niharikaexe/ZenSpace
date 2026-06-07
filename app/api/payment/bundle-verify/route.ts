@@ -63,12 +63,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true })
   }
 
-  /* ── RAZORPAY signature verification (disabled — kept for rollback) ──────────
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  // const expectedSignature = crypto.createHmac('sha256', keySecret!)
-  //   .update(`${order_id}|${razorpay_payment_id}`).digest('hex')
-  // ...timingSafeEqual against razorpay_signature...
-  * ──────────────────────────────────────────────────────────────────────────── */
 
   // ── CASHFREE: order status is the source of truth ───────────────────────────
   const cfOrder = await getCashfreeOrder(order_id)

@@ -16,7 +16,7 @@ import {
 // Pay-as-you-go: the client pays for a single session at the moment they pick a
 // slot. This route computes the price + therapist payout SERVER-SIDE from the
 // client's category and the chosen therapist's tier (never trusting the client),
-// creates a Razorpay order, and stores a PENDING session row. The session is
+// creates a Cashfree order, and stores a PENDING session row. The session is
 // confirmed once /api/payment/session-verify flips it to 'paid'.
 
 const schema = z.object({
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
 
   // ── Monthly bundle: consume a prepaid credit instead of charging ────────────
   // If the client has an active bundle with credits left, book the session
-  // immediately as 'paid' (no fresh Razorpay charge) and decrement the bundle.
+  // immediately as 'paid' (no fresh charge) and decrement the bundle.
   // The decrement is a compare-and-swap on credits_remaining; if it loses a
   // race, we fall through to the normal pay-per-session flow below.
   const { data: bundle } = await (admin as any)
@@ -194,45 +194,6 @@ export async function POST(request: Request) {
     // CAS lost — fall through to pay-per-session below.
   }
 
-  /* ──────────────────────────────────────────────────────────────────────────
-   * RAZORPAY (disabled — kept for rollback). Switched to Cashfree below.
-   * ----------------------------------------------------------------------------
-  const keyId = process.env.RAZORPAY_KEY_ID
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keyId || !keySecret) {
-    logger.error('api/payment/session-order', 'Razorpay env vars missing')
-    return NextResponse.json({ error: 'Payment not configured' }, { status: 500 })
-  }
-
-  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
-
-  let order: { id: string }
-  try {
-    const orderRes = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
-      body: JSON.stringify({
-        amount: clientPaise,
-        currency: 'INR',
-        receipt: `sess_${user.id.slice(0, 8)}_${Date.now()}`,
-      }),
-    })
-
-    if (!orderRes.ok) {
-      const err = await orderRes.json().catch(() => ({}))
-      logger.error('api/payment/session-order', 'Razorpay order creation failed', err, {
-        userId: user.id, matchId, status: orderRes.status,
-      })
-      return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 })
-    }
-
-    order = await orderRes.json()
-  } catch (err) {
-    logger.error('api/payment/session-order', 'Network error calling Razorpay', err, { userId: user.id })
-    return NextResponse.json({ error: 'Failed to reach payment gateway' }, { status: 502 })
-  }
-  // ... (Razorpay pending-session insert + response)
-  * ────────────────────────────────────────────────────────────────────────── */
 
   // ── CASHFREE (active) ───────────────────────────────────────────────────────
   if (!cashfreeConfigured()) {

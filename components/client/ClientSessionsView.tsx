@@ -41,17 +41,6 @@ interface Props {
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
 
-// RAZORPAY loader (disabled — kept for rollback):
-// function loadRazorpayScript(): Promise<boolean> {
-//   return new Promise(resolve => {
-//     if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
-//     const script = document.createElement('script')
-//     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-//     script.onload = () => resolve(true); script.onerror = () => resolve(false)
-//     document.body.appendChild(script)
-//   })
-// }
-
 // Cashfree v3 JS SDK loader.
 function loadCashfreeScript(): Promise<boolean> {
   return new Promise(resolve => {
@@ -336,7 +325,7 @@ function PaySessionModal({
             {phase === 'opening' ? 'Opening checkout…' : phase === 'confirming' ? 'Confirming…' : `Pay ${formatInr(perSessionInr)} & book`}
           </button>
           <p className="text-center text-xs text-[#233551]/35 mt-3">
-            Secure payment via Razorpay · Pay as you go · Non-refundable
+            Secure payment via Cashfree · Pay as you go · Non-refundable
           </p>
         </div>
       </div>
