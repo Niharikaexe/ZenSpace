@@ -52,9 +52,27 @@ export function createAdminClient() {
  */
 export async function getAuthClaims(
   supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<{ id: string; email: string | null } | null> {
+): Promise<{
+  id: string
+  email: string | null
+  fullName: string | null
+  role: string | null
+  therapyCategory: string | null
+} | null> {
   const { data, error } = await supabase.auth.getClaims()
-  const claims = data?.claims as { sub?: string; email?: string } | undefined
+  const claims = data?.claims as
+    | { sub?: string; email?: string; user_metadata?: { full_name?: string; role?: string; therapy_category?: string } }
+    | undefined
   if (error || !claims?.sub) return null
-  return { id: claims.sub, email: claims.email ?? null }
+  const meta = claims.user_metadata ?? {}
+  return {
+    id: claims.sub,
+    email: claims.email ?? null,
+    // From user_metadata — fine as non-authoritative hints (seeding a missing
+    // profile row, default category). Do NOT use role for authorization; gate
+    // on profiles.role instead.
+    fullName: meta.full_name ?? null,
+    role: meta.role ?? null,
+    therapyCategory: meta.therapy_category ?? null,
+  }
 }

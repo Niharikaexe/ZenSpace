@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientNotesView from '@/components/client/ClientNotesView'
 import LiveRefresh from '@/components/shared/LiveRefresh'
@@ -16,7 +16,7 @@ type RawSession = {
 
 export default async function ClientNotesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

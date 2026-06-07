@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import TherapistChatShell from '@/components/therapist/TherapistChatShell'
 import { getNotifications } from '@/app/actions/notifications'
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function TherapistChatPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

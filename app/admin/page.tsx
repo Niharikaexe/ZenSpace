@@ -1,4 +1,4 @@
-import { createAdminClient, createClient } from '@/lib/supabase/server'
+import { createAdminClient, createClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AdminDashboard from '@/components/admin/AdminDashboard'
 import type {
@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic'
 export default async function AdminPage() {
   // ── Auth check ──────────────────────────────────────────────────────────────
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
