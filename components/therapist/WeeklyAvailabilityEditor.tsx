@@ -72,9 +72,12 @@ function fmt12(hour: number, minute: number) {
   return `${h}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
 }
 
-function cellToTimeLabel(ci: number) {
-  const startMin = ci * CELL_MIN
-  const endMin   = startMin + CELL_MIN
+// Label for the whole-hour block a cell belongs to (selection snaps to hours),
+// e.g. "9:00 am – 10:00 am" — what hovering/clicking that cell actually affects.
+function cellToHourLabel(ci: number) {
+  const hourStartCell = ci - (ci % 2)        // snap down to the hour boundary
+  const startMin = hourStartCell * CELL_MIN
+  const endMin   = startMin + 60
   const sh = Math.floor(startMin / 60), sm = startMin % 60
   const eh = Math.floor(endMin   / 60), em = endMin   % 60
   return `${fmt12(sh, sm)} – ${fmt12(eh, em)}`
@@ -172,13 +175,12 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     let [from, to] = startCell <= currentCell
       ? [startCell, currentCell]
       : [currentCell, startCell]
-    // A 50-min session needs a full 1-hour (2-cell) block. Expand any shorter ADD
-    // selection (e.g. a single click) up to one hour so it always yields a slot —
-    // never a silent empty save that leaves clients with no bookable times.
-    if (mode === 'add' && to - from < 1) {
-      if (from + 1 <= TOTAL_CELLS - 1) to = from + 1
-      else from = to - 1
-    }
+    // Snap the range to whole-hour (2-cell) blocks. This makes ADD and REMOVE
+    // symmetric — a single click toggles the entire hour, so clicking a selected
+    // slot fully unselects it (previously removal left an orphan half-cell) — and
+    // guarantees every saved slot starts on the hour.
+    from = from - (from % 2)
+    to   = to % 2 === 0 ? Math.min(to + 1, TOTAL_CELLS - 1) : to
     const keys = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
 
     setSel(prev => {
@@ -310,6 +312,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                         <div
                           key={ci}
                           data-ci={ci}
+                          title={cellToHourLabel(ci)}
                           style={{ touchAction: 'none' }}
                           className={[
                             'flex-1 h-full cursor-crosshair transition-colors duration-75',
@@ -348,6 +351,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                     <div
                       key={ci}
                       data-ci={ci}
+                      title={cellToHourLabel(ci)}
                       style={{ touchAction: 'none' }}
                       className={[
                         'flex-1 h-full cursor-crosshair transition-colors duration-75',
@@ -378,8 +382,8 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
               <span className="text-[10px] text-[#233551]/40">All days selected</span>
             </div>
             {hoverCell && (
-              <span className="ml-auto text-[10px] font-semibold text-[#3D8A80] tabular-nums">
-                {cellToTimeLabel(hoverCell.ci)}
+              <span className="ml-auto text-xs font-bold text-[#3D8A80] tabular-nums bg-[#7EC0B7]/12 px-2.5 py-1 rounded-full">
+                {cellToHourLabel(hoverCell.ci)}
               </span>
             )}
           </div>
