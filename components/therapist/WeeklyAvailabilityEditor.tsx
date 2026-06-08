@@ -5,10 +5,13 @@ import { updateWeeklyAvailability, type WeeklyAvailability } from '@/app/actions
 import { timezoneLabel } from '@/lib/timezones'
 
 // ── Grid constants ────────────────────────────────────────────────────────────
-const TOTAL_CELLS = 48   // 30-min slots across 24 h  (0 = 00:00, 47 = 23:30)
+// The grid is drawn in 30-min cells (0 = 00:00 … 47 = 23:30) so a slot can start
+// on the hour OR the half-hour. Each booked slot is ONE HOUR long and spans two
+// cells. We store the SLOT STARTS (a Set of starting cell indices), not a blob of
+// occupied cells — so a slot is an atomic unit you add/remove as a whole.
+const TOTAL_CELLS = 48   // 30-min cells across 24 h
 const CELL_MIN    = 30   // minutes per cell
-const SESSION_MIN = 50   // session length in minutes
-const SLOT_GAP    = 60   // new slot every 60 min inside a range
+const SLOT_SPAN   = 2    // cells per 1-hour slot
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DAYS = [
@@ -27,44 +30,30 @@ const HOUR_LABELS = [0, 3, 6, 9, 12, 15, 18, 21].map(h => ({
   label: h === 0 ? '12 am' : h === 12 ? '12 pm' : h < 12 ? `${h} am` : `${h - 12} pm`,
 }))
 
+type Slot = { hour: number; minute: number }
+
 // ── Slot helpers ──────────────────────────────────────────────────────────────
 
-/** Find consecutive ranges in a set of cell indices and produce 50-min slots */
-function computeSlots(cells: Set<number>): { hour: number; minute: number }[] {
-  if (!cells.size) return []
-  const sorted = Array.from(cells).sort((a, b) => a - b)
-  const ranges: { s: number; e: number }[] = []
-  let rs = sorted[0], re = sorted[0]
-  for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i] === re + 1) { re = sorted[i] }
-    else { ranges.push({ s: rs, e: re }); rs = re = sorted[i] }
-  }
-  ranges.push({ s: rs, e: re })
-
-  const slots: { hour: number; minute: number }[] = []
-  for (const { s, e } of ranges) {
-    const startMin = s * CELL_MIN
-    const endMin   = (e + 1) * CELL_MIN
-    let t = startMin
-    while (t + SESSION_MIN <= endMin) {
-      slots.push({ hour: Math.floor(t / 60), minute: t % 60 })
-      t += SLOT_GAP
-    }
-  }
-  return slots
+/** Slot-start cell indices → {hour, minute} slots (1 hour each). */
+function startsToSlots(starts: Set<number>): Slot[] {
+  return Array.from(starts)
+    .sort((a, b) => a - b)
+    .map(c => ({ hour: Math.floor((c * CELL_MIN) / 60), minute: (c * CELL_MIN) % 60 }))
 }
 
-/** Reverse: reconstruct selected cells from stored slots (approx, for initial display) */
-function slotsToSelectedCells(slots: { hour: number; minute: number }[]): Set<number> {
-  const cells = new Set<number>()
+/** Stored slots → set of slot-start cell indices. */
+function slotsToStarts(slots: Slot[]): Set<number> {
+  const starts = new Set<number>()
   for (const { hour, minute } of slots) {
-    const startMin = hour * 60 + minute
-    for (let m = 0; m < SESSION_MIN; m += CELL_MIN) {
-      const ci = Math.floor((startMin + m) / CELL_MIN)
-      if (ci < TOTAL_CELLS) cells.add(ci)
-    }
+    const ci = (hour * 60 + minute) / CELL_MIN
+    if (Number.isInteger(ci) && ci >= 0 && ci < TOTAL_CELLS) starts.add(ci)
   }
-  return cells
+  return starts
+}
+
+/** Is this cell painted — i.e. covered by a 1-hour slot (its start, or its second half)? */
+function isCovered(starts: Set<number>, ci: number): boolean {
+  return starts.has(ci) || starts.has(ci - 1)
 }
 
 function fmt12(hour: number, minute: number) {
@@ -72,14 +61,13 @@ function fmt12(hour: number, minute: number) {
   return `${h}:${String(minute).padStart(2, '0')} ${hour < 12 ? 'am' : 'pm'}`
 }
 
-// Label for the whole-hour block a cell belongs to (selection snaps to hours),
-// e.g. "9:00 am – 10:00 am" — what hovering/clicking that cell actually affects.
-function cellToHourLabel(ci: number) {
-  const hourStartCell = ci - (ci % 2)        // snap down to the hour boundary
-  const startMin = hourStartCell * CELL_MIN
+// The 1-hour slot that hovering/clicking THIS cell picks: cell-time → +1 hour.
+// e.g. cell at 9:00 → "9:00 am – 10:00 am"; cell at 9:30 → "9:30 am – 10:30 am".
+function cellSlotLabel(ci: number) {
+  const startMin = ci * CELL_MIN
   const endMin   = startMin + 60
-  const sh = Math.floor(startMin / 60), sm = startMin % 60
-  const eh = Math.floor(endMin   / 60), em = endMin   % 60
+  const sh = Math.floor(startMin / 60),      sm = startMin % 60
+  const eh = Math.floor((endMin / 60) % 24), em = endMin % 60
   return `${fmt12(sh, sm)} – ${fmt12(eh, em)}`
 }
 
@@ -88,10 +76,10 @@ function cellToHourLabel(ci: number) {
 interface Props { initialData: WeeklyAvailability; therapistTimezone?: string | null }
 
 export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Props) {
-  // sel[dayKey] = Set of selected cell indices
+  // sel[dayKey] = Set of slot-START cell indices
   const [sel, setSel] = useState<Record<string, Set<number>>>(() => {
     const r: Record<string, Set<number>> = {}
-    for (const d of DAYS) r[d.key] = slotsToSelectedCells(initialData[d.key] ?? [])
+    for (const d of DAYS) r[d.key] = slotsToStarts(initialData[d.key] ?? [])
     return r
   })
 
@@ -157,9 +145,10 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
   // ── Drag helpers ────────────────────────────────────────────────────────────
 
   function startDrag(dayKey: string | null, ci: number) {
-    const keys   = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
-    const anyOn  = keys.some(k => sel[k]?.has(ci))
-    const mode   = anyOn ? 'remove' : 'add'
+    const keys  = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
+    // If the cell is already part of a slot, this gesture REMOVES; else it ADDS.
+    const anyOn = keys.some(k => isCovered(sel[k] ?? new Set(), ci))
+    const mode  = anyOn ? 'remove' : 'add'
 
     // Snapshot all days' state before drag begins
     const pre: Record<string, Set<number>> = {}
@@ -172,23 +161,31 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
   function applyDrag(currentCell: number) {
     if (!drag.current) return
     const { dayKey, startCell, mode, pre } = drag.current
-    let [from, to] = startCell <= currentCell
-      ? [startCell, currentCell]
-      : [currentCell, startCell]
-    // Snap the range to whole-hour (2-cell) blocks. This makes ADD and REMOVE
-    // symmetric — a single click toggles the entire hour, so clicking a selected
-    // slot fully unselects it (previously removal left an orphan half-cell) — and
-    // guarantees every saved slot starts on the hour.
-    from = from - (from % 2)
-    to   = to % 2 === 0 ? Math.min(to + 1, TOTAL_CELLS - 1) : to
+    const lo = Math.min(startCell, currentCell)
+    const hi = Math.max(startCell, currentCell)
+    // Tiling is anchored to the gesture's first cell so its :00/:30 offset is
+    // preserved — drag from 9:30 lays down 9:30–10:30, 10:30–11:30, … back-to-back.
+    const parity = startCell % 2
     const keys = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
 
     setSel(prev => {
       const next = { ...prev }
       for (const k of keys) {
-        const cells = new Set(pre[k])
-        for (let i = from; i <= to; i++) mode === 'add' ? cells.add(i) : cells.delete(i)
-        next[k] = cells
+        const starts = new Set(pre[k])
+        if (mode === 'add') {
+          // Lay down a 1-hour slot at every cell of the anchor's parity in range.
+          for (let s = lo; s <= hi; s++) {
+            if (s % 2 === parity && s + SLOT_SPAN - 1 < TOTAL_CELLS) starts.add(s)
+          }
+        } else {
+          // Remove every slot whose 1-hour span intersects the dragged range —
+          // so clicking any cell of a slot clears the whole hour it set before.
+          for (const s of pre[k]) {
+            const spanStart = s, spanEnd = s + SLOT_SPAN - 1
+            if (spanStart <= hi && spanEnd >= lo) starts.delete(s)
+          }
+        }
+        next[k] = starts
       }
       return next
     })
@@ -199,17 +196,13 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
   async function save() {
     setSaving(true); setSaveErr(null)
     const schedule: WeeklyAvailability = {}
-    for (const d of DAYS) schedule[d.key] = computeSlots(sel[d.key] ?? new Set())
+    for (const d of DAYS) schedule[d.key] = startsToSlots(sel[d.key] ?? new Set())
     // Capture the IANA timezone synchronously at save time — never rely on the
     // effect-set state (which can still be null on first save, leaving the
     // therapist's zone empty and the client converting from UTC).
     let tz: string | undefined
     try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone } catch { tz = browserTz ?? undefined }
-    // eslint-disable-next-line no-console
-    console.log('[availability:grid] saving', { tz, schedule })
     const result = await updateWeeklyAvailability(schedule, tz)
-    // eslint-disable-next-line no-console
-    console.log('[availability:grid] save result', result)
     setSaving(false)
     if (result.error) { setSaveErr(result.error) }
     else { setSaved(true); setTimeout(() => setSaved(false), 2500) }
@@ -217,11 +210,8 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
 
   function clearDay(k: string) { setSel(prev => ({ ...prev, [k]: new Set() })) }
 
-  // Live feedback: how many bookable 50-min slots the current selection yields.
-  // Surfacing this stops a therapist from silently saving an empty schedule (which
-  // is exactly what leaves clients with no slots to book).
-  const totalSlots = DAYS.reduce((n, d) => n + computeSlots(sel[d.key] ?? new Set()).length, 0)
-  const markedButNoSlots = totalSlots === 0 && DAYS.some(d => (sel[d.key]?.size ?? 0) > 0)
+  // Each slot start is exactly one bookable 1-hour slot.
+  const totalSlots = DAYS.reduce((n, d) => n + (sel[d.key]?.size ?? 0), 0)
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -234,7 +224,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
         <div>
           <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">Weekly Availability</p>
           <p className="text-xs text-[#233551]/40 mt-0.5">
-            Tap or drag to mark available ranges — each generates 50-min slots for clients
+            Click a slot to add a 1-hour opening (starts on the hour or half-hour); click it again to remove it.
           </p>
           {effectiveTz && (
             <p className="text-[10px] text-[#3D8A80] font-semibold mt-0.5">
@@ -306,13 +296,13 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                   {/* Cell strip */}
                   <div className="flex-1 flex h-full rounded overflow-hidden border border-slate-200">
                     {Array.from({ length: TOTAL_CELLS }, (_, ci) => {
-                      const on    = daySel.has(ci)
+                      const on    = isCovered(daySel, ci)
                       const mark3 = ci % 6 === 0  // every 3-hour boundary
                       return (
                         <div
                           key={ci}
                           data-ci={ci}
-                          title={cellToHourLabel(ci)}
+                          title={cellSlotLabel(ci)}
                           style={{ touchAction: 'none' }}
                           className={[
                             'flex-1 h-full cursor-crosshair transition-colors duration-75',
@@ -344,14 +334,14 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
               </div>
               <div className="flex-1 flex h-full rounded overflow-hidden border border-dashed border-slate-200">
                 {Array.from({ length: TOTAL_CELLS }, (_, ci) => {
-                  const allOn  = DAYS.every(d => sel[d.key]?.has(ci))
-                  const someOn = DAYS.some(d => sel[d.key]?.has(ci))
+                  const allOn  = DAYS.every(d => isCovered(sel[d.key] ?? new Set(), ci))
+                  const someOn = DAYS.some(d => isCovered(sel[d.key] ?? new Set(), ci))
                   const mark3  = ci % 6 === 0
                   return (
                     <div
                       key={ci}
                       data-ci={ci}
-                      title={cellToHourLabel(ci)}
+                      title={cellSlotLabel(ci)}
                       style={{ touchAction: 'none' }}
                       className={[
                         'flex-1 h-full cursor-crosshair transition-colors duration-75',
@@ -383,18 +373,13 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
             </div>
             {hoverCell && (
               <span className="ml-auto text-xs font-bold text-[#3D8A80] tabular-nums bg-[#7EC0B7]/12 px-2.5 py-1 rounded-full">
-                {cellToHourLabel(hoverCell.ci)}
+                {cellSlotLabel(hoverCell.ci)}
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {markedButNoSlots && (
-        <p className="text-xs text-amber-600 mt-3">
-          Mark at least a 1-hour block — a 50-minute session needs a full hour.
-        </p>
-      )}
       {saveErr && <p className="text-xs text-red-500 mt-3">{saveErr}</p>}
     </div>
   )
