@@ -4,9 +4,10 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail, sendApplicationReceivedEmail } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { randomBytes } from 'crypto'
+import { z } from 'zod'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
 
@@ -87,28 +88,33 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   revalidatePath('/admin')
 }
 
-type Proposal = { therapistId: string; summary: string }
+type Proposal = { tier: 'standard' | 'professional'; therapistId: string; summary: string }
 
 /**
- * Dual-therapist match: admin proposes a Standard (basic-tier) and a
- * Professional (premium-tier) therapist as two `pending` matches. The client
- * picks one via "Start a free chat" (see app/actions/choose-therapist.ts).
+ * Therapist match proposals: the admin proposes ONE or TWO therapists as
+ * `pending` matches — typically a Standard (basic-tier) and a Professional
+ * (premium-tier) therapist, but the second is optional. The client picks one
+ * via "Start a free chat" (see app/actions/choose-therapist.ts); if only one
+ * was proposed they simply see that single profile.
  *
  * Only the client is notified here — therapists are notified when chosen.
  */
 export async function createMatchProposals(
   clientId: string,
-  standard: Proposal,
-  professional: Proposal,
+  proposals: Proposal[],
 ) {
   const adminUser = await assertAdmin()
   const admin = createAdminClient()
 
-  if (!standard.therapistId || !professional.therapistId) {
-    throw new Error('Pick both a Standard and a Professional therapist.')
+  const picked = proposals.filter((p) => p.therapistId)
+  if (picked.length < 1) {
+    throw new Error('Pick at least one therapist to propose.')
   }
-  if (standard.therapistId === professional.therapistId) {
-    throw new Error('The Standard and Professional therapists must be different people.')
+  if (picked.length > 2) {
+    throw new Error('You can propose at most two therapists.')
+  }
+  if (picked.length === 2 && picked[0].therapistId === picked[1].therapistId) {
+    throw new Error('The two therapists must be different people.')
   }
 
   // Reject if the client already has an active match OR pending proposals.
@@ -123,10 +129,7 @@ export async function createMatchProposals(
   }
 
   const now = new Date().toISOString()
-  const rows = [
-    { tier: 'standard', ...standard },
-    { tier: 'professional', ...professional },
-  ].map((p) => ({
+  const rows = picked.map((p) => ({
     client_id: clientId,
     therapist_id: p.therapistId,
     matched_by: adminUser.id,
@@ -139,13 +142,16 @@ export async function createMatchProposals(
   const { error } = await (admin as any).from('matches').insert(rows)
   if (error) throw new Error(error.message)
 
-  // Notify the client that two therapists are ready to review.
+  // Notify the client that their match(es) are ready to review.
+  const many = picked.length > 1
   createNotification({
     userId: clientId,
     type: 'client_proposals_ready',
-    title: 'Your therapist matches are ready',
-    body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
-    metadata: { proposals: 2 },
+    title: many ? 'Your therapist matches are ready' : 'Your therapist match is ready',
+    body: many
+      ? 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.'
+      : 'We’ve hand-picked a therapist for you. Take a look and start a free chat.',
+    metadata: { proposals: picked.length },
   }).catch(() => {})
 
   revalidatePath('/admin')
@@ -356,6 +362,68 @@ export async function endMatch(matchId: string) {
 
 // Re-send the email-verification link to a therapist applicant whose email is
 // not yet verified. Generates a token if the application doesn't have one.
+// ── Free-compose: admin sends a one-off branded email to anyone ──────────────
+
+const composeEmailSchema = z.object({
+  to: z.string().trim().email('Enter a valid recipient email address.'),
+  subject: z.string().trim().min(1, 'Subject is required.').max(200, 'Subject is too long.'),
+  heading: z.string().trim().max(200, 'Heading is too long.').optional(),
+  body: z.string().trim().min(1, 'Write a message before sending.').max(10000, 'Message is too long.'),
+  ctaLabel: z.string().trim().max(60, 'Button label is too long.').optional(),
+  ctaUrl: z.string().trim().url('The button link must be a full URL (https://…).').optional().or(z.literal('')),
+  from: z.enum(['marketing', 'admin']).catch('marketing'),
+})
+
+export async function sendComposedEmail(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin()
+
+  const parsed = composeEmailSchema.safeParse({
+    to: formData.get('to') ?? '',
+    subject: formData.get('subject') ?? '',
+    heading: (formData.get('heading') as string) || undefined,
+    body: formData.get('body') ?? '',
+    ctaLabel: (formData.get('ctaLabel') as string) || undefined,
+    ctaUrl: (formData.get('ctaUrl') as string) || undefined,
+    from: (formData.get('from') as string) || 'marketing',
+  })
+
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Please check the form and try again.' }
+  }
+
+  const { to, subject, heading, body, ctaLabel, ctaUrl, from } = parsed.data
+
+  // A button needs both a label and a link — or neither.
+  const hasLabel = !!ctaLabel && ctaLabel.length > 0
+  const hasUrl = !!ctaUrl && ctaUrl.length > 0
+  if (hasLabel !== hasUrl) {
+    return { ok: false, error: 'The button needs both a label and a link, or leave both empty.' }
+  }
+
+  const sent = await sendCustomEmail({
+    to,
+    subject,
+    heading,
+    body,
+    ctaLabel: hasLabel ? ctaLabel : undefined,
+    ctaUrl: hasUrl ? ctaUrl : undefined,
+    fromAdmin: from === 'admin',
+  })
+
+  if (!sent) {
+    return {
+      ok: false,
+      error: 'Send failed. Make sure RESEND_API_KEY is set for this environment, then check the Emails tab for the error.',
+    }
+  }
+
+  logger.info('admin/sendComposedEmail', 'Custom email sent', { to, subject })
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
 export async function sendApplicationVerificationEmail(applicationId: string) {
   await assertAdmin()
   const admin = createAdminClient()

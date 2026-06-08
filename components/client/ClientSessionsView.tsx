@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import ClientNav from '@/components/client/ClientNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
 import { formatInr } from '@/lib/plans'
@@ -31,7 +32,7 @@ interface Props {
   timezone: string | null
   therapistTimezone: string
   perSessionInr: number
-  razorpayKeyId: string | null
+  paymentsEnabled: boolean
   upcoming: Session[]
   past: Session[]
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>
@@ -40,11 +41,12 @@ interface Props {
 type TimeSlot = { time: string; label12: string; date: string; iso: string }
 type DayEntry = { date: Date; dateStr: string; dayName: string; dayNum: string; slots: TimeSlot[] }
 
-function loadRazorpayScript(): Promise<boolean> {
+// Cashfree v3 JS SDK loader.
+function loadCashfreeScript(): Promise<boolean> {
   return new Promise(resolve => {
-    if (typeof window !== 'undefined' && (window as any).Razorpay) return resolve(true)
+    if (typeof window !== 'undefined' && (window as any).Cashfree) return resolve(true)
     const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js'
     script.onload = () => resolve(true)
     script.onerror = () => resolve(false)
     document.body.appendChild(script)
@@ -68,45 +70,74 @@ function localTimeToUTC(year: number, month: number, day: number, hour: number, 
   return new Date(naive.getTime() * 2 - tzUTC)
 }
 
+const DOW_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+
 function buildWeek(
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>,
   therapistTimezone: string,
 ): DayEntry[] {
-  // Normalize the stored timezone (which may be a legacy label like "IST
-  // (India)") into a valid IANA zone before it reaches Intl. Falls back to UTC
-  // (neutral) — the real per-therapist zone is captured + stored on save.
+  // Normalize the stored timezone (may be a legacy label like "IST (India)")
+  // into a valid IANA zone before it reaches Intl. Falls back to UTC.
   const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
   const now = new Date()
-  const cutoff = new Date(now.getTime() + 2 * 3_600_000) // slots must be 2h+ away
-  const days: DayEntry[] = []
+  const cutoff = now.getTime() + 1 * 3_600_000 // hide only slots less than 1h away
 
+  // The availability is a weekly schedule keyed by day-of-week in the THERAPIST's
+  // timezone. A slot's real instant therefore depends on the therapist's calendar
+  // date — and an overnight block (e.g. Thu 10pm–Fri 6:30am Dubai) spills across
+  // two *client* days once converted. So: generate every future slot instant by
+  // walking the therapist's local dates, then bucket each by the CLIENT's local
+  // date. (The old code keyed slots by the client's day-of-week, which mis-placed
+  // and dropped overnight cross-timezone slots.)
+  const dowFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' })
+  const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+
+  const byClientDate = new Map<string, TimeSlot[]>()
+
+  // Walk a window of therapist-local dates wide enough to cover the next 7 client
+  // days plus overnight spill at both ends.
+  for (let i = -1; i <= 8; i++) {
+    const base = new Date(now.getTime() + i * 86_400_000)
+    const dow = DOW_INDEX[dowFmt.format(base)]
+    const [ty, tm, td] = ymdFmt.format(base).split('-').map(Number) // therapist-local Y-M-D
+    for (const { hour, minute } of weeklyAvailability[String(dow)] ?? []) {
+      const slotDate = localTimeToUTC(ty, tm - 1, td, hour, minute, tz)
+      if (slotDate.getTime() <= cutoff) continue
+      const clientDateStr = slotDate.toLocaleDateString('en-CA') // client-local day
+      const arr = byClientDate.get(clientDateStr) ?? []
+      arr.push({
+        time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        label12: slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }),
+        date: clientDateStr,
+        iso: slotDate.toISOString(),
+      })
+      byClientDate.set(clientDateStr, arr) // ← was missing: fresh arrays were never stored
+    }
+  }
+
+  const days: DayEntry[] = []
   for (let i = 0; i < 7; i++) {
     const d = new Date(now)
     d.setDate(now.getDate() + i)
     d.setHours(0, 0, 0, 0)
-
-    const slots: TimeSlot[] = (weeklyAvailability[String(d.getDay())] ?? [])
-      .map(({ hour, minute }) => {
-        // Convert the therapist's local hour:minute on this calendar date → UTC
-        const slotDate = localTimeToUTC(d.getFullYear(), d.getMonth(), d.getDate(), hour, minute, tz)
-        if (slotDate <= cutoff) return null
-        // Display time in client's browser timezone (IST for most users)
-        const label12 = slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })
-        return {
-          time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-          label12,
-          date: d.toLocaleDateString('en-CA'), // YYYY-MM-DD in client's locale
-          iso: slotDate.toISOString(),
-        }
-      })
-      .filter((s): s is TimeSlot => s !== null)
-
+    const dateStr = d.toLocaleDateString('en-CA')
+    const slots = (byClientDate.get(dateStr) ?? []).sort((a, b) => a.iso.localeCompare(b.iso))
     days.push({
       date: d,
-      dateStr: d.toLocaleDateString('en-CA'),
+      dateStr,
       dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
       dayNum: String(d.getDate()),
       slots,
+    })
+  }
+
+  if (typeof window !== 'undefined') {
+    // eslint-disable-next-line no-console
+    console.log('[buildWeek]', {
+      therapistTimezone, resolvedTz: tz,
+      inputKeys: Object.keys(weeklyAvailability ?? {}),
+      inputSlotCounts: Object.fromEntries(Object.entries(weeklyAvailability ?? {}).map(([k, v]) => [k, (v as unknown[]).length])),
+      outputSlotsPerDay: days.map(d => `${d.dateStr}:${d.slots.length}`),
     })
   }
 
@@ -139,9 +170,7 @@ function PaySessionModal({
   therapistName,
   matchId,
   perSessionInr,
-  userName,
-  userEmail,
-  razorpayKeyId,
+  paymentsEnabled,
   onClose,
   onBooked,
 }: {
@@ -150,9 +179,7 @@ function PaySessionModal({
   therapistName: string
   matchId: string
   perSessionInr: number
-  userName: string
-  userEmail: string
-  razorpayKeyId: string | null
+  paymentsEnabled: boolean
   onClose: () => void
   onBooked: (label: string) => void
 }) {
@@ -169,7 +196,7 @@ function PaySessionModal({
 
   async function handlePay() {
     setError(null)
-    if (!razorpayKeyId) {
+    if (!paymentsEnabled) {
       setError('Payments aren’t configured yet. Please contact support.')
       return
     }
@@ -194,62 +221,40 @@ function PaySessionModal({
         return
       }
 
-      const loaded = await loadRazorpayScript()
+      const loaded = await loadCashfreeScript()
       if (!loaded) {
         setError('Could not load the payment gateway. Check your connection and try again.')
         setPhase('idle')
         return
       }
 
-      const { order_id, amount, key, sessionId } = orderData
+      const { order_id, payment_session_id, mode, sessionId } = orderData
 
-      const rzp = new (window as any).Razorpay({
-        key,
-        order_id,
-        amount,
-        currency: 'INR',
-        name: 'MindCanopy',
-        description: `Session with ${therapistName} · ${dayLabel}, ${slot.label12}`,
-        theme: { color: '#233551' },
-        prefill: { name: userName, email: userEmail },
-        modal: { ondismiss: () => setPhase('idle') },
-        handler: async function (response: {
-          razorpay_payment_id: string
-          razorpay_order_id: string
-          razorpay_signature: string
-        }) {
-          setPhase('confirming')
-          try {
-            const verifyRes = await fetch('/api/payment/session-verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                sessionId,
-              }),
-            })
-            const verifyData = await verifyRes.json()
-            if (!verifyRes.ok) {
-              setError(verifyData.error ?? 'Payment went through but we couldn’t confirm the session. Contact support with payment ID: ' + response.razorpay_payment_id)
-              setPhase('idle')
-              return
-            }
-            onBooked(`${dayLabel} · ${slot.label12}`)
-          } catch {
-            setError('Something went wrong after payment. Contact support with payment ID: ' + response.razorpay_payment_id)
-            setPhase('idle')
-          }
-        },
-      })
+      // Open Cashfree checkout in a modal. The promise resolves when the modal
+      // closes (success, failure, or dismissal); order status is then confirmed
+      // server-side, which is the source of truth.
+      const cashfree = (window as any).Cashfree({ mode: mode === 'sandbox' ? 'sandbox' : 'production' })
+      const result = await cashfree.checkout({ paymentSessionId: payment_session_id, redirectTarget: '_modal' })
 
-      rzp.on('payment.failed', function (resp: any) {
-        setError(resp.error?.description ?? 'Payment failed. Please try again.')
+      if (result?.error) {
+        setError(result.error.message ?? 'Payment was cancelled or didn’t complete.')
         setPhase('idle')
-      })
+        return
+      }
 
-      rzp.open()
+      setPhase('confirming')
+      const verifyRes = await fetch('/api/payment/session-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id, sessionId }),
+      })
+      const verifyData = await verifyRes.json()
+      if (!verifyRes.ok) {
+        setError(verifyData.error ?? `Payment went through but we couldn’t confirm the session. Contact support with order ID: ${order_id}`)
+        setPhase('idle')
+        return
+      }
+      onBooked(`${dayLabel} · ${slot.label12}`)
     } catch {
       setError('Something went wrong. Please try again.')
       setPhase('idle')
@@ -320,7 +325,7 @@ function PaySessionModal({
             {phase === 'opening' ? 'Opening checkout…' : phase === 'confirming' ? 'Confirming…' : `Pay ${formatInr(perSessionInr)} & book`}
           </button>
           <p className="text-center text-xs text-[#233551]/35 mt-3">
-            Secure payment via Razorpay · Pay as you go · Non-refundable
+            Secure payment via Cashfree · Pay as you go · Non-refundable
           </p>
         </div>
       </div>
@@ -334,12 +339,11 @@ export default function ClientSessionsView({
   matchId,
   therapistUserId,
   clientName,
-  userEmail,
   therapist,
   timezone,
   therapistTimezone,
   perSessionInr,
-  razorpayKeyId,
+  paymentsEnabled,
   upcoming,
   past,
   weeklyAvailability,
@@ -375,6 +379,10 @@ export default function ClientSessionsView({
 
   const week = buildWeek(weeklyAvailability, therapistTimezone)
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
+  // Did the therapist publish ANY weekly slots at all? (Distinguishes "no
+  // availability set" from "nothing free in the next 7 days".)
+  const hasAnyAvailability = Object.values(weeklyAvailability ?? {}).some(arr => Array.isArray(arr) && arr.length > 0)
+  const hasBookableSlots = week.some(d => d.slots.length > 0)
 
   function selectDay(entry: DayEntry) {
     setSelectedDay(selectedDay === entry.dateStr ? null : entry.dateStr)
@@ -390,6 +398,8 @@ export default function ClientSessionsView({
 
   return (
     <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
+      {/* Live: therapist schedules/cancels/completes a session for this match */}
+      <LiveRefresh table="sessions" filter={`match_id=eq.${matchId}`} channel={`client-sessions-${matchId}`} />
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -419,7 +429,24 @@ export default function ClientSessionsView({
                 </div>
               )}
 
+              {/* No availability published by the therapist at all */}
+              {!hasAnyAvailability && (
+                <div className="rounded-xl bg-[#FFF5F2] border border-[#E8926A]/25 px-4 py-4 text-center">
+                  <p className="text-sm font-semibold text-[#233551]">Your therapist hasn&apos;t set their availability yet.</p>
+                  <p className="text-xs text-[#233551]/55 mt-1">Message them in chat to nudge — booking opens as soon as they publish times.</p>
+                </div>
+              )}
+
+              {/* Availability exists, but nothing free in the next 7 days */}
+              {hasAnyAvailability && !hasBookableSlots && (
+                <div className="rounded-xl bg-[#FFF5F2] border border-[#E8926A]/25 px-4 py-4 text-center">
+                  <p className="text-sm font-semibold text-[#233551]">No open slots in the next 7 days.</p>
+                  <p className="text-xs text-[#233551]/55 mt-1">Check back soon — new times open up as the week rolls forward.</p>
+                </div>
+              )}
+
               {/* ── Day row ──────────────────────────────────────────────── */}
+              {hasBookableSlots && (
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {week.map(entry => {
                   const isSelected  = selectedDay === entry.dateStr
@@ -457,6 +484,7 @@ export default function ClientSessionsView({
                   )
                 })}
               </div>
+              )}
 
               {/* ── Time slots for selected day ──────────────────────────── */}
               {selectedDayEntry && (
@@ -470,7 +498,7 @@ export default function ClientSessionsView({
                   <div className="flex flex-wrap gap-2">
                     {selectedDayEntry.slots.map(slot => (
                       <button
-                        key={slot.time}
+                        key={slot.iso}
                         onClick={() => setOpenSlot(slot)}
                         className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border-2 border-slate-200 bg-white text-sm font-semibold text-[#233551] hover:border-[#7EC0B7] transition-all"
                       >
@@ -484,7 +512,7 @@ export default function ClientSessionsView({
                 </div>
               )}
 
-              {!selectedDay && (
+              {hasBookableSlots && !selectedDay && (
                 <p className="mt-3 text-xs text-[#233551]/35">
                   Select a day above to see available times. You pay per session when you book.
                 </p>
@@ -569,9 +597,7 @@ export default function ClientSessionsView({
           therapistName={therapist.fullName}
           matchId={matchId}
           perSessionInr={perSessionInr}
-          userName={clientName}
-          userEmail={userEmail}
-          razorpayKeyId={razorpayKeyId}
+          paymentsEnabled={paymentsEnabled}
           onClose={() => setOpenSlot(null)}
           onBooked={handleBooked}
         />

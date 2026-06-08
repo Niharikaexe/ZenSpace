@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createCashfreeOrder, cashfreeConfigured, cashfreeMode } from '@/lib/cashfree'
+import { randomUUID } from 'crypto'
 import {
   sessionPriceInr,
   monthlyBundleInr,
@@ -12,7 +14,7 @@ import {
 // Monthly bundle purchase: the client prepays for MONTHLY_BUNDLE_SESSIONS
 // sessions at a discount. Price is computed SERVER-SIDE from the client's
 // category and their active match's therapist tier (never trusting the client),
-// a Razorpay order is created, and a PENDING bundle row is stored. The bundle is
+// a Cashfree order is created, and a PENDING bundle row is stored. The bundle is
 // activated (credits granted) once /api/payment/bundle-verify confirms payment.
 
 function normalizeCategory(raw: unknown): SessionCategory {
@@ -72,39 +74,33 @@ export async function POST() {
   const bundlePaise = bundleInr * 100
   const perSessionPaise = Math.round(bundlePaise / MONTHLY_BUNDLE_SESSIONS)
 
-  const keyId = process.env.RAZORPAY_KEY_ID
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keyId || !keySecret) {
-    logger.error('api/payment/bundle-order', 'Razorpay env vars missing')
+
+  // ── CASHFREE (active) ───────────────────────────────────────────────────────
+  if (!cashfreeConfigured()) {
+    logger.error('api/payment/bundle-order', 'Cashfree env vars missing')
     return NextResponse.json({ error: 'Payment not configured' }, { status: 500 })
   }
 
-  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
+  const { data: cProfile } = await (admin as any)
+    .from('client_profiles')
+    .select('billing_phone')
+    .eq('user_id', user.id)
+    .maybeSingle() as { data: { billing_phone: string | null } | null; error: unknown }
+  const customerPhone = (cProfile?.billing_phone || '').replace(/\D/g, '').slice(-10) || '9999999999'
 
-  let order: { id: string }
-  try {
-    const orderRes = await fetch('https://api.razorpay.com/v1/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
-      body: JSON.stringify({
-        amount: bundlePaise,
-        currency: 'INR',
-        receipt: `bndl_${user.id.slice(0, 8)}_${Date.now()}`,
-      }),
-    })
+  const cfOrderId = `bndl_${randomUUID().replace(/-/g, '')}`.slice(0, 50)
 
-    if (!orderRes.ok) {
-      const err = await orderRes.json().catch(() => ({}))
-      logger.error('api/payment/bundle-order', 'Razorpay order creation failed', err, {
-        userId: user.id, matchId: match.id, status: orderRes.status,
-      })
-      return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 })
-    }
+  const order = await createCashfreeOrder({
+    orderId: cfOrderId,
+    amountInr: bundlePaise / 100,
+    customerId: user.id,
+    customerEmail: user.email ?? `${user.id}@no-email.mindcanopy.in`,
+    customerPhone,
+  })
 
-    order = await orderRes.json()
-  } catch (err) {
-    logger.error('api/payment/bundle-order', 'Network error calling Razorpay', err, { userId: user.id })
-    return NextResponse.json({ error: 'Failed to reach payment gateway' }, { status: 502 })
+  if (!order.ok) {
+    logger.error('api/payment/bundle-order', 'Cashfree order creation failed', { status: order.status, error: order.error, userId: user.id, matchId: match.id })
+    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 502 })
   }
 
   const { data: inserted, error: dbErr } = await (admin as any)
@@ -119,27 +115,26 @@ export async function POST() {
       amount_paise: bundlePaise,
       per_session_paise: perSessionPaise,
       status: 'pending',
-      razorpay_order_id: order.id,
+      razorpay_order_id: order.orderId, // reused column → Cashfree order_id
     })
     .select('id')
     .single() as { data: { id: string } | null; error: unknown }
 
   if (dbErr || !inserted) {
     logger.error('api/payment/bundle-order', 'Failed to insert pending bundle', dbErr, {
-      userId: user.id, matchId: match.id, orderId: order.id,
+      userId: user.id, matchId: match.id, orderId: order.orderId,
     })
     return NextResponse.json({ error: 'Failed to create bundle' }, { status: 500 })
   }
 
-  logger.info('api/payment/bundle-order', 'Pending bundle created', {
-    userId: user.id, matchId: match.id, bundleId: inserted.id, orderId: order.id, category, tier, bundlePaise,
+  logger.info('api/payment/bundle-order', 'Pending bundle created (Cashfree)', {
+    userId: user.id, matchId: match.id, bundleId: inserted.id, orderId: order.orderId, category, tier, bundlePaise,
   })
 
   return NextResponse.json({
-    order_id: order.id,
-    amount: bundlePaise,
-    currency: 'INR',
-    key: keyId,
+    order_id: order.orderId,
+    payment_session_id: order.paymentSessionId,
+    mode: cashfreeMode(),
     bundleId: inserted.id,
   })
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import MessengerLayout, { type ClientMatch } from '@/components/therapist/MessengerLayout'
 import type { Notification } from '@/app/actions/notifications'
 
@@ -30,6 +31,8 @@ export default function TherapistChatShell({
 
   return (
     <div className="h-dvh flex flex-col">
+      {/* Live: new client match appears, or new messages arrive */}
+      <LiveRefresh table="matches" filter={`therapist_id=eq.${userId}`} channel={`ther-chat-matches-${userId}`} />
       <TherapistNav
         therapistName={therapistName}
         userId={userId}

@@ -1,6 +1,7 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientNotesView from '@/components/client/ClientNotesView'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import type { TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,7 @@ type RawSession = {
 
 export default async function ClientNotesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -81,10 +82,13 @@ export default async function ClientNotesPage() {
     .map(s => ({ ...s, therapist_notes: s.therapist_notes as string }))
 
   return (
-    <ClientNotesView
-      clientName={profile?.full_name ?? ''}
-      therapist={therapist}
-      sessions={sessions}
-    />
+    <>
+      <LiveRefresh table="sessions" filter={`match_id=eq.${match.id}`} channel={`client-notes-${match.id}`} />
+      <ClientNotesView
+        clientName={profile?.full_name ?? ''}
+        therapist={therapist}
+        sessions={sessions}
+      />
+    </>
   )
 }

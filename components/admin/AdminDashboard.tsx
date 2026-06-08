@@ -10,6 +10,7 @@ import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 import QuestionnaireDetails from './QuestionnaireDetails'
 import { LeadsTab } from './LeadsTab'
+import { ComposeTab } from './ComposeTab'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -246,7 +247,7 @@ export interface Lead {
 }
 
 type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails' | 'payouts'
-type View = 'dashboard' | 'leads'
+type View = 'dashboard' | 'leads' | 'compose'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
 
@@ -442,6 +443,15 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                 {leads.length}
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => setView('compose')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                view === 'compose' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Send Email
+            </button>
           </nav>
         </aside>
 
@@ -451,6 +461,10 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
       {view === 'leads' ? (
         <div className="px-4 md:px-6 py-8">
           <LeadsTab leads={leads} />
+        </div>
+      ) : view === 'compose' ? (
+        <div className="px-4 md:px-6 py-8">
+          <ComposeTab />
         </div>
       ) : (
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">

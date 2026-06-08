@@ -1,7 +1,8 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientSessionsView from '@/components/client/ClientSessionsView'
 import { sessionPriceInr, type SessionCategory, type ProposalTier } from '@/lib/plans'
+import { cashfreeConfigured } from '@/lib/cashfree'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ function normalizeCategory(raw: unknown): SessionCategory {
 
 export default async function ClientSessionsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -93,6 +94,13 @@ export default async function ClientSessionsPage() {
     isVerified: tp?.is_verified ?? false,
   }
   const weeklyAvailability = (tp?.weekly_availability ?? {}) as Record<string, { hour: number; minute: number }[]>
+  // eslint-disable-next-line no-console
+  console.log('[sessions/page] therapist availability read', {
+    therapistId: match.therapist_id,
+    timezone: tp?.timezone,
+    keys: Object.keys(weeklyAvailability),
+    slotCounts: Object.fromEntries(Object.entries(weeklyAvailability).map(([k, v]) => [k, (v as unknown[]).length])),
+  })
   // Slots are stored in the therapist's own timezone (captured + saved when they
   // edit availability). UTC is only a neutral fallback for legacy rows saved
   // before timezone capture — those therapists just need to re-save once.
@@ -121,7 +129,7 @@ export default async function ClientSessionsPage() {
       timezone={profile?.timezone ?? null}
       therapistTimezone={therapistTimezone}
       perSessionInr={perSessionInr}
-      razorpayKeyId={process.env.RAZORPAY_KEY_ID ?? null}
+      paymentsEnabled={cashfreeConfigured()}
       upcoming={upcoming}
       past={past}
       weeklyAvailability={weeklyAvailability}

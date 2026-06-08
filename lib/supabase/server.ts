@@ -34,3 +34,45 @@ export function createAdminClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
+
+/**
+ * Returns the signed-in user's id + email from the JWT for READ render paths.
+ *
+ * Prefer this over `supabase.auth.getUser()` in Server Components: `getClaims()`
+ * verifies the access token **locally** (no Auth-server round trip) once the
+ * project uses asymmetric JWT signing keys (Settings → JWT Keys → migrate to
+ * ES256/RS256). Until then it transparently falls back to a network call, so
+ * this is always correct and becomes free once asymmetric keys are enabled.
+ *
+ * Auth gating/redirects already happen in middleware; this is just for reading
+ * the user id to scope queries. For sensitive MUTATIONS (Server Actions / route
+ * handlers) keep using `getUser()`, which re-validates against the Auth server.
+ *
+ * Returns null when there is no valid session.
+ */
+export async function getAuthClaims(
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<{
+  id: string
+  email: string | null
+  fullName: string | null
+  role: string | null
+  therapyCategory: string | null
+} | null> {
+  const { data, error } = await supabase.auth.getClaims()
+  const claims = data?.claims as
+    | { sub?: string; email?: string; user_metadata?: { full_name?: string; role?: string; therapy_category?: string } }
+    | undefined
+  if (error || !claims?.sub) return null
+  const meta = claims.user_metadata ?? {}
+  return {
+    id: claims.sub,
+    email: claims.email ?? null,
+    // From user_metadata — fine as non-authoritative hints (seeding a missing
+    // profile row, default category). Do NOT use role for authorization; gate
+    // on profiles.role instead.
+    fullName: meta.full_name ?? null,
+    role: meta.role ?? null,
+    therapyCategory: meta.therapy_category ?? null,
+  }
+}

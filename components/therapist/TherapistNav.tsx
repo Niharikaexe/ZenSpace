@@ -51,8 +51,8 @@ export function TherapistNav({
     exact ? pathname === href : pathname.startsWith(href)
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-100">
-      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-[#FFF5F2] border-b border-[#E8926A]/20">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2 sm:gap-4">
 
         {/* Logo */}
         <BrandLogo href="/therapist/dashboard" className="flex-shrink-0" />
@@ -81,22 +81,32 @@ export function TherapistNav({
         </nav>
 
         {/* Right: Help + Name dropdowns */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-2 min-w-0">
 
           {/* Notifications — real-time bell */}
           <NotificationBell userId={userId} initialNotifications={initialNotifications} />
 
-          {/* Home text link */}
+          {/* Home — icon on mobile (next to the bell), text label on desktop */}
           <Link
             href="/therapist/dashboard"
+            aria-label="Home"
             className={cn(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              'flex items-center justify-center rounded-lg text-sm font-medium transition-colors w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5',
               pathname === '/therapist/dashboard'
                 ? 'bg-[#233551]/8 text-[#233551]'
                 : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50',
             )}
           >
-            Home
+            <svg
+              className="sm:hidden text-[#233551]/60"
+              width="18" height="18"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            <span className="hidden sm:block">Home</span>
           </Link>
 
           {/* Help dropdown */}
@@ -140,7 +150,7 @@ export function TherapistNav({
             <button
               onClick={() => { setAccountOpen(o => !o); setHelpOpen(false) }}
               className={cn(
-                'flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                'flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-1.5 sm:pl-2 sm:pr-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex-shrink-0',
                 accountOpen
                   ? 'bg-slate-100 text-[#233551]'
                   : 'text-[#233551] hover:bg-slate-50',
@@ -155,9 +165,9 @@ export function TherapistNav({
               </svg>
             </button>
             {accountOpen && (
-              <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-50">
+              <div className="absolute right-0 top-full mt-1.5 w-52 max-w-[calc(100vw-1.5rem)] bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-50">
                 <div className="px-4 py-2 border-b border-slate-50 mb-1">
-                  <p className="text-xs font-semibold text-[#233551]">{therapistName}</p>
+                  <p className="text-xs font-semibold text-[#233551] truncate">{therapistName}</p>
                   <p className="text-xs text-[#233551]/40">Therapist</p>
                 </div>
                 <Link

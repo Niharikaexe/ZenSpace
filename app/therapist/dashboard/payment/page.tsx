@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
 import PayoutButton from '@/components/therapist/PayoutButton'
@@ -24,7 +24,7 @@ function formatDate(iso: string) {
 
 export default async function TherapistPaymentPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase

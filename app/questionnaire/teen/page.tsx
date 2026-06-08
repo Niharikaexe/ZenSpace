@@ -10,6 +10,7 @@ import Footer from '@/components/home/Footer'
 import { OptionButton } from '@/components/shared/OptionButton'
 
 type StepId =
+  | 'qage'
   | 'q1' | 'q2' | 'q3' | 'q4'
   | 'q5' | 'q6' | 'q7' | 'q8' | 'q9'
   | 'q10' | 'q11' | 'q12' | 'q13'
@@ -26,6 +27,7 @@ const LANGUAGE_OPTIONS = [
 ]
 
 type Answers = {
+  age: string        // Age range (single)
   q1: string         // Recent feeling (single)
   q2: string         // Mixed feelings about therapy (single)
   q3: string         // Who wanted you here (single)
@@ -49,7 +51,10 @@ type Answers = {
   q19Other: string   // Free-text other language(s)
 }
 
+const AGE_RANGES = ['13 or under', '14–15', '16–17']
+
 const initialAnswers: Answers = {
+  age: '',
   q1: '', q2: '', q3: '', q4: '',
   q5: '', q6: '', q7: '', q8: '', q9: '',
   q10: '', q11: '', q12: '', q13: '',
@@ -60,6 +65,7 @@ const initialAnswers: Answers = {
 
 function buildSteps(a: Answers): StepId[] {
   const steps: StepId[] = [
+    'qage',
     'q1', 'q2', 'q3', 'q4',
     'q5', 'q6', 'q7', 'q8', 'q9',
     'q10', 'q11', 'q12', 'q13',
@@ -72,6 +78,7 @@ function buildSteps(a: Answers): StepId[] {
 }
 
 function sectionLabel(step: StepId): string {
+  if (step === 'qage') return 'A little about you'
   if (step === 'q1' || step === 'q2' || step === 'q3' || step === 'q4') return "Section A — Where you're at"
   if (step === 'q5' || step === 'q6' || step === 'q7' || step === 'q8' || step === 'q9') return 'Section B — Your world'
   if (step === 'q10' || step === 'q11' || step === 'q12' || step === 'q13') return "Section C — How you've been feeling"
@@ -115,6 +122,7 @@ export default function TeenQuestionnairePage() {
 
   function canProceed(): boolean {
     switch (step) {
+      case 'qage': return !!answers.age
       case 'q1': return !!answers.q1
       case 'q2': return !!answers.q2
       case 'q3': return !!answers.q3
@@ -189,6 +197,20 @@ export default function TeenQuestionnairePage() {
         </div>
 
         <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
+
+          {step === 'qage' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                How old are you?
+              </h2>
+              <p className="text-sm text-[#233551]/50">This helps us match you with the right therapist.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {AGE_RANGES.map(opt => (
+                  <OptionButton key={opt} selected={answers.age === opt} onClick={() => setSingle('age', opt)}>{opt}</OptionButton>
+                ))}
+              </div>
+            </div>
+          )}
 
           {step === 'q1' && (
             <div className="space-y-5">

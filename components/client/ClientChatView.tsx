@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ChatInterface from '@/components/shared/ChatInterface'
 import ClientNav from '@/components/client/ClientNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 
 type Message = {
@@ -37,12 +39,15 @@ export default function ClientChatView({
   freeMessagesLeft,
 }: Props) {
   const router = useRouter()
+  const [showProfile, setShowProfile] = useState(false)
 
   // canSend: has a paid session OR still has free intro messages remaining
   const canSend = hasPaidSession || (freeMessagesLeft !== null && freeMessagesLeft > 0)
 
   return (
     <div className="h-dvh flex flex-col bg-[#FAFAFA] overflow-hidden">
+      {/* Live: match changes (e.g. re-match / end) */}
+      <LiveRefresh table="matches" filter={`client_id=eq.${currentUserId}`} channel={`client-chat-matches-${currentUserId}`} />
       <ClientNav userName={clientName} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -53,16 +58,34 @@ export default function ClientChatView({
 
         {/* ── Right panel: Chat ───────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Mobile-only therapist name bar */}
-          <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white flex-shrink-0">
+          {/* Mobile-only therapist name bar — tap to expand the full profile */}
+          <button
+            type="button"
+            onClick={() => setShowProfile(v => !v)}
+            aria-expanded={showProfile}
+            className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white flex-shrink-0 w-full text-left"
+          >
             <div className="w-8 h-8 rounded-full bg-[#7EC0B7]/20 text-[#3D8A80] font-bold text-xs flex items-center justify-center flex-shrink-0">
               {initials(therapist.fullName)}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[#233551] text-sm truncate">{therapist.fullName}</p>
-              <p className="text-xs text-[#233551]/40">Your therapist</p>
+              <p className="text-xs text-[#233551]/40">Your therapist · tap for profile</p>
             </div>
-          </div>
+            <svg
+              viewBox="0 0 16 16" fill="none"
+              className={`w-4 h-4 text-[#233551]/40 transition-transform duration-200 flex-shrink-0 ${showProfile ? 'rotate-180' : ''}`}
+            >
+              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+
+          {/* Collapsible profile (mobile) — same info as the desktop side panel */}
+          {showProfile && (
+            <div className="md:hidden flex-shrink-0 max-h-[55vh] overflow-y-auto border-b border-slate-100 bg-white">
+              <TherapistSidePanel therapist={therapist} />
+            </div>
+          )}
 
           <div className="flex-1 overflow-hidden">
             <ChatInterface

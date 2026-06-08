@@ -563,11 +563,12 @@ function tplApplicationApproved(name: string, inviteUrl: string, inviteCode: str
           ${notesBlock}
           <a href="${inviteUrl}" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Complete Onboarding →</a>
           <div style="margin-top:24px;padding:14px 16px;background:#f8f9fa;border:1px dashed #cbd5e0;border-radius:8px;">
-            <p style="margin:0;font-size:12px;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">Your invite code</p>
-            <p style="margin:6px 0 0;font-size:18px;color:#233551;font-weight:900;letter-spacing:0.1em;font-family:'SFMono-Regular',Menlo,Consolas,monospace;">${escapeHtml(inviteCode)}</p>
-            <p style="margin:8px 0 0;font-size:12px;color:#9aa3ad;line-height:1.5;">If the button above doesn&rsquo;t work, go to <a href="${SITE}/therapist/onboard" style="color:#3D8A80;">${SITE}/therapist/onboard</a> and paste this code on the first step.</p>
+            <p style="margin:0;font-size:12px;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">If the button doesn&rsquo;t work</p>
+            <p style="margin:8px 0 0;font-size:12px;color:#9aa3ad;line-height:1.5;">Copy and paste this link into your browser:</p>
+            <p style="margin:6px 0 0;font-size:12px;word-break:break-all;"><a href="${inviteUrl}" style="color:#3D8A80;">${inviteUrl}</a></p>
           </div>
-          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This code is one-time use. Don&rsquo;t share it.</p>
+          <p style="margin-top:20px;font-size:13px;color:#9aa3ad;">This link is unique to you and one-time use — please don&rsquo;t share it.</p>
+          ${inviteCode ? '' : ''}
         </td></tr>
         <tr>
           <td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
@@ -789,6 +790,47 @@ export async function sendApplicationInviteEmail({
   to, name, inviteCode, inviteUrl, adminNotes = '',
 }: { to: string; name: string; inviteCode: string; inviteUrl: string; adminNotes?: string }): Promise<boolean> {
   return sendEmail(to, FROM_ADMIN, 'Your MindCanopy therapist application has been approved', tplApplicationApproved(name, inviteUrl, inviteCode, adminNotes), 'application-invite')
+}
+
+// ── Exported sender, admin free-compose ──────────────────────────────────────
+// One-off, fully custom email wrapped in the MindCanopy brand shell (navy
+// header + owl, signature, footer) — same look as every other email we send.
+// Powers the admin "Send Email" tab. The admin only types plain text; we never
+// expose raw HTML. Logged in email_logs like every other send.
+
+export async function sendCustomEmail({
+  to, subject, heading, body, ctaLabel, ctaUrl, fromAdmin = false,
+}: {
+  to: string
+  subject: string
+  heading?: string
+  body: string
+  ctaLabel?: string
+  ctaUrl?: string
+  fromAdmin?: boolean
+}): Promise<boolean> {
+  // Blank lines separate paragraphs; single newlines become line breaks.
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map(block => block.trim())
+    .filter(Boolean)
+    .map(block => p(escapeHtml(block).replace(/\n/g, '<br/>')))
+    .join('')
+
+  const headingHtml = heading && heading.trim() ? h1(escapeHtml(heading.trim())) : ''
+  const ctaHtml =
+    ctaLabel && ctaLabel.trim() && ctaUrl && ctaUrl.trim()
+      ? btn(escapeHtml(ctaLabel.trim()), escapeHtml(ctaUrl.trim()))
+      : ''
+
+  const html = base(`
+    ${headingHtml}
+    ${paragraphs}
+    ${ctaHtml}
+    ${signOff}
+  `, 'client')
+
+  return sendEmail(to, fromAdmin ? FROM_ADMIN : FROM, subject, html, 'admin-compose')
 }
 
 // ── Exported senders, admin-facing ───────────────────────────────────────────

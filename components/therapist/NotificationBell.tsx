@@ -113,7 +113,10 @@ export function NotificationBell({ userId, initialNotifications }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-80 bg-white border border-slate-100 rounded-xl shadow-lg z-50 overflow-hidden">
+        // Mobile: anchor to the viewport (fixed, inset) so a 320px menu can't
+        // run off the left edge when the bell sits mid-navbar. sm+: anchor to
+        // the bell as a normal dropdown.
+        <div className="fixed left-3 right-3 top-16 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-1.5 sm:w-80 bg-white border border-slate-100 rounded-xl shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-2">

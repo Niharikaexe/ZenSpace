@@ -6,10 +6,13 @@ import {
   sessionPriceInr,
   monthlyBundleInr,
   formatInr,
+  MONTHLY_BUNDLE_DISCOUNT,
   TIER_LABELS,
   type ProposalTier,
   type SessionCategory,
 } from '@/lib/plans'
+
+const BUNDLE_DISCOUNT_PCT = Math.round(MONTHLY_BUNDLE_DISCOUNT * 100)
 
 export type ProposalView = {
   matchId: string
@@ -64,6 +67,8 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
 
   if (!active) return null
 
+  const single = ordered.length === 1
+
   function handleChoose(matchId: string) {
     setError(null)
     setPendingMatchId(matchId)
@@ -82,21 +87,23 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
       {/* Header */}
       <div className="mb-7 text-center">
         <p className="text-xs font-bold text-[#3D8A80] uppercase tracking-widest mb-2">
-          Your matches are ready
+          {single ? 'Your match is ready' : 'Your matches are ready'}
         </p>
         <h1
           className="text-2xl md:text-3xl font-black text-[#233551] leading-tight"
           style={{ fontFamily: 'var(--font-lato)' }}
         >
-          {firstName}, meet your therapists.
+          {firstName}, meet your therapist{single ? '' : 's'}.
         </h1>
         <p className="text-sm text-[#233551]/60 mt-2 max-w-xl mx-auto leading-relaxed">
-          We&apos;ve hand-picked two therapists for you. Read through both, then start a free chat
-          with whoever feels right — there&apos;s no payment until you book a session.
+          {single
+            ? <>We&apos;ve hand-picked a therapist for you. Read through their profile, then start a free chat — there&apos;s no payment until you book a session.</>
+            : <>We&apos;ve hand-picked two therapists for you. Read through both, then start a free chat with whoever feels right — there&apos;s no payment until you book a session.</>}
         </p>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — only when there's more than one therapist to choose between */}
+      {!single && (
       <div className="grid grid-cols-2 gap-2 bg-white border border-slate-100 rounded-2xl p-1.5 mb-6 shadow-sm">
         {ordered.map((p) => {
           const isActive = p.tier === activeTier
@@ -123,6 +130,7 @@ export function TherapistMatchSelection({ clientName, category, proposals }: Pro
           )
         })}
       </div>
+      )}
 
       {/* Profile card */}
       <ProfileCard
@@ -334,7 +342,7 @@ function ProfileCard({
             {[
               `Book sessions around ${tFirst}'s availability — you're always in control of when you meet.`,
               'Pay as you go, one session at a time.',
-              'Or take a monthly bundle of 4 sessions and save 15%.',
+              `Or take a monthly bundle of 4 sessions and save ${BUNDLE_DISCOUNT_PCT}%.`,
             ].map((line) => (
               <li key={line} className="flex items-start gap-2 text-sm text-[#233551]/70 leading-relaxed">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#7EC0B7] mt-1.5 flex-shrink-0" />
@@ -358,7 +366,7 @@ function ProfileCard({
               <div className="flex items-center gap-2">
                 <p className="text-xs text-[#233551]/45 font-semibold uppercase tracking-wider">Monthly bundle</p>
                 <span className="text-[10px] font-bold text-white bg-[#E8926A] px-1.5 py-0.5 rounded-full">
-                  Save 15%
+                  Save {BUNDLE_DISCOUNT_PCT}%
                 </span>
               </div>
               <p className="text-2xl font-black text-[#233551] mt-1" style={{ fontFamily: 'var(--font-lato)' }}>

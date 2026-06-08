@@ -1,9 +1,11 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 import { getNotifications } from '@/app/actions/notifications'
 import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabilityEditor'
+import { RangeAvailabilityEditor } from '@/components/therapist/RangeAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 import { logger } from '@/lib/logger'
 import { toIanaTimeZone } from '@/lib/timezones'
@@ -58,7 +60,7 @@ type UpcomingSession = {
 
 export default async function TherapistDashboard() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -126,6 +128,7 @@ export default async function TherapistDashboard() {
             .from('sessions')
             .select('id, scheduled_at, session_type, daily_room_url')
             .eq('match_id', m.id)
+            .eq('payment_status', 'paid') // confirmed only
             .in('status', ['scheduled', 'ongoing'])
             .gte('scheduled_at', new Date().toISOString())
             .lte('scheduled_at', twoWeeksOut)
@@ -203,6 +206,9 @@ export default async function TherapistDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Live-refresh when a client is matched/assigned, or a session changes */}
+      <LiveRefresh table="matches" filter={`therapist_id=eq.${user.id}`} channel={`therapist-matches-${user.id}`} />
+      <LiveRefresh table="sessions" channel={`therapist-home-sessions-${user.id}`} />
       <TherapistNav
         therapistName={profile!.full_name}
         userId={user.id}
@@ -228,11 +234,19 @@ export default async function TherapistDashboard() {
           </div>
         </div>
 
-        {/* Weekly availability — moved above clients */}
-        <WeeklyAvailabilityEditor
-          initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
-          therapistTimezone={(tProfile?.timezone as string | null) ?? null}
-        />
+        {/* Weekly availability — range picker on mobile (no dragging), drag grid on desktop */}
+        <div className="md:hidden">
+          <RangeAvailabilityEditor
+            initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+            therapistTimezone={(tProfile?.timezone as string | null) ?? null}
+          />
+        </div>
+        <div className="hidden md:block">
+          <WeeklyAvailabilityEditor
+            initialData={(tProfile?.weekly_availability ?? {}) as WeeklyAvailability}
+            therapistTimezone={(tProfile?.timezone as string | null) ?? null}
+          />
+        </div>
 
         {isMatched ? (
           <>

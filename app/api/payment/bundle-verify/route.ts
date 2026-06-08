@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import crypto from 'crypto'
+import { getCashfreeOrder, getSuccessfulPaymentId } from '@/lib/cashfree'
 import { z } from 'zod'
 
-// Activates a monthly bundle after Razorpay checkout. Verifies the order
-// signature, flips the bundle to 'active' (granting its credits), and is
+// Activates a monthly bundle after Cashfree checkout. Confirms order_status ===
+// 'PAID' server-side, flips the bundle to 'active' (granting its credits), and is
 // idempotent — a re-posted verify for an already-active bundle is a no-op.
 
 const schema = z.object({
-  razorpay_payment_id: z.string(),
-  razorpay_order_id: z.string(),
-  razorpay_signature: z.string(),
+  order_id: z.string(),
   bundleId: z.string().uuid(),
 })
 
@@ -37,28 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature, bundleId } = parsed.data
-
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keySecret) {
-    logger.error('api/payment/bundle-verify', 'RAZORPAY_KEY_SECRET env var missing')
-    return NextResponse.json({ error: 'Payment not configured' }, { status: 500 })
-  }
-
-  const expectedSignature = crypto
-    .createHmac('sha256', keySecret)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest('hex')
-
-  const signaturesMatch =
-    expectedSignature.length === razorpay_signature.length &&
-    crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(razorpay_signature))
-  if (!signaturesMatch) {
-    logger.warn('api/payment/bundle-verify', 'Invalid payment signature', {
-      userId: user.id, bundleId, orderId: razorpay_order_id,
-    })
-    return NextResponse.json({ error: 'Invalid payment signature' }, { status: 400 })
-  }
+  const { order_id, bundleId } = parsed.data
 
   const admin = createAdminClient()
 
@@ -71,7 +48,7 @@ export async function POST(request: Request) {
       error: unknown
     }
 
-  if (!bundle || bundle.razorpay_order_id !== razorpay_order_id) {
+  if (!bundle || bundle.razorpay_order_id !== order_id) {
     logger.error('api/payment/bundle-verify', 'Bundle not found or order mismatch', { userId: user.id, bundleId })
     return NextResponse.json({ error: 'Bundle not found' }, { status: 404 })
   }
@@ -85,6 +62,20 @@ export async function POST(request: Request) {
   if (bundle.status === 'active') {
     return NextResponse.json({ success: true })
   }
+
+
+  // ── CASHFREE: order status is the source of truth ───────────────────────────
+  const cfOrder = await getCashfreeOrder(order_id)
+  if (!cfOrder.ok) {
+    logger.error('api/payment/bundle-verify', 'Cashfree order lookup failed', { userId: user.id, bundleId, order_id, status: cfOrder.status, error: cfOrder.error })
+    return NextResponse.json({ error: 'Could not verify payment. Please try again.' }, { status: 502 })
+  }
+  if (cfOrder.status !== 'PAID') {
+    logger.warn('api/payment/bundle-verify', 'Cashfree order not paid', { userId: user.id, bundleId, order_id, orderStatus: cfOrder.status })
+    return NextResponse.json({ error: 'Payment not completed.' }, { status: 400 })
+  }
+
+  const razorpay_payment_id = (await getSuccessfulPaymentId(order_id)) ?? order_id
 
   const { error: dbErr } = await (admin as any)
     .from('session_bundles')
@@ -124,7 +115,7 @@ export async function POST(request: Request) {
       bundle_id: bundleId,
       amount_paise: bundle.amount_paise,
       therapist_payout_paise: null,
-      razorpay_order_id,
+      razorpay_order_id: order_id, // reused column → Cashfree order_id
       razorpay_payment_id,
       status: 'paid',
     }, { onConflict: 'razorpay_payment_id', ignoreDuplicates: true })

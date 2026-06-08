@@ -1,13 +1,14 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
 import { TherapistAccountForm } from '@/components/therapist/TherapistAccountForm'
+import { toIanaTimeZone } from '@/lib/timezones'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TherapistAccountPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
@@ -22,7 +23,7 @@ export default async function TherapistAccountPage() {
   const [{ data: tProfile }, { data: match }] = await Promise.all([
     (admin as any)
       .from('therapist_profiles')
-      .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, is_verified, paypal_email, bank_account_name, bank_account_number, bank_ifsc, tagline, education, license_country, session_expectations, pronouns, previous_experience, linkedin_url')
+      .select('bio, approach, years_experience, weekly_capacity, specializations, languages, accepts_new_clients, is_verified, paypal_email, bank_account_name, bank_account_number, bank_ifsc, tagline, education, license_country, session_expectations, pronouns, previous_experience, linkedin_url, timezone')
       .eq('user_id', user.id)
       .maybeSingle(),
     (admin as any)
@@ -56,6 +57,7 @@ export default async function TherapistAccountPage() {
     pronouns: tProfile?.pronouns ?? '',
     previousExperience: tProfile?.previous_experience ?? '',
     linkedinUrl: tProfile?.linkedin_url ?? '',
+    timezone: toIanaTimeZone(tProfile?.timezone) ?? '',
   }
 
   return (

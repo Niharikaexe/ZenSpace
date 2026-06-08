@@ -10,6 +10,7 @@ import Footer from '@/components/home/Footer'
 import { OptionButton } from '@/components/shared/OptionButton'
 
 type StepId =
+  | 'qage'
   | 'q1' | 'q2' | 'q3'
   | 'q4' | 'q5' | 'q6' | 'q7' | 'q8' | 'q9' | 'q10'
   | 'q11' | 'q11a'
@@ -17,6 +18,7 @@ type StepId =
   | 'q13' | 'q14' | 'q15'
 
 type Answers = {
+  age: string        // Age range (single)
   q1: string         // What's bringing you here (single)
   q2: string[]       // Main themes (multi)
   q3: string         // Support type (single)
@@ -46,7 +48,10 @@ const LANGUAGE_OPTIONS = [
   'No preference',
 ]
 
+const AGE_RANGES = ['18–24', '25–34', '35–44', '45–54', '55–64', '65+']
+
 const initialAnswers: Answers = {
+  age: '',
   q1: '', q2: [], q3: '',
   q4: '', q5: '', q6: '', q7: '', q8: '', q9: [], q10: [],
   q11: '', q11a: '',
@@ -55,7 +60,7 @@ const initialAnswers: Answers = {
 }
 
 function buildSteps(a: Answers): StepId[] {
-  const steps: StepId[] = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11']
+  const steps: StepId[] = ['qage', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11']
   if (a.q11 === 'Yes') steps.push('q11a')
   steps.push('q12')
   if (a.q12 === 'Yes') steps.push('q12a', 'q12b')
@@ -64,6 +69,7 @@ function buildSteps(a: Answers): StepId[] {
 }
 
 function sectionLabel(step: StepId): string {
+  if (step === 'qage') return 'A little about you'
   if (step === 'q1' || step === 'q2' || step === 'q3') return "Section A — What's bringing you here"
   if (step === 'q4' || step === 'q5' || step === 'q6' || step === 'q7' || step === 'q8' || step === 'q9' || step === 'q10' || step === 'q11' || step === 'q11a') return "Section B — How you've been"
   if (step === 'q12' || step === 'q12a' || step === 'q12b') return 'Your therapy history'
@@ -106,6 +112,7 @@ export default function IndividualQuestionnairePage() {
 
   function canProceed(): boolean {
     switch (step) {
+      case 'qage': return !!answers.age
       case 'q1': return !!answers.q1
       case 'q2': return answers.q2.length > 0
       case 'q3': return !!answers.q3
@@ -179,6 +186,20 @@ export default function IndividualQuestionnairePage() {
         </div>
 
         <div className="bg-white border border-slate-100 rounded-3xl p-5 md:p-8 shadow-sm">
+
+          {step === 'qage' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                Which age group are you in?
+              </h2>
+              <p className="text-sm text-[#233551]/50">This helps us match you with the right therapist.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {AGE_RANGES.map(opt => (
+                  <OptionButton key={opt} selected={answers.age === opt} onClick={() => setSingle('age', opt)}>{opt}</OptionButton>
+                ))}
+              </div>
+            </div>
+          )}
 
           {step === 'q1' && (
             <div className="space-y-5">

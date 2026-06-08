@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { TIMEZONE_OPTIONS } from '@/lib/timezones'
 import { cn } from '@/lib/utils'
 
-const STEPS = ['Invite Code', 'Your Account', 'Credentials', 'Verification', 'Photo', 'Your Profile']
+const STEPS = ['Your Account', 'Credentials', 'Verification', 'Photo', 'Your Profile']
 const ACCEPT_DOC = '.pdf,.png,.jpg,.jpeg'
 
 // Country list — India at top, then alphabetical (UN member states + key territories)
@@ -81,55 +81,8 @@ type InviteStatus =
   | { state: 'valid'; fullName: string; email: string }
   | { state: 'invalid'; message: string }
 
-function StepInviteCode({
-  value, onChange, status,
-}: {
-  value: string
-  onChange: (v: string) => void
-  status: InviteStatus
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <div className="w-14 h-14 bg-[#7EC0B7]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-[#3D8A80]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
-          Enter your invite code
-        </h2>
-        <p className="text-sm text-[#233551]/50 mt-1">
-          Your invite code was shared by the MindCanopy admin.
-        </p>
-      </div>
-      <Field label="Invite Code" required>
-        <input
-          type="text"
-          value={value}
-          onChange={e => onChange(e.target.value.toUpperCase())}
-          placeholder="MINDCANOPY2026"
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-base tracking-widest font-mono text-center text-[#233551] focus:outline-none focus:border-[#7EC0B7] uppercase"
-          autoFocus
-        />
-        {status.state === 'checking' && (
-          <p className="text-xs text-[#233551]/50 mt-2">Checking your code…</p>
-        )}
-        {status.state === 'valid' && status.fullName && (
-          <p className="text-xs text-[#3D8A80] mt-2">
-            Welcome, {status.fullName.split(' ')[0]}. We&apos;ve prefilled your details on the next step.
-          </p>
-        )}
-        {status.state === 'valid' && !status.fullName && (
-          <p className="text-xs text-[#3D8A80] mt-2">Code accepted. Continue to set up your account.</p>
-        )}
-        {status.state === 'invalid' && (
-          <p className="text-xs text-[#E8926A] mt-2">{status.message}</p>
-        )}
-      </Field>
-    </div>
-  )
-}
+// (StepInviteCode removed — onboarding is now link-only; the invite token comes
+// from the email link's ?code= and is validated automatically.)
 
 function StepAccount({
   values, onChange,
@@ -613,6 +566,18 @@ export default function TherapistOnboardPage() {
   // Form state
   const [inviteCode, setInviteCode] = useState('')
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>({ state: 'idle' })
+  const [linkError, setLinkError] = useState<string | null>(null)
+
+  // Link-only onboarding: the unique invite token comes from the email link
+  // (?code=…). There is no manual code entry. Read it once on mount.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code')?.trim().toUpperCase() ?? ''
+    if (!code) {
+      setLinkError('This onboarding link is missing its code. Please use the exact link from your invitation email.')
+      return
+    }
+    setInviteCode(code)
+  }, [])
   const [account, setAccount] = useState({ fullName: '', email: '', password: '', confirmPassword: '' })
   const [creds, setCreds] = useState<CredsValues>({
     licenseState: '', licenseCountry: '', pronouns: '', previousExperience: '', timezone: '',
@@ -735,8 +700,7 @@ export default function TherapistOnboardPage() {
     setProfile(prev => ({ ...prev, [key]: value }))
 
   function canAdvance(): boolean {
-    if (step === 0) return inviteStatus.state === 'valid'
-    if (step === 1) {
+    if (step === 0) {
       return (
         account.fullName.trim().length >= 2 &&
         account.email.includes('@') &&
@@ -744,14 +708,14 @@ export default function TherapistOnboardPage() {
         account.password === account.confirmPassword
       )
     }
-    if (step === 2) return creds.licenseCountry.trim().length > 0 && creds.timezone.trim().length > 0
-    if (step === 3) {
+    if (step === 1) return creds.licenseCountry.trim().length > 0 && creds.timezone.trim().length > 0
+    if (step === 2) {
       // Only the ID document is required at onboarding. Payment details and
       // address can be added later from the account page.
       return verification.idDocumentUrl.length > 0
     }
-    if (step === 4) return !!photoPath && !photoUploading
-    if (step === 5) return profile.bio.trim().length >= 10
+    if (step === 3) return !!photoPath && !photoUploading
+    if (step === 4) return profile.bio.trim().length >= 10
     return false
   }
 
@@ -768,6 +732,41 @@ export default function TherapistOnboardPage() {
       return
     }
     formAction(new FormData(e.currentTarget))
+  }
+
+  // Link-only gate: error for a missing/invalid token; brief "verifying" while we
+  // confirm — the wizard only renders once the invite is valid, so no one can
+  // onboard without a real token.
+  if (linkError || inviteStatus.state === 'invalid') {
+    const msg = linkError ?? (inviteStatus.state === 'invalid' ? inviteStatus.message : '')
+    return (
+      <div className="min-h-screen bg-[#FFF5F2] flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-sm">
+          <BrandLogo />
+          <h1 className="text-xl font-black text-[#233551] mt-5" style={{ fontFamily: 'var(--font-lato)' }}>
+            We couldn&apos;t open your invitation
+          </h1>
+          <p className="text-sm text-[#233551]/60 mt-2 leading-relaxed">
+            {msg || 'This invitation link is invalid or has already been used.'}
+          </p>
+          <p className="text-xs text-[#233551]/40 mt-4">
+            Please use the exact link from your invitation email, or email{' '}
+            <a href="mailto:admin@mindcanopy.in" className="text-[#3D8A80] hover:underline">admin@mindcanopy.in</a>.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (inviteStatus.state !== 'valid') {
+    return (
+      <div className="min-h-screen bg-[#FFF5F2] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-[#7EC0B7] border-t-transparent animate-spin" />
+          <p className="text-sm text-[#233551]/45 font-medium">Verifying your invitation…</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -842,12 +841,9 @@ export default function TherapistOnboardPage() {
               className="hidden"
             />
 
-            {step === 0 && (
-              <StepInviteCode value={inviteCode} onChange={setInviteCode} status={inviteStatus} />
-            )}
-            {step === 1 && <StepAccount values={account} onChange={updateAccount} />}
-            {step === 2 && <StepCredentials values={creds} onChange={updateCreds} />}
-            {step === 3 && (
+            {step === 0 && <StepAccount values={account} onChange={updateAccount} />}
+            {step === 1 && <StepCredentials values={creds} onChange={updateCreds} />}
+            {step === 2 && (
               <StepVerification
                 values={verification}
                 onChange={updateVerification}
@@ -855,7 +851,7 @@ export default function TherapistOnboardPage() {
                 onIdRemoved={onIdRemoved}
               />
             )}
-            {step === 4 && (
+            {step === 3 && (
               <StepPhoto
                 previewUrl={photoPreview}
                 fileName={photoFileName}
@@ -865,7 +861,7 @@ export default function TherapistOnboardPage() {
                 onClear={clearPhoto}
               />
             )}
-            {step === 5 && <StepProfile values={profile} onChange={updateProfile} />}
+            {step === 4 && <StepProfile values={profile} onChange={updateProfile} />}
 
             {state?.error && isLastStep && (
               <div className="mt-5 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">

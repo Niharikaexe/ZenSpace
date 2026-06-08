@@ -45,6 +45,7 @@ type CommonAnswers = {
 }
 
 type PartnerAnswers = {
+  p0: string   // Age range (single)
   p1: string   // Main problem (text)
   p2: string   // Motivation (single)
   p3: string   // Willingness to change (single)
@@ -62,11 +63,13 @@ const initialCommon: CommonAnswers = {
 }
 
 const initialPartner: PartnerAnswers = {
-  p1: '', p2: '', p3: '', p4: '', p5: '', p6: '',
+  p0: '', p1: '', p2: '', p3: '', p4: '', p5: '', p6: '',
 }
 
+const AGE_RANGES = ['18–24', '25–34', '35–44', '45–54', '55–64', '65+']
+
 type Phase = 'common' | 'partner1-private' | 'handover' | 'partner2-private' | 'common-final'
-const PRIVATE_STEPS: (keyof PartnerAnswers)[] = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']
+const PRIVATE_STEPS: (keyof PartnerAnswers)[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6']
 
 function buildCommonSteps(): CommonStepId[] {
   return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12', 'c13']
@@ -156,6 +159,7 @@ export default function CouplesQuestionnairePage() {
     }
     if (isPrivate) {
       switch (privateStep) {
+        case 'p0': return !!partnerAnswers.p0
         case 'p1': return true // text optional
         case 'p2': return !!partnerAnswers.p2
         case 'p3': return !!partnerAnswers.p3
@@ -703,6 +707,21 @@ export default function CouplesQuestionnairePage() {
           )}
 
           {/* ─── Private Section ──────────────────────────────────────────── */}
+          {isPrivate && privateStep === 'p0' && (
+            <div className="space-y-5">
+              <p className="text-xs font-bold text-[#E8926A] uppercase tracking-wider">Only you and your therapist see this</p>
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                Which age group are you in?
+              </h2>
+              <p className="text-sm text-[#233551]/50">This helps us match you with the right therapist.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {AGE_RANGES.map(opt => (
+                  <OptionButton key={opt} selected={partnerAnswers.p0 === opt} onClick={() => setPartnerField(currentPartner, 'p0', opt)}>{opt}</OptionButton>
+                ))}
+              </div>
+            </div>
+          )}
+
           {isPrivate && privateStep === 'p1' && (
             <div className="space-y-5">
               <p className="text-xs font-bold text-[#E8926A] uppercase tracking-wider">Only you and your therapist see this</p>

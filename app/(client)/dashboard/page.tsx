@@ -1,17 +1,18 @@
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { logger } from '@/lib/logger'
 import ClientNav from '@/components/client/ClientNav'
 import { PendingDashboard } from '@/components/dashboard/PendingDashboard'
 import { TherapistMatchSelection, type ProposalView } from '@/components/client/TherapistMatchSelection'
+import LiveRefresh from '@/components/shared/LiveRefresh'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ClientDashboard() {
   const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const user = await getAuthClaims(supabase)
 
-  if (authError || !user) {
+  if (!user) {
     logger.warn('dashboard/client', 'No authenticated user — redirecting to login')
     redirect('/login')
   }
@@ -31,8 +32,8 @@ export default async function ClientDashboard() {
     const admin = createAdminClient()
     const { error: upsertErr } = await (admin as any).from('profiles').upsert({
       id: user.id,
-      full_name: user.user_metadata?.full_name ?? user.email ?? 'User',
-      role: (user.user_metadata?.role as string) ?? 'client',
+      full_name: user.fullName ?? user.email ?? 'User',
+      role: user.role ?? 'client',
     })
     if (upsertErr) {
       logger.error('dashboard/client', 'Failed to upsert missing profile', upsertErr, { userId: user.id })
@@ -136,7 +137,7 @@ export default async function ClientDashboard() {
   // Therapy category: prefer questionnaire type (post-intake), fall back to signup selection
   const therapyCategory = (
     (questionnairePrefs?.type) ??
-    (user.user_metadata?.therapy_category as string) ??
+    user.therapyCategory ??
     'individual'
   ) as 'individual' | 'couples' | 'teen'
 
@@ -210,6 +211,7 @@ export default async function ClientDashboard() {
 
     return (
       <div className="min-h-screen bg-[#FAFAFA]">
+        <LiveRefresh table="matches" filter={`client_id=eq.${user.id}`} channel={`client-matches-${user.id}`} />
         <ClientNav userName={profile.full_name} isMatched={false} />
         <main className="max-w-3xl mx-auto px-4 py-8">
           <TherapistMatchSelection
@@ -224,6 +226,7 @@ export default async function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
+      <LiveRefresh table="matches" filter={`client_id=eq.${user.id}`} channel={`client-matches-${user.id}`} />
       <ClientNav userName={profile.full_name} isMatched={false} />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
