@@ -86,17 +86,27 @@ export function TherapistNav({
           {/* Notifications — real-time bell */}
           <NotificationBell userId={userId} initialNotifications={initialNotifications} />
 
-          {/* Home link — hidden on mobile (the logo already links home) */}
+          {/* Home — icon on mobile (next to the bell), text label on desktop */}
           <Link
             href="/therapist/dashboard"
+            aria-label="Home"
             className={cn(
-              'hidden sm:block px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              'flex items-center justify-center rounded-lg text-sm font-medium transition-colors w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5',
               pathname === '/therapist/dashboard'
                 ? 'bg-[#233551]/8 text-[#233551]'
                 : 'text-[#233551]/55 hover:text-[#233551] hover:bg-slate-50',
             )}
           >
-            Home
+            <svg
+              className="sm:hidden text-[#233551]/60"
+              width="18" height="18"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
+            <span className="hidden sm:block">Home</span>
           </Link>
 
           {/* Help dropdown */}
