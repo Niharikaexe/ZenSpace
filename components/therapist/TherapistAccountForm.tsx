@@ -11,6 +11,7 @@ import {
   type TherapistProfileState,
 } from '@/app/actions/therapist-profile'
 import { signOut } from '@/app/actions/auth'
+import { TIMEZONE_OPTIONS } from '@/lib/timezones'
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -108,6 +109,7 @@ interface Props {
     pronouns: string
     previousExperience: string
     linkedinUrl: string
+    timezone: string
   }
 }
 
@@ -126,6 +128,7 @@ export function TherapistAccountForm({ initialData }: Props) {
   const [pronouns, setPronouns] = useState(initialData.pronouns)
   const [previousExperience, setPreviousExperience] = useState(initialData.previousExperience)
   const [linkedinUrl, setLinkedinUrl] = useState(initialData.linkedinUrl)
+  const [timezone, setTimezone] = useState(initialData.timezone)
   const [yearsExp, setYearsExp] = useState(String(initialData.yearsExperience))
   const [capacity, setCapacity] = useState(String(initialData.weeklyCapacity))
   // Strip any "free text" values not in the predefined list back into the Other field
@@ -380,6 +383,22 @@ export function TherapistAccountForm({ initialData }: Props) {
             placeholder="What a typical session with you looks like..."
             className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30 resize-none"
           />
+        </Field>
+
+        <Field label="Your timezone" required hint="Your availability times are set and shown to clients based on this">
+          <select
+            name="timezone"
+            value={timezone}
+            onChange={e => setTimezone(e.target.value)}
+            className={inputCls}
+          >
+            {!timezone && <option value="" disabled>Select your timezone…</option>}
+            {TIMEZONE_OPTIONS.map(tz => (
+              <option key={tz.label} value={tz.value} disabled={tz.value === ''}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <div className="grid grid-cols-2 gap-4">

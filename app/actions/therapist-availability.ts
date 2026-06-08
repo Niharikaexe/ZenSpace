@@ -34,15 +34,24 @@ export async function updateWeeklyAvailability(
     }
   }
 
-  // Persist the therapist's actual timezone alongside the slots, so the client
-  // booking view can convert wall-clock slots → the client's timezone correctly
-  // regardless of where the therapist is. Availability is meaningless without it.
+  const admin = createAdminClient()
+
+  // The therapist's timezone is set explicitly on their account page (and at
+  // onboarding). Availability saves must NOT overwrite that choice with the
+  // browser's zone — otherwise a therapist physically in India editing their
+  // schedule would have their chosen PST clobbered by Asia/Kolkata every time.
+  // So we only BOOTSTRAP the timezone here when the profile has none yet.
   const update: Record<string, unknown> = { weekly_availability: schedule }
   if (timezone && isValidIanaZone(timezone)) {
-    update.timezone = timezone
+    const { data: existing } = await (admin as any)
+      .from('therapist_profiles')
+      .select('timezone')
+      .eq('user_id', user.id)
+      .maybeSingle() as { data: { timezone: string | null } | null }
+    if (!existing?.timezone) {
+      update.timezone = timezone
+    }
   }
-
-  const admin = createAdminClient()
   logger.info('therapist/availability', 'Saving weekly availability', {
     userId: user.id,
     timezone: update.timezone ?? '(unchanged)',

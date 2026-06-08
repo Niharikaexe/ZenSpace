@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { sendPayoutRequestEmail } from '@/lib/email'
+import { toIanaTimeZone } from '@/lib/timezones'
 
 export type TherapistProfileState = { error?: string; success?: boolean }
 export type AvatarState = { error?: string; avatarUrl?: string | null }
@@ -135,6 +136,12 @@ export async function updateTherapistProfile(
   const pronouns = (formData.get('pronouns') as string | null)?.trim() ?? ''
   const previousExperience = (formData.get('previousExperience') as string | null)?.trim() ?? ''
   const linkedinUrl = (formData.get('linkedinUrl') as string | null)?.trim() ?? ''
+  const timezoneRaw = (formData.get('timezone') as string | null)?.trim() ?? ''
+
+  // Timezone must be a valid IANA zone (the availability editors interpret the
+  // therapist's wall-clock slots in this zone, then clients see them converted).
+  const timezone = toIanaTimeZone(timezoneRaw)
+  if (!timezone) return { error: 'Please select a valid timezone.' }
 
   // Lightweight payment-field validation — empty values are allowed
   if (paypalEmail && !/^\S+@\S+\.\S+$/.test(paypalEmail)) {
@@ -204,6 +211,7 @@ export async function updateTherapistProfile(
       pronouns: pronouns || null,
       previous_experience: previousExperience || null,
       linkedin_url: linkedinUrl || null,
+      timezone,
     })
     .eq('user_id', user.id)
 
