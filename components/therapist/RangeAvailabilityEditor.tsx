@@ -32,9 +32,10 @@ function fmt(min: number): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ap}`
 }
 
-// Start options: 00:00 → 23:30 (every 30 min). End options: 00:30 → 24:00.
-const START_OPTS = Array.from({ length: 48 }, (_, i) => i * 30)
-const END_OPTS = Array.from({ length: 48 }, (_, i) => (i + 1) * 30)
+// Whole-hour only — availability is hour-granular, so no half-hour (e.g. 9:30)
+// starts. Start options: 00:00 → 23:00. End options: 01:00 → 24:00.
+const START_OPTS = Array.from({ length: 24 }, (_, i) => i * 60)
+const END_OPTS = Array.from({ length: 24 }, (_, i) => (i + 1) * 60)
 
 const slotMin = (s: Slot) => s.hour * 60 + s.minute
 
