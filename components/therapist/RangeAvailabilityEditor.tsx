@@ -91,8 +91,13 @@ export function RangeAvailabilityEditor({ initialData, therapistTimezone }: Prop
   function addRange(dayKey: string) {
     const { start, end } = draft[dayKey]
     if (end <= start) { setSaveErr('End time must be after start time.'); return }
+    if (end - start < 60) { setSaveErr('Pick at least a 1-hour range.'); return }
     setSaveErr(null)
-    const newSlots = rangeToSlots(start, end)
+    // Slots are whole hours: drop any trailing half-hour. A 4h30m range
+    // (e.g. 4:00–8:30) rounds down to 4 one-hour slots (4:00–8:00).
+    const wholeHours = Math.floor((end - start) / 60)
+    const flooredEnd = start + wholeHours * 60
+    const newSlots = rangeToSlots(start, flooredEnd)
     setSel(prev => {
       const merged = new Map<number, Slot>()
       for (const s of prev[dayKey] ?? []) merged.set(slotMin(s), s)

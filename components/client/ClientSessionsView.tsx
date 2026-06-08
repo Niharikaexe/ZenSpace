@@ -80,7 +80,7 @@ function buildWeek(
   // into a valid IANA zone before it reaches Intl. Falls back to UTC.
   const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
   const now = new Date()
-  const cutoff = now.getTime() + 2 * 3_600_000 // slots must be 2h+ away
+  const cutoff = now.getTime() + 1 * 3_600_000 // hide only slots less than 1h away
 
   // The availability is a weekly schedule keyed by day-of-week in the THERAPIST's
   // timezone. A slot's real instant therefore depends on the therapist's calendar
