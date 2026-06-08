@@ -6,6 +6,7 @@
 type LabelMap = Record<string, string>
 
 const INDIVIDUAL_LABELS: LabelMap = {
+  age: 'Age range',
   q1: 'Why now',
   q2: 'Main themes',
   q3: 'Support type',
@@ -28,6 +29,7 @@ const INDIVIDUAL_LABELS: LabelMap = {
 }
 
 const TEEN_LABELS: LabelMap = {
+  age: 'Age range',
   q1: 'Current state',
   q2: 'Feelings about therapy',
   q3: 'Who wanted them in therapy',
@@ -137,12 +139,16 @@ export function formatQuestionnaireForAdmin(
         value: responses.attendingAlone ? 'One partner' : 'Both partners',
       })
     }
-    const hasPartner1 = !!responses.partner1
-    const hasPartner2 = !!responses.partner2
-    if (hasPartner1) {
+    const partner1 = (responses.partner1 ?? null) as Record<string, unknown> | null
+    const partner2 = (responses.partner2 ?? null) as Record<string, unknown> | null
+    if (partner1) {
+      const age1 = valueToString(partner1.p0)
+      if (age1) partnerInfo.push({ label: 'Partner 1 age range', value: age1 })
       partnerInfo.push({ label: 'Partner 1 private section', value: 'Recorded — therapist-only' })
     }
-    if (hasPartner2) {
+    if (partner2) {
+      const age2 = valueToString(partner2.p0)
+      if (age2) partnerInfo.push({ label: 'Partner 2 age range', value: age2 })
       partnerInfo.push({ label: 'Partner 2 private section', value: 'Recorded — therapist-only' })
     }
     if (partnerInfo.length > 0) {
