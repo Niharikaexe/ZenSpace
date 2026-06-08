@@ -5,11 +5,8 @@ import { updateWeeklyAvailability, type WeeklyAvailability } from '@/app/actions
 import { timezoneLabel } from '@/lib/timezones'
 
 // ── Grid constants ────────────────────────────────────────────────────────────
-// One cell = one whole hour. Availability is intentionally hour-granular only —
-// therapists cannot mark half-hour (e.g. 9:30) starts; every bookable slot
-// begins on the hour.
-const TOTAL_CELLS = 24   // 1-hour slots across 24 h  (0 = 00:00, 23 = 23:00)
-const CELL_MIN    = 60   // minutes per cell (whole hour)
+const TOTAL_CELLS = 48   // 30-min slots across 24 h  (0 = 00:00, 47 = 23:30)
+const CELL_MIN    = 30   // minutes per cell
 const SESSION_MIN = 50   // session length in minutes
 const SLOT_GAP    = 60   // new slot every 60 min inside a range
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,8 +172,13 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
     let [from, to] = startCell <= currentCell
       ? [startCell, currentCell]
       : [currentCell, startCell]
-    // Each cell is already a full hour, so a single click yields exactly one
-    // bookable slot on the hour — no expansion needed.
+    // A 50-min session needs a full 1-hour (2-cell) block. Expand any shorter ADD
+    // selection (e.g. a single click) up to one hour so it always yields a slot —
+    // never a silent empty save that leaves clients with no bookable times.
+    if (mode === 'add' && to - from < 1) {
+      if (from + 1 <= TOTAL_CELLS - 1) to = from + 1
+      else from = to - 1
+    }
     const keys = dayKey === null ? DAYS.map(d => d.key) : [dayKey]
 
     setSel(prev => {
@@ -303,7 +305,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                   <div className="flex-1 flex h-full rounded overflow-hidden border border-slate-200">
                     {Array.from({ length: TOTAL_CELLS }, (_, ci) => {
                       const on    = daySel.has(ci)
-                      const mark3 = ci % 3 === 0  // every 3-hour boundary
+                      const mark3 = ci % 6 === 0  // every 3-hour boundary
                       return (
                         <div
                           key={ci}
@@ -341,7 +343,7 @@ export function WeeklyAvailabilityEditor({ initialData, therapistTimezone }: Pro
                 {Array.from({ length: TOTAL_CELLS }, (_, ci) => {
                   const allOn  = DAYS.every(d => sel[d.key]?.has(ci))
                   const someOn = DAYS.some(d => sel[d.key]?.has(ci))
-                  const mark3  = ci % 3 === 0
+                  const mark3  = ci % 6 === 0
                   return (
                     <div
                       key={ci}
