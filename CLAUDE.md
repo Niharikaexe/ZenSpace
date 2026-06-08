@@ -511,6 +511,7 @@ Remove items as they are completed.
 ## Coding Rules for Claude
 
 - Always work on the `dev` branch. Never push to `main`.
+- **Always pull/merge `main` into `dev` before pushing to `dev`.** `main` sometimes gets direct changes (e.g. an analytics tag merged via its own PR), so pulling main in first keeps the branches from diverging and stops conflicts piling up on the eventual `dev → main` PR. **Do NOT rely on git's auto-merge** when main and dev have both changed code — auto-merge can silently duplicate/garble blocks. Prefer a `-s ours` merge that keeps dev's tree, then explicitly bring in only the file(s) main uniquely changed; or resolve each conflict by hand keeping dev's version of feature files. Always typecheck after.
 - Build one feature/phase at a time — do not jump ahead.
 - Keep components small and focused.
 - Use server components by default; client components only when needed (interactivity, hooks).
