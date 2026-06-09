@@ -3,14 +3,17 @@ import { formatQuestionnaireForAdmin } from '@/lib/admin-questionnaire'
 interface Props {
   responses: Record<string, unknown> | null | undefined
   submittedAt?: string | null
+  // Therapist view: also render couples' per-partner private answers (the
+  // questionnaire promises those are visible to the client + their therapist).
+  includePartnerPrivate?: boolean
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function QuestionnaireDetails({ responses, submittedAt }: Props) {
-  const view = formatQuestionnaireForAdmin(responses)
+export default function QuestionnaireDetails({ responses, submittedAt, includePartnerPrivate }: Props) {
+  const view = formatQuestionnaireForAdmin(responses, { includePartnerPrivate })
 
   if (!view) {
     return (

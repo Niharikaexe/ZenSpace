@@ -917,7 +917,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '')
       break
     case 'client_matched':
-      subject = `New client matched, ${meta.clientName ?? 'a new client'}`
+      subject = `You have a new client — ${meta.clientName ?? 'someone new'}`
       html = tplTherapistClientMatched(name, meta.clientName ?? 'Your new client')
       break
     case 'client_unmatched':

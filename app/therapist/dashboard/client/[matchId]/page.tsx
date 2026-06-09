@@ -2,7 +2,7 @@ import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/s
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { TherapistNav } from '@/components/therapist/TherapistNav'
-import { logger } from '@/lib/logger'
+import QuestionnaireDetails from '@/components/admin/QuestionnaireDetails'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,44 +82,7 @@ export default async function TherapistClientDetailPage({
   const sessions = sessionsResult.data ?? []
   const unread = unreadResult.count ?? 0
 
-  // Parse questionnaire
-  let qType = ''
-  let concerns: string[] = []
-  let goals = ''
-  let previousTherapy = ''
-  let therapistGenderPref = ''
   const qRow = (qResult.data ?? [])[0] ?? null
-  if (qRow?.responses) {
-    try {
-      const r = qRow.responses as Record<string, unknown>
-      qType = r.type as string ?? ''
-      const toArr = (v: unknown): string[] =>
-        Array.isArray(v) ? (v as string[]) : typeof v === 'string' && v ? [v] : []
-      if (qType === 'individual') {
-        const a = r.answers as Record<string, unknown> ?? {}
-        concerns = toArr(a.q2)
-        goals = (a.q3 as string) ?? ''
-        previousTherapy = (a.q12 as string) ?? ''
-        therapistGenderPref = (a.q13 as string) ?? ''
-      } else if (qType === 'couples') {
-        const s = r.common as Record<string, unknown> ?? {}
-        concerns = toArr(s.c6)
-        goals = Array.isArray(s.c9) ? (s.c9 as string[]).join(', ') : ''
-        previousTherapy = (s.c10 as string) ?? ''
-        therapistGenderPref = (s.c11 as string) ?? ''
-      } else if (qType === 'teen') {
-        const a = r.answers as Record<string, unknown> ?? {}
-        concerns = toArr(a.q15)
-        goals = (a.q18 as string) ?? ''
-        previousTherapy = (a.q17 as string) ?? ''
-      }
-    } catch (err) {
-      logger.warn('therapist/client-detail', 'Failed to parse client questionnaire', {
-        clientId: match.client_id,
-        err: err instanceof Error ? err.message : String(err),
-      })
-    }
-  }
 
   const isNewClient = new Date(match.created_at) > new Date(Date.now() - 7 * 24 * 3600000)
 
@@ -186,46 +149,19 @@ export default async function TherapistClientDetailPage({
           </div>
         </div>
 
-        {/* Questionnaire */}
-        {qRow && (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 space-y-4">
-            <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest">
-              Intake questionnaire · {qType || 'Individual'}
-            </p>
-
-            {concerns.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-[#233551]/55 mb-2">Main concerns</p>
-                <div className="flex flex-wrap gap-2">
-                  {concerns.map((c, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-slate-200 text-[#233551]/65">
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {goals && (
-              <div>
-                <p className="text-xs font-semibold text-[#233551]/55 mb-1">Goals</p>
-                <p className="text-sm text-[#233551]/70 leading-relaxed">{goals}</p>
-              </div>
-            )}
-
-            {previousTherapy && (
-              <div>
-                <p className="text-xs font-semibold text-[#233551]/55 mb-1">Previous therapy</p>
-                <p className="text-sm text-[#233551]/70">{previousTherapy}</p>
-              </div>
-            )}
-
-            {therapistGenderPref && (
-              <div>
-                <p className="text-xs font-semibold text-[#233551]/55 mb-1">Therapist gender preference</p>
-                <p className="text-sm text-[#233551]/70">{therapistGenderPref}</p>
-              </div>
-            )}
+        {/* Questionnaire — full intake answers */}
+        {qRow ? (
+          <div className="bg-white border border-slate-100 rounded-2xl p-6">
+            <QuestionnaireDetails
+              responses={qRow.responses as Record<string, unknown>}
+              submittedAt={qRow.submitted_at as string | null}
+              includePartnerPrivate
+            />
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-100 rounded-2xl p-6">
+            <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-2">Intake questionnaire</p>
+            <p className="text-sm text-[#233551]/40 italic">This client hasn&apos;t completed the questionnaire yet.</p>
           </div>
         )}
 
