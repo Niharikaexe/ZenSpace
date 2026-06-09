@@ -129,30 +129,63 @@ export async function createMatchProposals(
   }
 
   const now = new Date().toISOString()
+
+  // Single proposal → auto-match: there's nothing for the client to choose
+  // between, so skip the proposal/selection screen and activate immediately.
+  // Two proposals stay 'pending' for the client to pick via "Start a free chat".
+  const autoMatch = picked.length === 1
+
   const rows = picked.map((p) => ({
     client_id: clientId,
     therapist_id: p.therapistId,
     matched_by: adminUser.id,
     tier: p.tier,
     admin_summary: p.summary || null,
-    status: 'pending',
+    status: autoMatch ? 'active' : 'pending',
     created_at: now,
+    ...(autoMatch ? { started_at: now } : {}),
   }))
 
   const { error } = await (admin as any).from('matches').insert(rows)
   if (error) throw new Error(error.message)
 
-  // Notify the client that their match(es) are ready to review.
-  const many = picked.length > 1
-  createNotification({
-    userId: clientId,
-    type: 'client_proposals_ready',
-    title: many ? 'Your therapist matches are ready' : 'Your therapist match is ready',
-    body: many
-      ? 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.'
-      : 'We’ve hand-picked a therapist for you. Take a look and start a free chat.',
-    metadata: { proposals: picked.length },
-  }).catch(() => {})
+  if (autoMatch) {
+    // Notify both sides as a real match (mirrors chooseTherapist): the therapist
+    // gets the new-client email, the client gets "meet your therapist".
+    const therapistId = picked[0].therapistId as string
+    const [{ data: clientP }, { data: therapistP }] = await Promise.all([
+      (admin as any).from('profiles').select('full_name').eq('id', clientId).single(),
+      (admin as any).from('profiles').select('full_name').eq('id', therapistId).single(),
+    ])
+    const clientName = (clientP?.full_name as string | undefined) ?? 'A new client'
+    const therapistFullName = (therapistP?.full_name as string | undefined) ?? 'your therapist'
+    const therapistFirstName = therapistFullName.split(' ')[0]
+
+    createNotification({
+      userId: therapistId,
+      type: 'client_matched',
+      title: 'New client matched',
+      body: `${clientName} has been matched with you. Say hello when you can.`,
+      metadata: { clientId, clientName },
+    }).catch(() => {})
+
+    createNotification({
+      userId: clientId,
+      type: 'client_match_made',
+      title: 'Your therapist is ready',
+      body: `You’ve been matched with ${therapistFirstName}. Start a free chat whenever you’re ready.`,
+      metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '' },
+    }).catch(() => {})
+  } else {
+    // Two proposals → client reviews and picks.
+    createNotification({
+      userId: clientId,
+      type: 'client_proposals_ready',
+      title: 'Your therapist matches are ready',
+      body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
+      metadata: { proposals: picked.length },
+    }).catch(() => {})
+  }
 
   revalidatePath('/admin')
 }
