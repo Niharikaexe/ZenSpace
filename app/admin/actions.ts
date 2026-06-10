@@ -161,24 +161,27 @@ export async function createMatchProposals(
     const therapistFullName = (therapistP?.full_name as string | undefined) ?? 'your therapist'
     const therapistFirstName = therapistFullName.split(' ')[0]
 
-    createNotification({
-      userId: therapistId,
-      type: 'client_matched',
-      title: 'New client matched',
-      body: `${clientName} has been matched with you. Say hello when you can.`,
-      metadata: { clientId, clientName },
-    }).catch(() => {})
-
-    createNotification({
-      userId: clientId,
-      type: 'client_match_made',
-      title: 'Your therapist is ready',
-      body: `You’ve been matched with ${therapistFirstName}. Start a free chat whenever you’re ready.`,
-      metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '' },
-    }).catch(() => {})
+    // Await both so the emails actually send before the action returns
+    // (un-awaited promises are killed on serverless).
+    await Promise.allSettled([
+      createNotification({
+        userId: therapistId,
+        type: 'client_matched',
+        title: 'New client matched',
+        body: `${clientName} has been matched with you. Say hello when you can.`,
+        metadata: { clientId, clientName },
+      }),
+      createNotification({
+        userId: clientId,
+        type: 'client_match_made',
+        title: 'Your therapist is ready',
+        body: `You’ve been matched with ${therapistFirstName}. Start a free chat whenever you’re ready.`,
+        metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '' },
+      }),
+    ])
   } else {
     // Two proposals → client reviews and picks.
-    createNotification({
+    await createNotification({
       userId: clientId,
       type: 'client_proposals_ready',
       title: 'Your therapist matches are ready',

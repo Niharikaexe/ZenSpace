@@ -88,13 +88,19 @@ export async function chooseTherapist(matchId: string): Promise<{ error: string 
     }
   const clientName = clientProfile?.full_name ?? 'A new client'
 
-  createNotification({
-    userId: match.therapist_id,
-    type: 'client_matched',
-    title: 'New client matched',
-    body: `${clientName} chose you and started a free chat. Say hello when you can.`,
-    metadata: { clientId: user.id, clientName },
-  }).catch((err) => logger.error('choose-therapist', 'Failed to notify therapist', err))
+  // Await: on serverless the redirect below ends the request and kills any
+  // pending promise, so a fire-and-forget notify never sends the email.
+  try {
+    await createNotification({
+      userId: match.therapist_id,
+      type: 'client_matched',
+      title: 'New client matched',
+      body: `${clientName} chose you and started a free chat. Say hello when you can.`,
+      metadata: { clientId: user.id, clientName },
+    })
+  } catch (err) {
+    logger.error('choose-therapist', 'Failed to notify therapist', err)
+  }
 
   logger.info('choose-therapist', 'Client chose therapist', {
     userId: user.id,
