@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { createNotification } from '@/lib/notifications'
 import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
@@ -62,17 +63,17 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   const therapistFullName = (therapistProfile?.full_name as string | undefined) ?? 'Your therapist'
   const therapistFirstName = therapistFullName.split(' ')[0]
 
-  // Notify the therapist (fire-and-forget)
-  createNotification({
+  // after(): deliver post-response so it isn't killed when the action returns.
+  after(() => createNotification({
     userId: therapistId,
     type: 'client_matched',
     title: 'New client matched',
     body: `${clientName} has been assigned to you. Check their profile and reach out.`,
     metadata: { clientId, clientName },
-  }).catch(() => {})
+  }).catch(() => {}))
 
-  // Notify the client (fire-and-forget) with the admin's match note as the blurb
-  createNotification({
+  // Notify the client with the admin's match note as the blurb
+  after(() => createNotification({
     userId: clientId,
     type: 'client_match_made',
     title: `Meet ${therapistFirstName}`,
@@ -83,7 +84,7 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
       therapistFullName,
       adminMatchNote: notes || '',
     },
-  }).catch(() => {})
+  }).catch(() => {}))
 
   revalidatePath('/admin')
 }
@@ -209,13 +210,13 @@ export async function toggleTherapistVerification(therapistProfileId: string, cu
     const { data: tProfile } = await (admin as any)
       .from('therapist_profiles').select('user_id').eq('id', therapistProfileId).single()
     if (tProfile?.user_id) {
-      createNotification({
+      after(() => createNotification({
         userId: tProfile.user_id,
         type: 'profile_verified',
         title: 'Profile verified',
         body: 'Your MindCanopy profile has been verified. You are now eligible to receive client matches.',
         metadata: {},
-      }).catch(() => {})
+      }).catch(() => {}))
     }
   }
 
@@ -384,13 +385,13 @@ export async function endMatch(matchId: string) {
       .from('profiles').select('full_name').eq('id', match.client_id).single()
     const clientName = clientProfile?.full_name ?? 'Your client'
 
-    createNotification({
+    after(() => createNotification({
       userId: match.therapist_id,
       type: 'client_unmatched',
       title: 'Match ended',
       body: `Your match with ${clientName} has been ended by the admin.`,
       metadata: { clientId: match.client_id, clientName },
-    }).catch(() => {})
+    }).catch(() => {}))
   }
 
   revalidatePath('/admin')

@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { createNotification } from '@/lib/notifications'
 import { logger } from '@/lib/logger'
@@ -89,7 +90,7 @@ export async function requestTherapistSwitch(
 
   if (adminProfiles && adminProfiles.length > 0) {
     for (const adminProfile of adminProfiles) {
-      createNotification({
+      after(() => createNotification({
         userId: adminProfile.id,
         type: 'switch_request',
         title: 'Therapist switch requested',
@@ -100,7 +101,7 @@ export async function requestTherapistSwitch(
           matchId: match.id,
           reason: reason ?? '',
         },
-      }).catch((err) => logger.error('switch-therapist', 'Failed to send switch notification', err))
+      }).catch((err) => logger.error('switch-therapist', 'Failed to send switch notification', err)))
     }
   }
 

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import crypto from 'crypto'
 import { createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
@@ -107,13 +107,13 @@ async function confirmSession(admin: Admin, orderId: string, paymentId: string):
         .from('profiles').select('id, full_name').in('id', [match.therapist_id, match.client_id])
       const therapistFirstName = ((profiles ?? []).find((p: any) => p.id === match.therapist_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
       const clientFirstName = ((profiles ?? []).find((p: any) => p.id === match.client_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
-      createNotification({
+      after(() => createNotification({
         userId: match.therapist_id,
         type: 'session_scheduled_therapist',
         title: 'Session booked',
         body: `A video session has been booked for ${dateStr}.`,
         metadata: { matchId: session.match_id, scheduledAt: session.scheduled_at, sessionType: 'video', dateStr, therapistFirstName, clientFirstName },
-      }).catch((err) => logger.error('webhook/cashfree', 'Session notification failed', err))
+      }).catch((err) => logger.error('webhook/cashfree', 'Session notification failed', err)))
     } catch (err) {
       logger.warn('webhook/cashfree', 'Session notification dispatch failed', { orderId, err: err instanceof Error ? err.message : String(err) })
     }
