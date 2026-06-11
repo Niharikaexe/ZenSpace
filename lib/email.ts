@@ -258,8 +258,8 @@ function tplTherapistClientMatched(
     <br/><br/>
     ${h1(`Hi ${therapistFirstName}, good news.`)}
     ${p(`<strong>${clientFullName}</strong> has been matched with you by the MindCanopy team. We pair clients carefully, by hand, and we think you&rsquo;re a good fit for them.`)}
-    ${p('Head to your dashboard to read their questionnaire before you reach out.')}
-    ${btn('View their profile →', `${SITE}/therapist/dashboard`)}
+    ${p('Open your chat to say hello — and read their questionnaire from their profile before you reach out.')}
+    ${btn('Go to your chat →', `${SITE}/therapist/dashboard/chat`)}
     ${signOff}
   `, 'therapist')
 }

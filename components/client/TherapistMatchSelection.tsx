@@ -182,7 +182,7 @@ function ProfileCard({
   const t = proposal.therapist
   const tFirst = t.fullName.split(' ')[0]
   const perSession = sessionPriceInr(category, proposal.tier)
-  const bundle = monthlyBundleInr(perSession)
+  const bundle = monthlyBundleInr(perSession, category, proposal.tier)
 
   const credentials = [
     t.education,
