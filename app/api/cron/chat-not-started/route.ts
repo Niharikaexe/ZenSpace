@@ -4,9 +4,9 @@ import { createNotification } from '@/lib/notifications'
 
 // Vercel Cron, runs daily.
 // Finds active matches where the client has NOT sent a message yet,
-// and the match is at least 7 days old. Nudges weekly, up to 5 times.
+// and the match is at least 3 days old. Nudges weekly, up to 5 times.
 
-const NUDGE_FIRST_AFTER_DAYS = 7
+const NUDGE_FIRST_AFTER_DAYS = 3
 const NUDGE_INTERVAL_DAYS = 7
 const NUDGE_MAX_COUNT = 5
 
