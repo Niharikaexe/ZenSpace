@@ -82,7 +82,7 @@ export default function ClientChatView({
 
           {/* Collapsible profile (mobile) — same info as the desktop side panel */}
           {showProfile && (
-            <div className="md:hidden flex-shrink-0 max-h-[55vh] overflow-y-auto border-b border-slate-100 bg-white">
+            <div className="md:hidden flex-shrink-0 max-h-[55vh] overflow-y-auto mc-scroll border-b border-slate-100 bg-white">
               <TherapistSidePanel therapist={therapist} />
             </div>
           )}

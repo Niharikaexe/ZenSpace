@@ -119,7 +119,7 @@ export default function TherapistSidePanel({ therapist }: { therapist: Therapist
       </div>
 
       {/* Details */}
-      <div className="px-6 py-5 space-y-5 flex-1 overflow-y-auto">
+      <div className="px-6 py-5 space-y-5 flex-1 overflow-y-auto mc-scroll">
         {therapist.specializations.length > 0 && (
           <div>
             <h3 className="text-xs font-bold text-[#233551]/40 uppercase tracking-wider mb-2">Specialises in</h3>
