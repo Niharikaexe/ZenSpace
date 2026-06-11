@@ -410,7 +410,7 @@ export default function ClientSessionsView({
 
         {/* ── Right: Sessions content ─────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto mc-scroll">
           <div className="max-w-2xl mx-auto px-5 py-7 space-y-10">
 
             {/* ── Book a session ────────────────────────────────────────── */}

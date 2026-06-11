@@ -70,7 +70,7 @@ export async function POST() {
   const category = normalizeCategory(questionnaire?.responses?.type)
 
   const perSessionInr = sessionPriceInr(category, tier)
-  const bundleInr = monthlyBundleInr(perSessionInr)
+  const bundleInr = monthlyBundleInr(perSessionInr, category, tier)
   const bundlePaise = bundleInr * 100
   const perSessionPaise = Math.round(bundlePaise / MONTHLY_BUNDLE_SESSIONS)
 

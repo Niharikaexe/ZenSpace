@@ -46,7 +46,7 @@ export default function ClientNotesView({ clientName, therapist, sessions }: Pro
         </aside>
 
         {/* ── Right: Notes list ────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto mc-scroll">
           <div className="max-w-2xl mx-auto px-5 py-7">
 
             <div className="flex items-center justify-between mb-6">

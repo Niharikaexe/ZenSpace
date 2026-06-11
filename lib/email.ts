@@ -182,7 +182,7 @@ function tplClientMatchMade(
     ${p(`We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
     ${p(`Your next step is an intro chat. Say hi when you&rsquo;re ready.`)}
-    ${btn(`Say hi →`, `${SITE}/dashboard/chat`)}
+    ${btn(`Say hi →`, `${SITE}/dashboard`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
     ${signOff}
@@ -258,8 +258,8 @@ function tplTherapistClientMatched(
     <br/><br/>
     ${h1(`Hi ${therapistFirstName}, good news.`)}
     ${p(`<strong>${clientFullName}</strong> has been matched with you by the MindCanopy team. We pair clients carefully, by hand, and we think you&rsquo;re a good fit for them.`)}
-    ${p('Head to your dashboard to read their questionnaire before you reach out.')}
-    ${btn('View their profile →', `${SITE}/therapist/dashboard`)}
+    ${p('Open your chat to say hello — and read their questionnaire from their profile before you reach out.')}
+    ${btn('Go to your chat →', `${SITE}/therapist/dashboard/chat`)}
     ${signOff}
   `, 'therapist')
 }

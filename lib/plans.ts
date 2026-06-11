@@ -192,8 +192,30 @@ export const MONTHLY_BUNDLE_SESSIONS = 4
 /** Discount applied to the monthly bundle vs paying per session. */
 export const MONTHLY_BUNDLE_DISCOUNT = 0.10
 
-/** Monthly bundle price (4 sessions, 10% off), rounded to the nearest rupee. */
-export function monthlyBundleInr(perSessionInr: number): number {
+/**
+ * Flat monthly-bundle price overrides for specific category + tier combos.
+ * When present, this exact rupee amount is used instead of the computed
+ * (perSession × 4 × 10%-off) value — for clean round prices.
+ */
+export const MONTHLY_BUNDLE_OVERRIDE: Partial<
+  Record<SessionCategory, Partial<Record<ProposalTier, number>>>
+> = {
+  individual: { standard: 4700 }, // adult standard bundle, set to a flat ₹4,700
+}
+
+/**
+ * Monthly bundle price (4 sessions, 10% off), rounded to the nearest rupee.
+ * If category + tier are given and have a flat override, that price is used.
+ */
+export function monthlyBundleInr(
+  perSessionInr: number,
+  category?: SessionCategory,
+  tier?: ProposalTier,
+): number {
+  if (category && tier) {
+    const override = MONTHLY_BUNDLE_OVERRIDE[category]?.[tier]
+    if (override != null) return override
+  }
   return Math.round(perSessionInr * MONTHLY_BUNDLE_SESSIONS * (1 - MONTHLY_BUNDLE_DISCOUNT))
 }
 

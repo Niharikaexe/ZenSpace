@@ -57,6 +57,7 @@ export async function createNotification({
     const name = (profile?.full_name as string | undefined)?.split(' ')[0] ?? 'there'
 
     if (email) {
+      logger.info('notifications/email', 'Dispatching notification email', { userId, type, recipient: email })
       // Await the send: on serverless (Vercel) any promise still pending when the
       // calling action returns/redirects is killed — a fire-and-forget email here
       // silently never sends and never writes its email_logs row. We swallow send
@@ -73,6 +74,14 @@ export async function createNotification({
       } catch (err) {
         logger.error('notifications/email', 'Email send failed', err, { userId, type })
       }
+    } else {
+      // No address on the recipient's auth user — the email can't be sent and
+      // would otherwise vanish with no trace. Make the silent failure loud.
+      logger.error('notifications/email', 'No recipient email — notification email NOT sent', null, {
+        userId,
+        type,
+        hasAuthUser: !!authUser?.user,
+      })
     }
   } catch (err) {
     logger.error('notifications/email-lookup', 'Failed to look up recipient for email', err, { userId })

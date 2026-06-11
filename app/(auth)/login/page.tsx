@@ -61,9 +61,25 @@ async function signInWithLogging(prev: AuthState, fd: FormData): Promise<AuthSta
   }
 }
 
+const URL_ERROR_MESSAGES: Record<string, string> = {
+  auth_link_expired:
+    'That confirmation link has expired or was already used. Sign in below, or request a new link if you haven\'t confirmed yet.',
+  auth_callback_failed:
+    'We couldn\'t confirm that link. It may have expired or already been used — try signing in below.',
+}
+
 export default function LoginPage() {
   const [state, action, isPending] = useActionState(signInWithLogging, initialState)
   const [showPassword, setShowPassword] = useState(false)
+  const [urlError, setUrlError] = useState<string | null>(null)
+
+  // Read the ?error= param set by /auth/callback on a failed/expired link.
+  // Done via window.location (not useSearchParams) to avoid needing a Suspense
+  // boundary for this client page.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('error')
+    if (code) setUrlError(URL_ERROR_MESSAGES[code] ?? URL_ERROR_MESSAGES.auth_callback_failed)
+  }, [])
 
   useEffect(() => {
     // eslint-disable-next-line no-console
@@ -144,9 +160,9 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {state.error && (
+            {(state.error || urlError) && (
               <Alert variant="destructive" className="mb-5">
-                <AlertDescription>{state.error}</AlertDescription>
+                <AlertDescription>{state.error ?? urlError}</AlertDescription>
               </Alert>
             )}
 

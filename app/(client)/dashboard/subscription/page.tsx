@@ -66,7 +66,7 @@ export default async function SubscriptionPage() {
   const category = normalizeCategory(questionnaire?.responses?.type)
 
   const perSessionInr = sessionPriceInr(category, tier)
-  const bundleInr = monthlyBundleInr(perSessionInr)
+  const bundleInr = monthlyBundleInr(perSessionInr, category, tier)
 
   const [tUserResult, bundleResult] = await Promise.all([
     (admin as any).from('profiles').select('full_name').eq('id', match.therapist_id).single(),
