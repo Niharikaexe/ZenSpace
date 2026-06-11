@@ -182,7 +182,7 @@ function tplClientMatchMade(
     ${p(`We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
     ${p(`Your next step is an intro chat. Say hi when you&rsquo;re ready.`)}
-    ${btn(`Say hi →`, `${SITE}/dashboard/chat`)}
+    ${btn(`Say hi →`, `${SITE}/dashboard`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
     ${signOff}
