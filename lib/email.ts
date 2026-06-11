@@ -507,7 +507,7 @@ function tplApplicationReceived(name: string, verifyUrl: string) {
                   <span style="display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:11px;background:#7EC0B722;color:#3D8A80;font-size:11px;font-weight:900;">4</span>
                 </td>
                 <td style="padding:6px 0;font-size:14px;color:#4a5568;line-height:1.6;">
-                  <strong style="color:#233551;">Onboarding</strong>, we&rsquo;ll share an invite code so you can set up your therapist profile.
+                  <strong style="color:#233551;">Onboarding</strong>, we&rsquo;ll share an invite link so you can set up your therapist profile.
                 </td>
               </tr>
               <tr>
