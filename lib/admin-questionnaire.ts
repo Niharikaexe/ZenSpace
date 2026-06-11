@@ -73,6 +73,18 @@ const COUPLES_COMMON_LABELS: LabelMap = {
   c13Other: 'Other language',
 }
 
+// Couples per-partner private answers. Shown ONLY to the therapist (the
+// questionnaire promises "only you and your therapist see this"), never to admin.
+const COUPLES_PARTNER_LABELS: LabelMap = {
+  p0: 'Age range',
+  p1: 'Main problem / concern',
+  p2: 'Personal motivation',
+  p3: 'Willingness to change',
+  p4: 'Emotional closeness',
+  p5: 'Sexual intimacy',
+  p6: 'Mental health',
+}
+
 function valueToString(v: unknown): string | null {
   if (v === null || v === undefined) return null
   if (typeof v === 'string') return v.trim() || null
@@ -98,6 +110,7 @@ export type AdminQuestionnaireView = {
 
 export function formatQuestionnaireForAdmin(
   responses: Record<string, unknown> | null | undefined,
+  opts: { includePartnerPrivate?: boolean } = {},
 ): AdminQuestionnaireView {
   if (!responses) return null
   const type = typeof responses.type === 'string' ? (responses.type as string) : null
@@ -129,9 +142,10 @@ export function formatQuestionnaireForAdmin(
       sections.push({ heading: 'Shared answers (both partners)', items: commonItems })
     }
 
-    // Privacy: do NOT show partner1.* / partner2.* contents.
-    // The questionnaire UI promises clients those answers are visible only to
-    // them and their therapist. Surface attendance flag only.
+    const partner1 = (responses.partner1 ?? null) as Record<string, unknown> | null
+    const partner2 = (responses.partner2 ?? null) as Record<string, unknown> | null
+
+    // Attendance summary (always shown).
     const partnerInfo: Array<{ label: string; value: string }> = []
     if (typeof responses.attendingAlone === 'boolean') {
       partnerInfo.push({
@@ -139,20 +153,38 @@ export function formatQuestionnaireForAdmin(
         value: responses.attendingAlone ? 'One partner' : 'Both partners',
       })
     }
-    const partner1 = (responses.partner1 ?? null) as Record<string, unknown> | null
-    const partner2 = (responses.partner2 ?? null) as Record<string, unknown> | null
-    if (partner1) {
-      const age1 = valueToString(partner1.p0)
-      if (age1) partnerInfo.push({ label: 'Partner 1 age range', value: age1 })
-      partnerInfo.push({ label: 'Partner 1 private section', value: 'Recorded — therapist-only' })
-    }
-    if (partner2) {
-      const age2 = valueToString(partner2.p0)
-      if (age2) partnerInfo.push({ label: 'Partner 2 age range', value: age2 })
-      partnerInfo.push({ label: 'Partner 2 private section', value: 'Recorded — therapist-only' })
-    }
-    if (partnerInfo.length > 0) {
-      sections.push({ heading: 'Partner attendance', items: partnerInfo })
+
+    if (opts.includePartnerPrivate) {
+      // Therapist view: the partner private sections are meant for them.
+      partnerInfo.push({ label: 'Partner 1 age range', value: valueToString(partner1?.p0) ?? '—' })
+      if (partner2) partnerInfo.push({ label: 'Partner 2 age range', value: valueToString(partner2.p0) ?? '—' })
+      if (partnerInfo.length > 0) sections.push({ heading: 'Partner attendance', items: partnerInfo })
+
+      const buildPartner = (p: Record<string, unknown> | null, who: string) => {
+        if (!p) return
+        const items: Array<{ label: string; value: string }> = []
+        for (const key of Object.keys(COUPLES_PARTNER_LABELS)) {
+          if (key === 'p0') continue // age already shown in attendance
+          const val = valueToString(p[key])
+          if (val) items.push({ label: COUPLES_PARTNER_LABELS[key], value: val })
+        }
+        if (items.length > 0) sections.push({ heading: `${who} — private answers`, items })
+      }
+      buildPartner(partner1, 'Partner 1')
+      buildPartner(partner2, 'Partner 2')
+    } else {
+      // Admin view: privacy — show only that the private sections exist + age.
+      if (partner1) {
+        const age1 = valueToString(partner1.p0)
+        if (age1) partnerInfo.push({ label: 'Partner 1 age range', value: age1 })
+        partnerInfo.push({ label: 'Partner 1 private section', value: 'Recorded — therapist-only' })
+      }
+      if (partner2) {
+        const age2 = valueToString(partner2.p0)
+        if (age2) partnerInfo.push({ label: 'Partner 2 age range', value: age2 })
+        partnerInfo.push({ label: 'Partner 2 private section', value: 'Recorded — therapist-only' })
+      }
+      if (partnerInfo.length > 0) sections.push({ heading: 'Partner attendance', items: partnerInfo })
     }
 
     return { typeLabel: 'Couples questionnaire', sections }

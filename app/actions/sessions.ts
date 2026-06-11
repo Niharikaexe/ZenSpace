@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { z } from 'zod'
 import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
 import { logger } from '@/lib/logger'
@@ -76,7 +77,9 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
           .from('profiles').select('full_name').eq('id', user.id).single()
         const senderName = senderProfile?.full_name ?? 'Someone'
 
-        createNotification({
+        // after(): run post-response so it isn't killed when the action returns,
+        // without blocking the message send.
+        after(() => createNotification({
           userId: recipientId,
           type: 'client_message',
           title: 'New message',
@@ -91,7 +94,7 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
           // /api/cron/message-overdue-3h fires the email only when the
           // recipient hasn't read the message by then.
           skipEmail: true,
-        }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err))
+        }).catch((err) => logger.error('sessions/sendMessage', 'Failed to send message notification', err)))
       }
     }
   } catch (err) {
@@ -239,7 +242,7 @@ export async function scheduleSession(
     const therapistFirstName = (therapistProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
     const clientFirstName = (clientProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
 
-    createNotification({
+    after(() => createNotification({
       userId: recipientId,
       type: recipientIsTherapist ? 'session_scheduled_therapist' : 'session_scheduled_client',
       title: 'Session scheduled',
@@ -248,7 +251,7 @@ export async function scheduleSession(
         matchId, scheduledAt, sessionType, dateStr,
         therapistFirstName, clientFirstName,
       },
-    }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err))
+    }).catch((err) => logger.error('sessions/scheduleSession', 'Failed to send session notification', err)))
   } catch (err) {
     logger.warn('sessions/scheduleSession', 'Session-scheduled notification dispatch failed', { matchId, err: err instanceof Error ? err.message : String(err) })
   }

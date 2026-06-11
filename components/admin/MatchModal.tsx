@@ -168,9 +168,12 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Propose therapist(s)</h2>
+            <h2 className="text-base font-semibold text-slate-900">Match therapist(s)</h2>
             <p className="text-sm text-slate-500 mt-0.5">
-              for {client.full_name} — one is enough; add a second to let them choose
+              for {client.full_name} —{' '}
+              {pickedCount > 1
+                ? 'two therapists: the client picks one'
+                : 'one therapist matches them immediately; add a second to let them choose'}
             </p>
           </div>
           <button
@@ -257,7 +260,9 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
               disabled={isPending || pickedCount === 0}
               className="bg-emerald-600 hover:bg-emerald-700 text-white min-w-[140px]"
             >
-              {isPending ? 'Sending…' : pickedCount > 1 ? 'Send both proposals' : 'Send proposal'}
+              {isPending
+                ? (pickedCount > 1 ? 'Sending…' : 'Matching…')
+                : pickedCount > 1 ? 'Send both proposals' : 'Match now'}
             </Button>
           </div>
         </div>

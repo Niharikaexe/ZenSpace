@@ -57,17 +57,22 @@ export async function createNotification({
     const name = (profile?.full_name as string | undefined)?.split(' ')[0] ?? 'there'
 
     if (email) {
-      // Fire email without awaiting — never block the calling action
-      sendNotificationEmail({
-        to: email,
-        name,
-        type,
-        meta: Object.fromEntries(
-          Object.entries(metadata).map(([k, v]) => [k, String(v)])
-        ),
-      }).catch(err => {
+      // Await the send: on serverless (Vercel) any promise still pending when the
+      // calling action returns/redirects is killed — a fire-and-forget email here
+      // silently never sends and never writes its email_logs row. We swallow send
+      // errors so a failed email never breaks the in-app notification.
+      try {
+        await sendNotificationEmail({
+          to: email,
+          name,
+          type,
+          meta: Object.fromEntries(
+            Object.entries(metadata).map(([k, v]) => [k, String(v)])
+          ),
+        })
+      } catch (err) {
         logger.error('notifications/email', 'Email send failed', err, { userId, type })
-      })
+      }
     }
   } catch (err) {
     logger.error('notifications/email-lookup', 'Failed to look up recipient for email', err, { userId })

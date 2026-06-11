@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { createNotification } from '@/lib/notifications'
 import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
@@ -62,17 +63,17 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   const therapistFullName = (therapistProfile?.full_name as string | undefined) ?? 'Your therapist'
   const therapistFirstName = therapistFullName.split(' ')[0]
 
-  // Notify the therapist (fire-and-forget)
-  createNotification({
+  // after(): deliver post-response so it isn't killed when the action returns.
+  after(() => createNotification({
     userId: therapistId,
     type: 'client_matched',
     title: 'New client matched',
     body: `${clientName} has been assigned to you. Check their profile and reach out.`,
     metadata: { clientId, clientName },
-  }).catch(() => {})
+  }).catch(() => {}))
 
-  // Notify the client (fire-and-forget) with the admin's match note as the blurb
-  createNotification({
+  // Notify the client with the admin's match note as the blurb
+  after(() => createNotification({
     userId: clientId,
     type: 'client_match_made',
     title: `Meet ${therapistFirstName}`,
@@ -83,7 +84,7 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
       therapistFullName,
       adminMatchNote: notes || '',
     },
-  }).catch(() => {})
+  }).catch(() => {}))
 
   revalidatePath('/admin')
 }
@@ -129,30 +130,66 @@ export async function createMatchProposals(
   }
 
   const now = new Date().toISOString()
+
+  // Single proposal → auto-match: there's nothing for the client to choose
+  // between, so skip the proposal/selection screen and activate immediately.
+  // Two proposals stay 'pending' for the client to pick via "Start a free chat".
+  const autoMatch = picked.length === 1
+
   const rows = picked.map((p) => ({
     client_id: clientId,
     therapist_id: p.therapistId,
     matched_by: adminUser.id,
     tier: p.tier,
     admin_summary: p.summary || null,
-    status: 'pending',
+    status: autoMatch ? 'active' : 'pending',
     created_at: now,
+    ...(autoMatch ? { started_at: now } : {}),
   }))
 
   const { error } = await (admin as any).from('matches').insert(rows)
   if (error) throw new Error(error.message)
 
-  // Notify the client that their match(es) are ready to review.
-  const many = picked.length > 1
-  createNotification({
-    userId: clientId,
-    type: 'client_proposals_ready',
-    title: many ? 'Your therapist matches are ready' : 'Your therapist match is ready',
-    body: many
-      ? 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.'
-      : 'We’ve hand-picked a therapist for you. Take a look and start a free chat.',
-    metadata: { proposals: picked.length },
-  }).catch(() => {})
+  if (autoMatch) {
+    // Notify both sides as a real match (mirrors chooseTherapist): the therapist
+    // gets the new-client email, the client gets "meet your therapist".
+    const therapistId = picked[0].therapistId as string
+    const [{ data: clientP }, { data: therapistP }] = await Promise.all([
+      (admin as any).from('profiles').select('full_name').eq('id', clientId).single(),
+      (admin as any).from('profiles').select('full_name').eq('id', therapistId).single(),
+    ])
+    const clientName = (clientP?.full_name as string | undefined) ?? 'A new client'
+    const therapistFullName = (therapistP?.full_name as string | undefined) ?? 'your therapist'
+    const therapistFirstName = therapistFullName.split(' ')[0]
+
+    // Await both so the emails actually send before the action returns
+    // (un-awaited promises are killed on serverless).
+    await Promise.allSettled([
+      createNotification({
+        userId: therapistId,
+        type: 'client_matched',
+        title: 'New client matched',
+        body: `${clientName} has been matched with you. Say hello when you can.`,
+        metadata: { clientId, clientName },
+      }),
+      createNotification({
+        userId: clientId,
+        type: 'client_match_made',
+        title: 'Your therapist is ready',
+        body: `You’ve been matched with ${therapistFirstName}. Start a free chat whenever you’re ready.`,
+        metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '' },
+      }),
+    ])
+  } else {
+    // Two proposals → client reviews and picks.
+    await createNotification({
+      userId: clientId,
+      type: 'client_proposals_ready',
+      title: 'Your therapist matches are ready',
+      body: 'We’ve hand-picked two therapists for you. Take a look and start a free chat with whoever feels right.',
+      metadata: { proposals: picked.length },
+    }).catch(() => {})
+  }
 
   revalidatePath('/admin')
 }
@@ -173,13 +210,13 @@ export async function toggleTherapistVerification(therapistProfileId: string, cu
     const { data: tProfile } = await (admin as any)
       .from('therapist_profiles').select('user_id').eq('id', therapistProfileId).single()
     if (tProfile?.user_id) {
-      createNotification({
+      after(() => createNotification({
         userId: tProfile.user_id,
         type: 'profile_verified',
         title: 'Profile verified',
         body: 'Your MindCanopy profile has been verified. You are now eligible to receive client matches.',
         metadata: {},
-      }).catch(() => {})
+      }).catch(() => {}))
     }
   }
 
@@ -348,13 +385,13 @@ export async function endMatch(matchId: string) {
       .from('profiles').select('full_name').eq('id', match.client_id).single()
     const clientName = clientProfile?.full_name ?? 'Your client'
 
-    createNotification({
+    after(() => createNotification({
       userId: match.therapist_id,
       type: 'client_unmatched',
       title: 'Match ended',
       body: `Your match with ${clientName} has been ended by the admin.`,
       metadata: { clientId: match.client_id, clientName },
-    }).catch(() => {})
+    }).catch(() => {}))
   }
 
   revalidatePath('/admin')

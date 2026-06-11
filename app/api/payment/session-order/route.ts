@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { createNotification } from '@/lib/notifications'
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
         const therapistFirstName = ((profiles ?? []).find((p: any) => p.id === match.therapist_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
         const clientFirstName = ((profiles ?? []).find((p: any) => p.id === match.client_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
 
-        createNotification({
+        after(() => createNotification({
           userId: match.therapist_id,
           type: 'session_scheduled_therapist',
           title: 'Session booked',
@@ -184,7 +184,7 @@ export async function POST(request: Request) {
             matchId, scheduledAt: scheduledDate.toISOString(), sessionType: 'video', dateStr,
             therapistFirstName, clientFirstName,
           },
-        }).catch((err) => logger.error('api/payment/session-order', 'Failed to send booking notification', err))
+        }).catch((err) => logger.error('api/payment/session-order', 'Failed to send booking notification', err)))
       } catch (err) {
         logger.warn('api/payment/session-order', 'Bundle booking notification dispatch failed', { sessionId: inserted.id, err: err instanceof Error ? err.message : String(err) })
       }
