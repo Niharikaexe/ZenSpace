@@ -104,7 +104,8 @@ export async function updateSession(request: NextRequest) {
     pathname === '/contact' ||                  // public contact page
     pathname === '/privacy' ||                  // legal
     pathname === '/terms' ||                    // legal
-    pathname.startsWith('/api/webhooks/')          // all webhook endpoints (called by external services)
+    pathname.startsWith('/api/webhooks/') ||        // all webhook endpoints (called by external services)
+    pathname.startsWith('/api/cron/')    
 
   if (!user && !isPublic) {
     logger.info('middleware', 'Unauthenticated access — redirecting to login', { path: pathname })
