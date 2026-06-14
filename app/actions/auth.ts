@@ -9,6 +9,7 @@ import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
 import { sendAdminNewClientSignupEmail, sendNotificationEmail } from '@/lib/email'
 import { extractAttribution } from '@/lib/attribution-server'
+import { autoMatchClient } from '@/lib/auto-match'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -225,6 +226,11 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
       // after() — runs post-response so the welcome email doesn't delay the
       // redirect into the dashboard.
       after(() => sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} }))
+      // Account is active immediately (email confirmation disabled), so no
+      // /auth/callback fires — auto-match here. Awaited so the match + greeting
+      // exist before we redirect into the dashboard (which routes to chat).
+      // autoMatchClient is best-effort and never throws.
+      await autoMatchClient(userId)
     }
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     const userRole = currentUser?.user_metadata?.role ?? role

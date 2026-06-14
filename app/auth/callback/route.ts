@@ -98,6 +98,15 @@ export async function GET(request: Request) {
     await sendNotificationEmail({ to: user.email, name: firstName, type: 'client_welcome', meta: {} })
   }
 
+  // Client just confirmed their email → auto-match them to a therapist and seed
+  // the chat with a greeting. Awaited so the active match exists before we
+  // redirect (the dashboard routes a matched client straight to chat).
+  // Best-effort: autoMatchClient never throws and no-ops if already matched.
+  if (role === 'client' && !isRecovery) {
+    const { autoMatchClient } = await import('@/lib/auto-match')
+    await autoMatchClient(user.id)
+  }
+
   // The session is now set on the response cookies, so the user lands already
   // signed in. Route by role; recovery always goes to the reset page.
   const destination =
