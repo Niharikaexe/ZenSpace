@@ -20,6 +20,10 @@ interface Props {
   initialMessages: Message[]
   sendDisabled?: boolean
   onSendDisabled?: () => void
+  // Tappable intro suggestions shown until the user sends their first message.
+  // Client view passes these; the therapist view leaves it undefined so they
+  // never appear there. Clicking one sends it immediately.
+  quickReplies?: string[]
 }
 
 function formatTime(iso: string) {
@@ -43,6 +47,7 @@ export default function ChatInterface({
   initialMessages,
   sendDisabled = false,
   onSendDisabled,
+  quickReplies,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
@@ -56,6 +61,10 @@ export default function ChatInterface({
   // page load), it gates further sends.
   const [introBlocked, setIntroBlocked] = useState(false)
   const blocked = sendDisabled || introBlocked
+  // Intro quick-replies: shown only until the user sends their first message,
+  // and never while sending is blocked.
+  const clientHasSent = messages.some(m => m.sender_id === currentUserId)
+  const showQuickReplies = !!quickReplies && quickReplies.length > 0 && !blocked && !clientHasSent
   // Popup shown when a blocked client tries to send — prompts them to book.
   const [showLimitModal, setShowLimitModal] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -110,13 +119,12 @@ export default function ChatInterface({
     e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`
   }
 
-  async function handleSend() {
-    if (!input.trim() || sendingRef.current) return
+  // Core send — used by both the input bar and the quick-reply bubbles.
+  async function sendContent(raw: string) {
+    const content = raw.trim()
+    if (!content || sendingRef.current) return
     if (blocked) { setShowLimitModal(true); return }
-    const content = input.trim()
-    setInput('')
     setSendError(null)
-    if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
     // Optimistic update
     const optimistic: Message = {
@@ -151,6 +159,15 @@ export default function ChatInterface({
       sendingRef.current = false
       setIsSending(false)
     }
+  }
+
+  function handleSend() {
+    if (!input.trim() || sendingRef.current) return
+    if (blocked) { setShowLimitModal(true); return }
+    const content = input.trim()
+    setInput('')
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    void sendContent(content)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -252,6 +269,25 @@ export default function ChatInterface({
             >
               Book a session
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Intro quick-replies — tap to send. Hidden after the first message. */}
+      {showQuickReplies && (
+        <div className="flex-none px-4 pt-3">
+          <div className="flex flex-wrap gap-2">
+            {quickReplies!.map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => void sendContent(q)}
+                disabled={isSending}
+                className="text-sm text-[#3D8A80] bg-[#7EC0B7]/12 border border-[#7EC0B7]/30 hover:bg-[#7EC0B7]/20 rounded-full px-3.5 py-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {q}
+              </button>
+            ))}
           </div>
         </div>
       )}

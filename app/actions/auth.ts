@@ -7,8 +7,9 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import type { Database, Json } from '@/types/database'
 import { backfillClientProfile } from '@/app/actions/questionnaire'
-import { sendAdminNewClientSignupEmail, sendNotificationEmail } from '@/lib/email'
+import { sendAdminNewClientSignupEmail } from '@/lib/email'
 import { extractAttribution } from '@/lib/attribution-server'
+import { autoMatchClient } from '@/lib/auto-match'
 
 type QuestionnaireInsert =
   Database['public']['Tables']['questionnaire_responses']['Insert']
@@ -217,15 +218,21 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     }
   }
 
+  // Auto-match every new client to a therapist (round-robin) and seed the chat
+  // with a greeting — right after the account is created, regardless of whether
+  // email confirmation is on. This guarantees the match exists by the time the
+  // client first reaches their dashboard, instead of depending on the
+  // /auth/callback (email-verification) path firing. Best-effort + idempotent:
+  // it never throws and no-ops if the client already has a match.
+  if (role === 'client') {
+    await autoMatchClient(userId)
+  }
+
   if (sessionCreatedImmediately) {
     // Email confirmation is disabled in Supabase, so the account is active
-    // immediately and no /auth/callback will fire. Send the welcome email now.
-    if (role === 'client') {
-      const firstName = fullName.split(' ')[0] || 'there'
-      // after() — runs post-response so the welcome email doesn't delay the
-      // redirect into the dashboard.
-      after(() => sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} }))
-    }
+    // immediately. No separate welcome email is sent — the single combined
+    // "welcome + you've been matched" email is dispatched by autoMatchClient
+    // above (client_match_made).
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     const userRole = currentUser?.user_metadata?.role ?? role
     logger.info('auth/signUp', 'Immediate session — redirecting to dashboard', { userId, role: userRole })

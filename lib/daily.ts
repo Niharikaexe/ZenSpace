@@ -26,7 +26,16 @@ export async function createDailyRoom(matchId: string, scheduledAtIso: string): 
       body: JSON.stringify({
         name: roomName,
         privacy: 'private',
-        properties: { exp, max_participants: 2 },
+        properties: {
+          exp,
+          max_participants: 2,
+          // Transcript-only monitoring: store the live transcription as WebVTT.
+          // NO recording (enable_recording is intentionally left unset). The
+          // therapist's owner token carries auto_start_transcription:true, so
+          // transcription begins automatically when they join — no client code.
+          enable_transcription_storage: true,
+          enable_live_captions_ui: true,
+        },
       }),
     })
 

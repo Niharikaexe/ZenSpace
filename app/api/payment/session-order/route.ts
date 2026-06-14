@@ -9,6 +9,7 @@ import { z } from 'zod'
 import {
   sessionPriceInr,
   therapistSessionPayoutInr,
+  MIN_BOOKING_LEAD_MS,
   type SessionCategory,
   type ProposalTier,
 } from '@/lib/plans'
@@ -52,10 +53,12 @@ export async function POST(request: Request) {
 
   const { matchId, scheduledAt } = parsed.data
 
-  // The slot must be a valid future date.
+  // The slot must be a valid date at least MIN_BOOKING_LEAD_MS (1h) from now —
+  // mirrors the UI, which hides closer slots, and blocks clients who try to
+  // bypass it. The booking is rejected if it's within the next hour.
   const scheduledDate = new Date(scheduledAt)
-  if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() < Date.now()) {
-    return NextResponse.json({ error: 'Please pick an upcoming time slot.' }, { status: 400 })
+  if (Number.isNaN(scheduledDate.getTime()) || scheduledDate.getTime() < Date.now() + MIN_BOOKING_LEAD_MS) {
+    return NextResponse.json({ error: 'Sessions must be booked at least 1 hour in advance.' }, { status: 400 })
   }
 
   const admin = createAdminClient()

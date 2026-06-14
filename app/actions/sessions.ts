@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { z } from 'zod'
 import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
+import { scanText } from '@/lib/message-flags'
 import { logger } from '@/lib/logger'
 
 async function getAuthUser() {
@@ -24,12 +25,19 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
   const trimmed = content.trim()
   if (!trimmed) return { error: 'Message cannot be empty' }
 
-  // Enforce subscription + intro limit for clients (not therapists)
+  // Identify the sender's role from the MATCH itself (authoritative — the
+  // matches table, not spoofable user_metadata/JWT claims). This replaces a
+  // separate profiles.role lookup and is reused for the notification below.
+  // The free-intro limit applies only to the client of this match; therapists
+  // are never gated.
   const admin = createAdminClient()
-  const { data: senderProfile } = await (admin as any)
-    .from('profiles').select('role').eq('id', user.id).single() as { data: { role: string } | null; error: unknown }
+  const { data: match } = await (admin as any)
+    .from('matches')
+    .select('client_id, therapist_id')
+    .eq('id', matchId)
+    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
 
-  if (senderProfile?.role === 'client') {
+  if (match && user.id === match.client_id) {
     // Free intro chat: 25 messages total (client + therapist combined), no
     // time window. Once the conversation reaches 25 messages, the client must
     // have booked (and paid for) at least one session to keep chatting —
@@ -50,24 +58,38 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
     }
   }
 
-  const { error } = await (supabase as any).from('messages').insert({
+  const { data: inserted, error } = await (supabase as any).from('messages').insert({
     match_id: matchId,
     sender_id: user.id,
     content: trimmed,
     message_type: 'text',
-  })
+  }).select('id').single()
 
   if (error) return { error: error.message }
 
-  // Notify the OTHER party (debounced — once per 5 min per match)
-  try {
-    const admin = createAdminClient()
-    const { data: match } = await (admin as any)
-      .from('matches')
-      .select('client_id, therapist_id')
-      .eq('id', matchId)
-      .single()
+  // Policy/safety scan runs AFTER the response (never on the send path), so it
+  // adds zero latency to sending. Only flagged messages incur a follow-up write;
+  // clean messages (the common case) cost nothing. Admin sees categories, not text.
+  if (inserted?.id) {
+    // async callback → after() awaits it, so the flag write always completes
+    // before the function shuts down (never fire-and-forget).
+    after(async () => {
+      const scan = scanText(trimmed)
+      if (!scan.flagged) return
+      try {
+        await (createAdminClient() as any)
+          .from('messages')
+          .update({ flagged: true, flag_reason: scan.reason })
+          .eq('id', inserted.id)
+      } catch (err) {
+        logger.warn('sessions/sendMessage', 'Flag update failed', { err: err instanceof Error ? err.message : String(err) })
+      }
+    })
+  }
 
+  // Notify the OTHER party (debounced — once per 5 min per match).
+  // Reuses the `match` fetched above — no extra query.
+  try {
     if (match) {
       const recipientId = user.id === match.client_id ? match.therapist_id : match.client_id
       const shouldNotify = await shouldNotifyMessage(recipientId, matchId)
@@ -463,6 +485,12 @@ export async function getSessionJoinUrl(sessionId: string): Promise<{ url?: stri
           is_owner: isTherapist,
           exp,
           user_name: isTherapist ? 'Therapist' : 'Client',
+          // user_id lets the Daily webhook attribute participant.joined events to
+          // the right person (client vs therapist) for on-time tracking.
+          user_id: user.id,
+          // Auto-start cloud transcription when the therapist (owner) joins. No
+          // effect on the client token. Recording stays off — transcript only.
+          ...(isTherapist ? { auto_start_transcription: true } : {}),
         },
       }),
     })

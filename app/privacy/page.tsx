@@ -80,7 +80,7 @@ export default function PrivacyPage() {
               Privacy Policy
             </h1>
             <p className="text-[#233551]/50 text-sm mb-12">
-              Last updated: <strong>25 May 2026</strong>
+              Last updated: <strong>14 June 2026</strong>
             </p>
 
             {/* Body */}
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
                 <><span className="font-semibold text-[#233551]">Account and profile information:</span> Name, email address, phone number (where provided), age or date of birth, gender, location (city/state), and password or other login credentials.</>,
                 <><span className="font-semibold text-[#233551]">Therapy preferences:</span> Areas you want to work on, preferred therapist characteristics, language preferences, availability, and communication preferences.</>,
                 <><span className="font-semibold text-[#233551]">Intake and session information:</span> Answers to onboarding forms, screening or intake questionnaires, information about your mental health concerns and goals, and details you choose to share before or during sessions.</>,
-                <><span className="font-semibold text-[#233551]">Session records and notes (online):</span> Session booking history (dates, times, duration, status); session notes or summaries created on the platform for you and your Therapist to view, as part of your care.</>,
+                <><span className="font-semibold text-[#233551]">Session records and notes (online):</span> Session booking history (dates, times, duration, status); session notes or summaries created on the platform for you and your Therapist to view, as part of your care. For video sessions, a text transcript is generated (via our video provider) and automatically scanned for safety and policy purposes, after which the transcript is deleted (see Sections 6 and 10).</>,
                 <><span className="font-semibold text-[#233551]">Communication data:</span> Messages you send via our platform (where messaging is enabled) and emails or other communications with our support team.</>,
                 <><span className="font-semibold text-[#233551]">Billing and payment information:</span> Name, contact details, subscription or plan details, and transaction information (such as payment method, masked card information, transaction ID). Payment credentials are processed by our payment partners and are not stored in full by Mind Canopy.</>,
               ]} />
@@ -198,6 +198,7 @@ export default function PrivacyPage() {
               <H3>6.3 For safety, legal, and compliance purposes</H3>
               <Bullets items={[
                 'Detect, prevent, and respond to fraud, unauthorized access, abuse, or security incidents.',
+                'Run automated keyword scanning of platform messages and video-session transcripts to detect safety risks (such as self-harm language) and policy violations (such as attempts to share personal contact details or move payments off the platform), and to alert authorized Mind Canopy staff.',
                 'Comply with legal obligations, lawful requests, or court orders.',
                 'Protect the rights, property, or safety of Mind Canopy, our users, Therapists, or the public, including in situations involving serious risk of harm.',
               ]} />
@@ -301,6 +302,7 @@ export default function PrivacyPage() {
                 <><span className="font-semibold text-[#233551]">Intake forms, online session notes, and session history:</span> Retained for up to 3 years from the date of your last session, unless a longer or shorter period is required by applicable law.</>,
                 <><span className="font-semibold text-[#233551]">Payment and invoice records:</span> Retained for at least 3 years or longer if required by tax, accounting, or regulatory obligations.</>,
                 <><span className="font-semibold text-[#233551]">Backups and logs:</span> Retained for shorter, rolling periods necessary for security, troubleshooting, and continuity.</>,
+                <><span className="font-semibold text-[#233551]">Video-session transcripts:</span> Deleted promptly after the automated safety scan. We retain only the scan result (a flag category such as &ldquo;self-harm&rdquo; or &ldquo;off-platform contact&rdquo;), never the transcript text.</>,
               ]} />
               <P>
                 After the relevant retention period, we will delete or anonymize your personal data in accordance with our internal policies and applicable law.
@@ -339,6 +341,9 @@ export default function PrivacyPage() {
               ]} />
               <P>
                 We do not use or share therapy content, session notes, therapist notes, or detailed mental health information for advertising, marketing, or unrelated analytics.
+              </P>
+              <P>
+                To keep the platform safe, messages and video-session transcripts are screened by an automated keyword scan. This surfaces only a flag category (for example, &ldquo;self-harm&rdquo; or &ldquo;off-platform contact&rdquo;) to a limited set of authorized staff &mdash; not the content of your messages or sessions &mdash; and transcripts are deleted once scanned.
               </P>
 
               <H2>13. Cookies and Tracking Technologies</H2>

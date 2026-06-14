@@ -14,7 +14,7 @@ type CommonStepId =
   | 'c4' | 'c5' | 'c6'
   | 'c7' | 'c8'
   | 'c9' | 'c10' | 'c10a'
-  | 'c11' | 'c12' | 'c13'
+  | 'c11' | 'c12' | 'c13' | 'c14'
 
 const LANGUAGE_OPTIONS = [
   'English',
@@ -42,7 +42,10 @@ type CommonAnswers = {
   c12: string[]  // Identity/experience preferences (multi)
   c13: string[]  // Language preference (multi)
   c13Other: string // Free-text other language(s)
+  c14: string    // Preferred session format (single)
 }
+
+const SESSION_FORMAT_OPTIONS = ['Text/chat messaging', 'Video call', 'Either is fine']
 
 type PartnerAnswers = {
   p0: string   // Age range (single)
@@ -59,7 +62,7 @@ const initialCommon: CommonAnswers = {
   c4: '', c5: '', c6: [], c6Other: '',
   c7: 0, c8: '',
   c9: [], c9Other: '', c10: '', c10a: '',
-  c11: '', c12: [], c13: [], c13Other: '',
+  c11: '', c12: [], c13: [], c13Other: '', c14: '',
 }
 
 const initialPartner: PartnerAnswers = {
@@ -72,7 +75,7 @@ type Phase = 'common' | 'partner1-private' | 'handover' | 'partner2-private' | '
 const PRIVATE_STEPS: (keyof PartnerAnswers)[] = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6']
 
 function buildCommonSteps(): CommonStepId[] {
-  return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12', 'c13']
+  return ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c11', 'c12', 'c13', 'c14']
 }
 
 function buildFinalSteps(a: CommonAnswers): CommonStepId[] {
@@ -87,6 +90,7 @@ function commonSectionLabel(step: CommonStepId): string {
   if (step === 'c7' || step === 'c8') return "Section C — How it's working"
   if (step === 'c9') return 'Section D — Goals'
   if (step === 'c11' || step === 'c12') return 'Section E — Your therapist'
+  if (step === 'c13' || step === 'c14') return 'Section E — Your therapist'
   return 'Section F — Past therapy'
 }
 
@@ -155,6 +159,7 @@ export default function CouplesQuestionnairePage() {
         case 'c11': return !!common.c11
         case 'c12': return true // optional
         case 'c13': return common.c13.length > 0 || common.c13Other.trim().length > 0
+        case 'c14': return !!common.c14
       }
     }
     if (isPrivate) {
@@ -702,6 +707,20 @@ export default function CouplesQuestionnairePage() {
                   placeholder="e.g. Malayalam, Punjabi, Urdu"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
                 />
+              </div>
+            </div>
+          )}
+
+          {phase === 'common' && commonStep === 'c14' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                How would you prefer to meet your therapist?
+              </h2>
+              <p className="text-sm text-[#233551]/50">You can change this anytime — it just helps us match you well.</p>
+              <div className="grid grid-cols-1 gap-2">
+                {SESSION_FORMAT_OPTIONS.map(opt => (
+                  <OptionButton key={opt} selected={common.c14 === opt} onClick={() => setCommonField('c14', opt)}>{opt}</OptionButton>
+                ))}
               </div>
             </div>
           )}

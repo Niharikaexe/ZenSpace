@@ -15,7 +15,7 @@ type StepId =
   | 'q4' | 'q5' | 'q6' | 'q7' | 'q8' | 'q9' | 'q10'
   | 'q11' | 'q11a'
   | 'q12' | 'q12a' | 'q12b'
-  | 'q13' | 'q14' | 'q15'
+  | 'q13' | 'q14' | 'q15' | 'q16'
 
 type Answers = {
   age: string        // Age range (single)
@@ -38,7 +38,10 @@ type Answers = {
   q14: string[]      // Other characteristics (multi, optional)
   q15: string[]      // Language preference (multi)
   q15Other: string   // Free-text other language(s)
+  q16: string        // Preferred session format (single)
 }
+
+const SESSION_FORMAT_OPTIONS = ['Text/chat messaging', 'Video call', 'Either is fine']
 
 const LANGUAGE_OPTIONS = [
   'English',
@@ -56,7 +59,7 @@ const initialAnswers: Answers = {
   q4: '', q5: '', q6: '', q7: '', q8: '', q9: [], q10: [],
   q11: '', q11a: '',
   q12: '', q12a: '', q12b: [],
-  q13: '', q14: [], q15: [], q15Other: '',
+  q13: '', q14: [], q15: [], q15Other: '', q16: '',
 }
 
 function buildSteps(a: Answers): StepId[] {
@@ -64,7 +67,7 @@ function buildSteps(a: Answers): StepId[] {
   if (a.q11 === 'Yes') steps.push('q11a')
   steps.push('q12')
   if (a.q12 === 'Yes') steps.push('q12a', 'q12b')
-  steps.push('q13', 'q14', 'q15')
+  steps.push('q13', 'q14', 'q15', 'q16')
   return steps
 }
 
@@ -73,6 +76,7 @@ function sectionLabel(step: StepId): string {
   if (step === 'q1' || step === 'q2' || step === 'q3') return "Section A — What's bringing you here"
   if (step === 'q4' || step === 'q5' || step === 'q6' || step === 'q7' || step === 'q8' || step === 'q9' || step === 'q10' || step === 'q11' || step === 'q11a') return "Section B — How you've been"
   if (step === 'q12' || step === 'q12a' || step === 'q12b') return 'Your therapy history'
+  if (step === 'q16') return "How you'd like to meet"
   return 'Section C — Your therapist'
 }
 
@@ -131,6 +135,7 @@ export default function IndividualQuestionnairePage() {
       case 'q13': return !!answers.q13
       case 'q14': return true // multi, optional
       case 'q15': return answers.q15.length > 0 || answers.q15Other.trim().length > 0
+      case 'q16': return !!answers.q16
       default: return true
     }
   }
@@ -539,6 +544,20 @@ export default function IndividualQuestionnairePage() {
                   placeholder="e.g. Malayalam, Punjabi, Urdu"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
                 />
+              </div>
+            </div>
+          )}
+
+          {step === 'q16' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                How would you prefer to meet your therapist?
+              </h2>
+              <p className="text-sm text-[#233551]/50">You can change this anytime — it just helps us match you well.</p>
+              <div className="grid grid-cols-1 gap-2">
+                {SESSION_FORMAT_OPTIONS.map(opt => (
+                  <OptionButton key={opt} selected={answers.q16 === opt} onClick={() => setSingle('q16', opt)}>{opt}</OptionButton>
+                ))}
               </div>
             </div>
           )}

@@ -11,6 +11,7 @@ import MatchModal from './MatchModal'
 import QuestionnaireDetails from './QuestionnaireDetails'
 import { LeadsTab } from './LeadsTab'
 import { ComposeTab } from './ComposeTab'
+import { labelReasons } from '@/lib/message-flags'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,16 @@ type ClientProfile = {
   previous_therapy: boolean
   preferred_therapist_gender: string | null
   preferred_session_type: string
+  preferred_session_format: string | null
   gender: string | null
+}
+
+// Display label for the questionnaire-captured session-format preference.
+export function sessionFormatLabel(v: string | null | undefined): string {
+  if (v === 'chat') return 'Text/chat'
+  if (v === 'video') return 'Video call'
+  if (v === 'either') return 'Either is fine'
+  return 'Not specified'
 }
 
 type Subscription = {
@@ -141,6 +151,28 @@ export type ActiveMatch = {
   client: { id: string; full_name: string; avatar_url: string | null } | null
   therapist: { id: string; full_name: string; avatar_url: string | null } | null
   subscription: Subscription | null
+  // Flagged-message summary (categories + counts, never content). See lib/message-flags.ts.
+  flags: { count: number; reasons: string[]; lastAt: string | null }
+  // Per-session monitoring from the Daily webhook (join punctuality + transcript flags).
+  sessionMonitor: {
+    scheduled_at: string
+    status: string
+    client_joined_at: string | null
+    therapist_joined_at: string | null
+    client_on_time: boolean | null
+    therapist_on_time: boolean | null
+    transcript_flagged: boolean
+    transcript_flag_reason: string | null
+  }[]
+  // Chat read/unread + activity (counts/timestamps only, never content).
+  chatStats: {
+    total: number
+    unreadByClient: number
+    unreadByTherapist: number
+    lastMessageAt: string | null
+    lastSenderRole: 'client' | 'therapist' | null
+    lastClientReplyAt: string | null
+  }
 }
 
 export type TherapistPayoutSummary = {
@@ -284,6 +316,9 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
   // Two-step confirm for settling a payout (avoids a native confirm() dialog).
   const [confirmPayoutId, setConfirmPayoutId] = useState<string | null>(null)
+  // Active Matches: "Flagged only" filter + click-to-expand flag details.
+  const [matchesFlaggedOnly, setMatchesFlaggedOnly] = useState(false)
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null)
   // Track which application just had a verification email sent (for the chip).
   const [verifyEmailSentId, setVerifyEmailSentId] = useState<string | null>(null)
 
@@ -872,7 +907,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-white rounded-lg p-4 border border-slate-200">
                             <InfoField label="Gender" value={client.clientProfile?.gender} />
                             <InfoField label="Previous therapy" value={client.clientProfile?.previous_therapy ? 'Yes' : 'No'} />
-                            <InfoField label="Session preference" value={client.clientProfile?.preferred_session_type} />
+                            <InfoField label="Session preference" value={sessionFormatLabel(client.clientProfile?.preferred_session_format)} preserveCase />
                             <InfoField
                               label="Therapist preference"
                               value={client.clientProfile?.preferred_therapist_gender || 'No preference'}
@@ -1060,18 +1095,61 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
           )}
 
           {/* ── Active Matches Tab ── */}
-          {tab === 'matches' && (
-            activeMatches.length === 0 ? (
+          {tab === 'matches' && (() => {
+            // "Flagged" = a flagged chat message OR a flagged session transcript.
+            const hasAnyFlag = (m: ActiveMatch) =>
+              m.flags.count > 0 || m.sessionMonitor.some(s => s.transcript_flagged)
+            const flaggedCount = activeMatches.filter(hasAnyFlag).length
+            const visibleMatches = matchesFlaggedOnly
+              ? activeMatches.filter(hasAnyFlag)
+              : activeMatches
+            return activeMatches.length === 0 ? (
               <div className="py-20 text-center">
                 <p className="font-semibold text-slate-700">No active matches</p>
                 <p className="text-sm text-slate-400 mt-1">Match clients to therapists from the Pending Clients tab.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {activeMatches.map(match => {
+              <>
+                {/* Filter bar */}
+                <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-3">
+                  <button
+                    onClick={() => setMatchesFlaggedOnly(false)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+                      !matchesFlaggedOnly ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    All · {activeMatches.length}
+                  </button>
+                  <button
+                    onClick={() => setMatchesFlaggedOnly(true)}
+                    className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors inline-flex items-center gap-1.5 ${
+                      matchesFlaggedOnly ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'
+                    }`}
+                  >
+                    <span aria-hidden>⚑</span> Flagged · {flaggedCount}
+                  </button>
+                </div>
+
+                {visibleMatches.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <div className="text-4xl mb-2">✓</div>
+                    <p className="font-semibold text-slate-700">No flagged conversations</p>
+                    <p className="text-sm text-slate-400 mt-1">Nothing has tripped a content rule.</p>
+                  </div>
+                ) : (
+                <div className="divide-y divide-slate-100">
+                {visibleMatches.map(match => {
                   const isProposal = match.status === 'pending'
+                  const hasFlags = match.flags.count > 0
+                  const transcriptFlagCount = match.sessionMonitor.filter(s => s.transcript_flagged).length
+                  const hasDetail = hasFlags || match.sessionMonitor.length > 0 || match.chatStats.total > 0
+                  const isExpanded = expandedMatchId === match.id
                   return (
-                  <div key={match.id} className="px-6 py-4 flex items-center gap-4">
+                  <div key={match.id}>
+                  <div
+                    className={`px-6 py-4 flex items-center gap-4 ${hasDetail ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                    onClick={hasDetail ? () => setExpandedMatchId(isExpanded ? null : match.id) : undefined}
+                  >
                     {/* Client → Therapist avatars */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <Initials name={match.client?.full_name ?? 'C'} url={match.client?.avatar_url ?? null} size="sm" />
@@ -1088,6 +1166,16 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                             match.tier === 'professional' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
                           }`}>
                             {match.tier}
+                          </span>
+                        )}
+                        {hasFlags && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">
+                            <span aria-hidden>⚑</span> {match.flags.count} chat
+                          </span>
+                        )}
+                        {transcriptFlagCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">
+                            <span aria-hidden>⚑</span> {transcriptFlagCount} session
                           </span>
                         )}
                         {isProposal ? (
@@ -1108,17 +1196,129 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     </div>
                     <button
                       disabled={isPending}
-                      onClick={() => startTransition(() => endMatch(match.id))}
+                      onClick={(e) => { e.stopPropagation(); startTransition(() => endMatch(match.id)) }}
                       className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium transition-colors flex-shrink-0"
                     >
                       {isProposal ? 'Cancel proposal' : 'End match'}
                     </button>
                   </div>
+
+                  {/* Expanded detail — categories + join punctuality, never content */}
+                  {hasDetail && isExpanded && (
+                    <div className="px-6 pb-4 -mt-1 bg-slate-50/60 space-y-3">
+                      {/* Chat flags */}
+                      {hasFlags && (
+                        <div className="rounded-lg border border-red-100 bg-white p-4">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                            Chat flag categories
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {labelReasons(match.flags.reasons.join(', ')).map(label => (
+                              <span key={label} className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">
+                                {label}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-3">
+                            {match.flags.count} flagged message{match.flags.count === 1 ? '' : 's'}
+                            {match.flags.lastAt && <> · last on {formatDate(match.flags.lastAt)}</>}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Chat activity — counts + timestamps only, never content */}
+                      {match.chatStats.total > 0 && (() => {
+                        const cs = match.chatStats
+                        const daysSinceClientReply = cs.lastClientReplyAt
+                          ? Math.floor((Date.now() - new Date(cs.lastClientReplyAt).getTime()) / 86400000)
+                          : null
+                        return (
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Messages</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5 text-xs">
+                              <div>
+                                <p className="text-slate-400">Total messages</p>
+                                <p className="text-slate-700 font-semibold mt-0.5">{cs.total}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Unread by client</p>
+                                <p className={`font-semibold mt-0.5 ${cs.unreadByClient > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{cs.unreadByClient}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Unread by therapist</p>
+                                <p className={`font-semibold mt-0.5 ${cs.unreadByTherapist > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{cs.unreadByTherapist}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Last message</p>
+                                <p className="text-slate-700 font-medium mt-0.5">{cs.lastMessageAt ? formatDate(cs.lastMessageAt) : '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Last sender</p>
+                                <p className="text-slate-700 font-medium mt-0.5 capitalize">{cs.lastSenderRole ?? '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Client last replied</p>
+                                <p className={`font-medium mt-0.5 ${daysSinceClientReply !== null && daysSinceClientReply >= 3 ? 'text-amber-600' : 'text-slate-700'}`}>
+                                  {cs.lastClientReplyAt
+                                    ? daysSinceClientReply === 0 ? 'today' : `${daysSinceClientReply}d ago`
+                                    : 'never'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
+
+                      {/* Session monitoring (join punctuality + transcript flags) */}
+                      {match.sessionMonitor.length > 0 && (
+                        <div className="rounded-lg border border-slate-200 bg-white p-4">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                            Recent video sessions
+                          </p>
+                          <div className="space-y-2.5">
+                            {match.sessionMonitor.map((s, i) => {
+                              const punctuality = (joinedAt: string | null, onTime: boolean | null) =>
+                                joinedAt == null
+                                  ? <span className="text-slate-400">didn&apos;t join</span>
+                                  : onTime
+                                    ? <span className="text-emerald-600 font-medium">on time</span>
+                                    : <span className="text-amber-600 font-medium">late</span>
+                              return (
+                                <div key={i} className="flex items-center justify-between gap-3 text-xs border-b border-slate-50 last:border-0 pb-2.5 last:pb-0">
+                                  <div className="min-w-0">
+                                    <span className="text-slate-600">{formatDate(s.scheduled_at)}</span>
+                                    <span className="text-slate-300 mx-1.5">·</span>
+                                    <span className="text-slate-400 capitalize">{s.status}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 flex-shrink-0">
+                                    <span className="text-slate-500">Client: {punctuality(s.client_joined_at, s.client_on_time)}</span>
+                                    <span className="text-slate-500">Therapist: {punctuality(s.therapist_joined_at, s.therapist_on_time)}</span>
+                                    {s.transcript_flagged && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold" title={labelReasons(s.transcript_flag_reason).join(', ')}>
+                                        <span aria-hidden>⚑</span> transcript
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-slate-400 italic px-1">
+                        Content is never shown — only rule categories and join times. Transcripts are deleted after scanning.
+                      </p>
+                    </div>
+                  )}
+                  </div>
                   )
                 })}
-              </div>
+                </div>
+                )}
+              </>
             )
-          )}
+          })()}
 
           {/* ── Switch Requests Tab ── */}
           {tab === 'switches' && (
