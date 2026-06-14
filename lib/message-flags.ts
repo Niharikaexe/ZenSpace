@@ -87,9 +87,12 @@ const DETECTORS: { reason: FlagReason; re: RegExp }[] = [
  */
 export function scanText(text: string): FlagResult {
   if (!text || !text.trim()) return { flagged: false, reason: null, reasons: [] }
+  // Bound the work: cap the scanned length so a very long paste can never cause
+  // a pathological regex cost. 5000 chars is far longer than any real message.
+  const input = text.length > 5000 ? text.slice(0, 5000) : text
   const reasons: FlagReason[] = []
   for (const { reason, re } of DETECTORS) {
-    if (re.test(text)) reasons.push(reason)
+    if (re.test(input)) reasons.push(reason)
   }
   return {
     flagged: reasons.length > 0,

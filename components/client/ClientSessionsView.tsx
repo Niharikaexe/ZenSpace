@@ -8,7 +8,7 @@ import ClientNav from '@/components/client/ClientNav'
 import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
-import { formatInr } from '@/lib/plans'
+import { formatInr, MIN_BOOKING_LEAD_MS } from '@/lib/plans'
 import { toIanaTimeZone } from '@/lib/timezones'
 
 type Session = {
@@ -80,7 +80,7 @@ function buildWeek(
   // into a valid IANA zone before it reaches Intl. Falls back to UTC.
   const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
   const now = new Date()
-  const cutoff = now.getTime() + 1 * 3_600_000 // hide only slots less than 1h away
+  const cutoff = now.getTime() + MIN_BOOKING_LEAD_MS // hide slots less than 1h away
 
   // The availability is a weekly schedule keyed by day-of-week in the THERAPIST's
   // timezone. A slot's real instant therefore depends on the therapist's calendar

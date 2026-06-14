@@ -1,6 +1,11 @@
 // Central plan configuration for MindCanopy subscriptions.
 // Plan metadata used for display pricing (see CategoryPricing).
 
+// Minimum lead time for booking a session: a client can only book slots at least
+// 1 hour from now. Shared by the booking UI (ClientSessionsView hides closer
+// slots) and the server (session-order rejects them) so the two never drift.
+export const MIN_BOOKING_LEAD_MS = 60 * 60 * 1000
+
 export const PLANS = {
   // ── Individual plans ────────────────────────────────────────────────────────
   basic_weekly: {

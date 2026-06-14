@@ -107,15 +107,15 @@ export default async function TherapistClientDetailPage({
         </Link>
 
         {/* Client header */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-6 flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-xl flex items-center justify-center flex-shrink-0"
+        <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#7EC0B7]/20 text-[#3D8A80] font-black text-lg sm:text-xl flex items-center justify-center flex-shrink-0"
               style={{ fontFamily: 'var(--font-lato)' }}>
               {initials(client?.full_name ?? 'C')}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                <h1 className="text-lg sm:text-xl font-black text-[#233551] break-words" style={{ fontFamily: 'var(--font-lato)' }}>
                   {client?.full_name ?? 'Client'}
                 </h1>
                 {isNewClient && (
@@ -125,15 +125,15 @@ export default async function TherapistClientDetailPage({
                   <span className="text-[10px] font-bold text-[#3D8A80] bg-[#7EC0B7]/10 px-2 py-0.5 rounded-full">Subscribed</span>
                 )}
               </div>
-              <p className="text-sm text-[#233551]/45 mt-0.5">{client?.email}</p>
+              <p className="text-sm text-[#233551]/45 mt-0.5 break-all sm:break-words">{client?.email}</p>
               <p className="text-xs text-[#233551]/35 mt-1">Matched since {formatDate(match.created_at)}</p>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="flex flex-row sm:flex-col gap-2 sm:flex-shrink-0">
             <Link
               href="/therapist/dashboard/chat"
-              className="relative flex items-center gap-1.5 px-4 py-2 bg-[#7EC0B7]/10 text-[#3D8A80] text-xs font-semibold rounded-xl hover:bg-[#7EC0B7]/20 transition-colors"
+              className="relative flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 px-4 py-2 bg-[#7EC0B7]/10 text-[#3D8A80] text-xs font-semibold rounded-xl hover:bg-[#7EC0B7]/20 transition-colors"
             >
               Chat
               {unread > 0 && (
@@ -142,7 +142,7 @@ export default async function TherapistClientDetailPage({
             </Link>
             <Link
               href="/therapist/dashboard/video"
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#233551]/5 text-[#233551] text-xs font-semibold rounded-xl hover:bg-[#233551]/10 transition-colors"
+              className="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-1.5 px-4 py-2 bg-[#233551]/5 text-[#233551] text-xs font-semibold rounded-xl hover:bg-[#233551]/10 transition-colors"
             >
               Sessions
             </Link>
@@ -151,7 +151,7 @@ export default async function TherapistClientDetailPage({
 
         {/* Questionnaire — full intake answers */}
         {qRow ? (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6">
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6">
             <QuestionnaireDetails
               responses={qRow.responses as Record<string, unknown>}
               submittedAt={qRow.submitted_at as string | null}
@@ -159,7 +159,7 @@ export default async function TherapistClientDetailPage({
             />
           </div>
         ) : (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6">
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 sm:p-6">
             <p className="text-xs font-bold text-[#233551]/35 uppercase tracking-widest mb-2">Intake questionnaire</p>
             <p className="text-sm text-[#233551]/40 italic">This client hasn&apos;t completed the questionnaire yet.</p>
           </div>
