@@ -218,6 +218,16 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     }
   }
 
+  // Auto-match every new client to a therapist (round-robin) and seed the chat
+  // with a greeting — right after the account is created, regardless of whether
+  // email confirmation is on. This guarantees the match exists by the time the
+  // client first reaches their dashboard, instead of depending on the
+  // /auth/callback (email-verification) path firing. Best-effort + idempotent:
+  // it never throws and no-ops if the client already has a match.
+  if (role === 'client') {
+    await autoMatchClient(userId)
+  }
+
   if (sessionCreatedImmediately) {
     // Email confirmation is disabled in Supabase, so the account is active
     // immediately and no /auth/callback will fire. Send the welcome email now.
@@ -226,11 +236,6 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
       // after() — runs post-response so the welcome email doesn't delay the
       // redirect into the dashboard.
       after(() => sendNotificationEmail({ to: email, name: firstName, type: 'client_welcome', meta: {} }))
-      // Account is active immediately (email confirmation disabled), so no
-      // /auth/callback fires — auto-match here. Awaited so the match + greeting
-      // exist before we redirect into the dashboard (which routes to chat).
-      // autoMatchClient is best-effort and never throws.
-      await autoMatchClient(userId)
     }
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     const userRole = currentUser?.user_metadata?.role ?? role
