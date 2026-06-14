@@ -165,6 +165,14 @@ export interface Database {
           daily_room_url: string | null
           daily_room_name: string | null
           therapist_notes: string | null
+          client_joined_at: string | null
+          therapist_joined_at: string | null
+          client_on_time: boolean | null
+          therapist_on_time: boolean | null
+          transcript_status: string | null
+          transcript_flagged: boolean
+          transcript_flag_reason: string | null
+          transcript_scanned_at: string | null
           created_at: string
           updated_at: string
         }
@@ -175,6 +183,14 @@ export interface Database {
           scheduled_at: string
           daily_room_url?: string | null
           daily_room_name?: string | null
+          client_joined_at?: string | null
+          therapist_joined_at?: string | null
+          client_on_time?: boolean | null
+          therapist_on_time?: boolean | null
+          transcript_status?: string | null
+          transcript_flagged?: boolean
+          transcript_flag_reason?: string | null
+          transcript_scanned_at?: string | null
         }
         Update: Partial<Omit<Database['public']['Tables']['sessions']['Insert'], 'match_id'>>
       }
@@ -187,6 +203,8 @@ export interface Database {
           message_type: MessageType
           file_url: string | null
           is_read: boolean
+          flagged: boolean
+          flag_reason: string | null
           created_at: string
         }
         Insert: {
@@ -195,9 +213,13 @@ export interface Database {
           content: string
           message_type?: MessageType
           file_url?: string | null
+          flagged?: boolean
+          flag_reason?: string | null
         }
         Update: {
           is_read?: boolean
+          flagged?: boolean
+          flag_reason?: string | null
         }
       }
       questionnaire_responses: {

@@ -199,6 +199,16 @@ CREATE TABLE sessions (
   daily_room_name TEXT,
   -- Notes (therapist only)
   therapist_notes TEXT,
+  -- Session monitoring (Daily webhook; see 20260614_session_monitoring.sql).
+  -- Join punctuality + transcript scan RESULT only (categories, never content).
+  client_joined_at TIMESTAMPTZ,
+  therapist_joined_at TIMESTAMPTZ,
+  client_on_time BOOLEAN,
+  therapist_on_time BOOLEAN,
+  transcript_status TEXT,                  -- null | 'started' | 'scanned' | 'error'
+  transcript_flagged BOOLEAN NOT NULL DEFAULT FALSE,
+  transcript_flag_reason TEXT,             -- comma-separated category codes
+  transcript_scanned_at TIMESTAMPTZ,
   -- Pay-as-you-go: per-session payment (frozen at booking time)
   client_amount_paise INTEGER,             -- what the client paid, in paise
   therapist_payout_paise INTEGER,          -- therapist's earning for this session, in paise
@@ -226,6 +236,10 @@ CREATE TABLE messages (
   message_type message_type DEFAULT 'text',
   file_url TEXT,
   is_read BOOLEAN DEFAULT FALSE,
+  -- Policy/safety flagging (see lib/message-flags.ts + 20260614_message_flags.sql).
+  -- flag_reason holds comma-separated category codes, never message content.
+  flagged BOOLEAN NOT NULL DEFAULT FALSE,
+  flag_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { z } from 'zod'
 import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
+import { scanText } from '@/lib/message-flags'
 import { logger } from '@/lib/logger'
 
 async function getAuthUser() {
@@ -50,11 +51,18 @@ export async function sendMessage(matchId: string, content: string): Promise<{ e
     }
   }
 
+  // Policy/safety scan: flag (but never block) messages that share contact
+  // details, push off-platform, or carry self-harm language. The admin sees the
+  // flag categories — not the content — on the Active Matches view.
+  const scan = scanText(trimmed)
+
   const { error } = await (supabase as any).from('messages').insert({
     match_id: matchId,
     sender_id: user.id,
     content: trimmed,
     message_type: 'text',
+    flagged: scan.flagged,
+    flag_reason: scan.reason,
   })
 
   if (error) return { error: error.message }
@@ -463,6 +471,12 @@ export async function getSessionJoinUrl(sessionId: string): Promise<{ url?: stri
           is_owner: isTherapist,
           exp,
           user_name: isTherapist ? 'Therapist' : 'Client',
+          // user_id lets the Daily webhook attribute participant.joined events to
+          // the right person (client vs therapist) for on-time tracking.
+          user_id: user.id,
+          // Auto-start cloud transcription when the therapist (owner) joins. No
+          // effect on the client token. Recording stays off — transcript only.
+          ...(isTherapist ? { auto_start_transcription: true } : {}),
         },
       }),
     })

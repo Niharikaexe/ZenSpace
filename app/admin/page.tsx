@@ -140,6 +140,59 @@ export default async function AdminPage() {
     ? await admin.from('profiles').select('id, full_name, avatar_url').in('id', [...new Set<string>(matchProfileIds)])
     : { data: [] }
 
+  // ── Flagged-message aggregation per match ────────────────────────────────────
+  // Pull only the flagged subset (partial index idx_messages_flagged) — never the
+  // message content — so the admin sees flag categories + counts, not the chat.
+  const activeMatchIds: string[] = (allActiveMatches ?? []).map((m: any) => m.id)
+  const { data: flaggedRows } = activeMatchIds.length > 0
+    ? await admin
+        .from('messages')
+        .select('match_id, flag_reason, created_at')
+        .in('match_id', activeMatchIds)
+        .eq('flagged', true)
+        .order('created_at', { ascending: false })
+    : { data: [] }
+
+  const flagsByMatch = new Map<string, { count: number; reasons: string[]; lastAt: string | null }>()
+  for (const row of (flaggedRows ?? []) as { match_id: string; flag_reason: string | null; created_at: string }[]) {
+    const cur = flagsByMatch.get(row.match_id) ?? { count: 0, reasons: [], lastAt: null }
+    cur.count++
+    if (!cur.lastAt) cur.lastAt = row.created_at // rows are newest-first
+    for (const r of (row.flag_reason ?? '').split(',').map(s => s.trim()).filter(Boolean)) {
+      if (!cur.reasons.includes(r)) cur.reasons.push(r)
+    }
+    flagsByMatch.set(row.match_id, cur)
+  }
+
+  // ── Session monitoring per match (join punctuality + transcript flags) ───────
+  // Populated by the Daily webhook. Most recent 5 sessions per match.
+  const { data: monitorSessions } = activeMatchIds.length > 0
+    ? await admin
+        .from('sessions')
+        .select('match_id, scheduled_at, status, client_joined_at, therapist_joined_at, client_on_time, therapist_on_time, transcript_flagged, transcript_flag_reason')
+        .in('match_id', activeMatchIds)
+        .eq('session_type', 'video')
+        .order('scheduled_at', { ascending: false })
+    : { data: [] }
+
+  const sessionsByMatch = new Map<string, ActiveMatch['sessionMonitor']>()
+  for (const s of (monitorSessions ?? []) as any[]) {
+    const arr = sessionsByMatch.get(s.match_id) ?? []
+    if (arr.length < 5) {
+      arr.push({
+        scheduled_at: s.scheduled_at,
+        status: s.status,
+        client_joined_at: s.client_joined_at ?? null,
+        therapist_joined_at: s.therapist_joined_at ?? null,
+        client_on_time: s.client_on_time ?? null,
+        therapist_on_time: s.therapist_on_time ?? null,
+        transcript_flagged: s.transcript_flagged ?? false,
+        transcript_flag_reason: s.transcript_flag_reason ?? null,
+      })
+    }
+    sessionsByMatch.set(s.match_id, arr)
+  }
+
   const activeMatches: ActiveMatch[] = (allActiveMatches ?? []).map((m: any) => ({
     id: m.id,
     client_id: m.client_id,
@@ -152,6 +205,8 @@ export default async function AdminPage() {
     client: (matchProfiles ?? []).find((p: any) => p.id === m.client_id) ?? null,
     therapist: (matchProfiles ?? []).find((p: any) => p.id === m.therapist_id) ?? null,
     subscription: (allSubscriptions ?? []).find((s: any) => s.client_id === m.client_id) ?? null,
+    flags: flagsByMatch.get(m.id) ?? { count: 0, reasons: [], lastAt: null },
+    sessionMonitor: sessionsByMatch.get(m.id) ?? [],
   }))
 
   const inviteCodes: InviteCode[] = (rawInvites ?? []).map((inv: any) => ({

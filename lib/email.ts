@@ -693,6 +693,32 @@ function tplAdminPayoutRequest({
   `, 'admin')
 }
 
+function tplAdminTranscriptFlag(clientName: string, therapistName: string, sessionDate: string, reasonLabels: string[]) {
+  const chips = reasonLabels
+    .map(l => `<span style="display:inline-block;margin:0 6px 6px 0;padding:4px 10px;background:#fdecec;color:#c0392b;border-radius:999px;font-size:12px;font-weight:600;">${escapeHtml(l)}</span>`)
+    .join('')
+  return base(`
+    ${tag('Session Flag', '#c0392b')}
+    <br/><br/>
+    ${h1('A session transcript tripped a content rule.')}
+    ${p(`Session between <strong>${escapeHtml(clientName)}</strong> and <strong>${escapeHtml(therapistName)}</strong> on ${escapeHtml(sessionDate)}.`)}
+    <div style="margin:16px 0;">${chips}</div>
+    ${p(`Only the rule categories are shown — the transcript itself was scanned in the backend and then deleted. Review the conversation in the admin panel if needed.`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `, 'admin')
+}
+
+export async function sendAdminTranscriptFlagEmail(params: {
+  clientName: string; therapistName: string; sessionDate: string; reasonLabels: string[]; matchId?: string | null
+}): Promise<boolean> {
+  return sendAdminEmail(
+    `Session flag, ${params.clientName} ↔ ${params.therapistName}`,
+    tplAdminTranscriptFlag(params.clientName, params.therapistName, params.sessionDate, params.reasonLabels),
+    'admin-transcript-flag',
+    params.matchId ? { matchId: params.matchId } : undefined,
+  )
+}
+
 // ── Generic send helper (admin emails) ───────────────────────────────────────
 
 async function sendAdminEmail(subject: string, html: string, ctx: string, related?: RelatedRefs): Promise<boolean> {
