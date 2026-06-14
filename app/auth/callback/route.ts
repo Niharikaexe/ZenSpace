@@ -16,10 +16,11 @@ export async function GET(request: Request) {
   // Two verification paths:
   //  1. token_hash + type → verifyOtp. This is the robust path used by the email
   //     confirmation + recovery templates. It does NOT need the PKCE code-verifier
-  //     cookie, so it works even when the link is opened on a different device/
-  //     browser than signup — which is why links were failing with
-  //     auth_callback_failed before.
-  //  2. code → exchangeCodeForSession (PKCE). Kept for OAuth and any older links.
+  //     cookie, so it both confirms the email AND sets the session even when the
+  //     link is opened on a different device/browser than signup. This is the
+  //     path the email templates should use (see the token_hash template).
+  //  2. code → exchangeCodeForSession (PKCE). Kept for OAuth and older links, but
+  //     it fails when the code-verifier cookie is absent (link opened elsewhere).
   let verifyError: { message?: string } | null = null
 
   if (tokenHash && type) {
@@ -28,31 +29,39 @@ export async function GET(request: Request) {
   } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     verifyError = error
-  } else {
-    logger.warn('auth/callback', 'No code or token_hash in callback URL', { next })
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
   }
+  // No verifiable params is not an immediate failure: the user may already have a
+  // session (e.g. they clicked the link a second time). Fall through to the
+  // getUser() check below.
 
-  if (verifyError) {
-    logger.error('auth/callback', 'Email verification failed', verifyError, {
+  // Whether or not the verify call above succeeded, check for an actual session.
+  // This is the key robustness fix: when the single-use token has already been
+  // consumed — Supabase's /auth/v1/verify endpoint confirmed the email
+  // server-side, an email scanner prefetched the link, or the user clicked twice
+  // — verifyOtp/exchangeCodeForSession return an error, but the user may already
+  // be signed in. If a session exists, honor it instead of showing a scary error.
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    logger.error('auth/callback', 'No session after callback', verifyError ?? null, {
       hasCode: !!code,
       hasTokenHash: !!tokenHash,
       type,
-      message: verifyError.message,
+      message: verifyError?.message,
     })
-    // Likely an expired/already-used link (e.g. prefetched by an email scanner)
-    // — surface a distinct message so the user knows to request a fresh one.
-    const reason = (verifyError.message ?? '').toLowerCase().includes('expired')
+    // Distinguish an expired link so the user knows to request a fresh one.
+    const reason = (verifyError?.message ?? '').toLowerCase().includes('expired')
       ? 'auth_link_expired'
       : 'auth_callback_failed'
     return NextResponse.redirect(`${origin}/login?error=${reason}`)
   }
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    logger.error('auth/callback', 'Failed to get user after verification', userError)
-    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  if (verifyError) {
+    // We have a session despite the verify error — proceed (don't block the user).
+    logger.warn('auth/callback', 'Verify call errored but a valid session exists — proceeding', {
+      type,
+      message: verifyError.message,
+    })
   }
 
   const { data: profile, error: profileError } = await supabase
