@@ -103,6 +103,12 @@ export default function SignupPage() {
   useEffect(() => {
     if (state.success) {
       sessionStorage.removeItem('mindcanopy_questionnaire')
+      // Google Ads conversion: fires only when the server has confirmed a real
+      // account was created (state.success is only true on { success: true } from
+      // the signUp action). Picked up by the GTM Custom Event trigger 'sign_up'.
+      const w = window as unknown as { dataLayer?: Record<string, unknown>[] }
+      w.dataLayer = w.dataLayer || []
+      w.dataLayer.push({ event: 'sign_up' })
     }
   }, [state.success])
 
