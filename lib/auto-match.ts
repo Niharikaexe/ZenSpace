@@ -163,8 +163,8 @@ export async function autoMatchClient(clientId: string): Promise<void> {
     await Promise.allSettled([
       createNotification({
         userId: clientId,
-        type: 'client_match_made',
-        title: `Meet ${therapistFirstName}`,
+        type: 'client_welcome_matched',
+        title: `Welcome — meet ${therapistFirstName}`,
         body: `You’ve been matched with ${therapistFirstName}. They’ve already said hello — open your free chat whenever you’re ready.`,
         metadata: { therapistId, therapistFirstName, therapistFullName, adminMatchNote: '' },
       }),

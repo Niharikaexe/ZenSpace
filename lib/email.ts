@@ -172,6 +172,8 @@ function tplClientWelcome(firstName: string) {
   `, 'client')
 }
 
+// Admin manual-match email: the client already onboarded and is being matched
+// (or re-matched) by the admin. Plain "meet your therapist" copy — no welcome.
 function tplClientMatchMade(
   therapistFirstName: string,
   therapistFullName: string,
@@ -185,6 +187,27 @@ function tplClientMatchMade(
     ${btn(`Say hi →`, `${SITE}/dashboard`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
+    ${signOff}
+  `, 'client')
+}
+
+// Signup auto-match email: the single combined "welcome + you've been matched"
+// email a brand-new client receives. Sent by autoMatchClient.
+function tplClientWelcomeMatched(
+  clientFirstName: string,
+  therapistFirstName: string,
+  therapistFullName: string,
+  adminMatchNote: string,
+) {
+  return base(`
+    ${h1(`Welcome to MindCanopy, ${escapeHtml(clientFirstName)}.`)}
+    ${p(`You&rsquo;re in &mdash; and you&rsquo;re not on a waitlist. We&rsquo;ve already matched you with someone.`)}
+    ${p(`Meet <strong>${escapeHtml(therapistFullName)}</strong>. We read through your responses and think they&rsquo;ll be a good fit for you.`)}
+    ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
+    ${p(`Your first step is a free intro chat. ${escapeHtml(therapistFirstName)} is ready when you are &mdash; just open your dashboard and say hi.`)}
+    ${btn(`Say hi to ${escapeHtml(therapistFirstName)} →`, `${SITE}/dashboard`)}
+    ${p(`If it doesn&rsquo;t feel like the right fit, tell us and we&rsquo;ll keep looking. No explanation needed.`)}
+    <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Glad you came our way.</p>
     ${signOff}
   `, 'client')
 }
@@ -893,7 +916,8 @@ export async function sendPayoutRequestEmail(params: {
 export type EmailNotificationType =
   | 'client_welcome'
   | 'client_proposals_ready'        // client gets this when admin proposes two therapists to choose from
-  | 'client_match_made'
+  | 'client_match_made'             // client gets this on an admin manual match (plain "meet your therapist")
+  | 'client_welcome_matched'        // client gets this single combined welcome+matched email on signup auto-match
   | 'client_matched'                // therapist gets this when a client is matched to them
   | 'client_unmatched'              // therapist gets this when match ends
   | 'client_message'                // therapist gets this when client sends a message
@@ -941,6 +965,10 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
     case 'client_match_made':
       subject = `Meet ${meta.therapistFirstName ?? 'your therapist'}.`
       html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '')
+      break
+    case 'client_welcome_matched':
+      subject = `Welcome to MindCanopy — meet ${meta.therapistFirstName ?? 'your therapist'}.`
+      html = tplClientWelcomeMatched(name, meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '')
       break
     case 'client_matched':
       subject = `You have a new client — ${meta.clientName ?? 'someone new'}`

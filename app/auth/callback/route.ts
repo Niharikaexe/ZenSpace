@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import { sendNotificationEmail } from '@/lib/email'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 export async function GET(request: Request) {
@@ -99,18 +98,11 @@ export async function GET(request: Request) {
   // dashboard — and must not trigger the welcome email.
   const isRecovery = type === 'recovery' || next === '/auth/reset-password'
 
-  // Send the client welcome email here — i.e. once the user has actually
-  // confirmed their email — rather than during signup. The confirmation token
-  // is single-use, so this fires once per account. Skipped for recovery links.
-  if (role === 'client' && !isRecovery && user.email) {
-    const firstName = ((user.user_metadata?.full_name as string | undefined) ?? '').split(' ')[0] || 'there'
-    await sendNotificationEmail({ to: user.email, name: firstName, type: 'client_welcome', meta: {} })
-  }
-
-  // Client just confirmed their email → auto-match them to a therapist and seed
-  // the chat with a greeting. Awaited so the active match exists before we
-  // redirect (the dashboard routes a matched client straight to chat).
-  // Best-effort: autoMatchClient never throws and no-ops if already matched.
+  // No separate welcome email is sent here anymore. The single combined
+  // "welcome + you've been matched" email (client_match_made) is dispatched by
+  // autoMatchClient — at signup for new clients, or here as a fallback if the
+  // signup-time match didn't run. autoMatchClient is idempotent, so a client
+  // already matched at signup gets no second email.
   if (role === 'client' && !isRecovery) {
     const { autoMatchClient } = await import('@/lib/auto-match')
     await autoMatchClient(user.id)
