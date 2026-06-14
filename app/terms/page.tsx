@@ -83,7 +83,7 @@ export default function TermsPage() {
               MindCanopy (operated by MINDCANOPY SERVICES LLP)
             </p>
             <p className="text-[#233551]/50 text-sm mb-12">
-              Last Updated: <strong>26 May 2026</strong> &nbsp;|&nbsp; Effective Date: <strong>26 May 2026</strong>
+              Last Updated: <strong>14 June 2026</strong> &nbsp;|&nbsp; Effective Date: <strong>14 June 2026</strong>
             </p>
 
             {/* Body */}
@@ -399,6 +399,7 @@ export default function TermsPage() {
                 '(d) where disclosure is required under the Mental Healthcare Act, 2017, including but not limited to circumstances involving the safe handling of a person with mental illness;',
                 '(e) pursuant to a lawful order of a court or competent authority; and',
                 '(f) where disclosure is required for the prevention or investigation of an offence.',
+                '(g) the Platform performs automated safety monitoring of chat messages and video-session transcripts to detect risk of harm and policy violations; flagged matters may be reviewed by authorized Company personnel.',
               ]} />
               <P>
                 You acknowledge that you have been informed of these limits and consent to such disclosures where required by law.

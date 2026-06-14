@@ -73,7 +73,9 @@ CREATE TABLE client_profiles (
   therapy_goals TEXT,
   previous_therapy BOOLEAN DEFAULT FALSE,
   preferred_therapist_gender TEXT,
-  preferred_session_type session_type DEFAULT 'chat',
+  preferred_session_type session_type,   -- legacy; mirrors preferred_session_format when chat/video
+  -- Questionnaire-captured format preference; supports 'either' (the enum cannot).
+  preferred_session_format TEXT CHECK (preferred_session_format IN ('chat', 'video', 'either')),
   emergency_contact_name TEXT,
   emergency_contact_phone TEXT,
   -- Billing details (used to populate Razorpay invoice / GST receipt)

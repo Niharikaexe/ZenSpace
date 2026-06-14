@@ -16,7 +16,7 @@ type StepId =
   | 'q10' | 'q11' | 'q12' | 'q13'
   | 'q14' | 'q15' | 'q16'
   | 'q17' | 'q17a'
-  | 'q18' | 'q19'
+  | 'q18' | 'q19' | 'q20'
 
 const LANGUAGE_OPTIONS = [
   'English',
@@ -49,7 +49,10 @@ type Answers = {
   q18: string        // Anything else for therapist (text, optional)
   q19: string[]      // Language preference (multi)
   q19Other: string   // Free-text other language(s)
+  q20: string        // Preferred session format (single)
 }
+
+const SESSION_FORMAT_OPTIONS = ['Text/chat messaging', 'Video call', 'Either is fine']
 
 const AGE_RANGES = ['13 or under', '14–15', '16–17']
 
@@ -60,7 +63,7 @@ const initialAnswers: Answers = {
   q10: '', q11: '', q12: '', q13: '',
   q14: '', q15: [], q16: [],
   q17: '', q17a: '',
-  q18: '', q19: [], q19Other: '',
+  q18: '', q19: [], q19Other: '', q20: '',
 }
 
 function buildSteps(a: Answers): StepId[] {
@@ -73,7 +76,7 @@ function buildSteps(a: Answers): StepId[] {
     'q17',
   ]
   if (a.q17 === 'Yes') steps.push('q17a')
-  steps.push('q18', 'q19')
+  steps.push('q18', 'q19', 'q20')
   return steps
 }
 
@@ -82,6 +85,7 @@ function sectionLabel(step: StepId): string {
   if (step === 'q1' || step === 'q2' || step === 'q3' || step === 'q4') return "Section A — Where you're at"
   if (step === 'q5' || step === 'q6' || step === 'q7' || step === 'q8' || step === 'q9') return 'Section B — Your world'
   if (step === 'q10' || step === 'q11' || step === 'q12' || step === 'q13') return "Section C — How you've been feeling"
+  if (step === 'q20') return "How you'd like to meet"
   return 'Section D — Your therapist'
 }
 
@@ -143,6 +147,7 @@ export default function TeenQuestionnairePage() {
       case 'q17a': return !!answers.q17a
       case 'q18': return true // text, optional
       case 'q19': return answers.q19.length > 0 || answers.q19Other.trim().length > 0
+      case 'q20': return !!answers.q20
       default: return true
     }
   }
@@ -580,6 +585,20 @@ export default function TeenQuestionnairePage() {
                   placeholder="e.g. Malayalam, Punjabi, Urdu"
                   className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm text-[#233551] focus:outline-none focus:border-[#7EC0B7] transition-colors placeholder:text-[#233551]/30"
                 />
+              </div>
+            </div>
+          )}
+
+          {step === 'q20' && (
+            <div className="space-y-5">
+              <h2 className="text-xl font-black text-[#233551]" style={{ fontFamily: 'var(--font-lato)' }}>
+                How would you prefer to meet your therapist?
+              </h2>
+              <p className="text-sm text-[#233551]/50">You can change this later — it just helps us match you well.</p>
+              <div className="grid grid-cols-1 gap-2">
+                {SESSION_FORMAT_OPTIONS.map(opt => (
+                  <OptionButton key={opt} selected={answers.q20 === opt} onClick={() => setSingle('q20', opt)}>{opt}</OptionButton>
+                ))}
               </div>
             </div>
           )}

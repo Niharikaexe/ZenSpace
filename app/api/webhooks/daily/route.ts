@@ -243,6 +243,13 @@ async function handleEvent(type: string, payload: Record<string, unknown>) {
   }
 }
 
+// Daily probes the endpoint when the webhook is created/updated and expects a
+// 2xx. Some probes use GET — without this handler Next returns 405 (non-200),
+// which makes registration fail with "non-200 status code returned".
+export async function GET() {
+  return NextResponse.json({ ok: true })
+}
+
 export async function POST(req: Request) {
   const rawBody = await req.text()
 

@@ -49,6 +49,7 @@ export interface Database {
           previous_therapy: boolean
           preferred_therapist_gender: string | null
           preferred_session_type: SessionType
+          preferred_session_format: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           created_at: string
@@ -63,6 +64,7 @@ export interface Database {
           previous_therapy?: boolean
           preferred_therapist_gender?: string | null
           preferred_session_type?: SessionType
+          preferred_session_format?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
         }

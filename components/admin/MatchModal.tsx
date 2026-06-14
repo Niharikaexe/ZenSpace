@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { createMatchProposals } from '@/app/admin/actions'
 import { Button } from '@/components/ui/button'
 import type { UnmatchedClient, TherapistWithProfile } from './AdminDashboard'
+import { sessionFormatLabel } from './AdminDashboard'
 import QuestionnaireDetails from './QuestionnaireDetails'
 
 interface Props {
@@ -213,9 +214,9 @@ export default function MatchModal({ client, therapists, onClose }: Props) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Session type</p>
-                  <p className="text-sm text-slate-700 capitalize font-medium mt-0.5">
-                    {client.clientProfile?.preferred_session_type || 'Any'}
+                  <p className="text-xs text-slate-400">Session preference</p>
+                  <p className="text-sm text-slate-700 font-medium mt-0.5">
+                    {sessionFormatLabel(client.clientProfile?.preferred_session_format)}
                   </p>
                 </div>
                 <div>

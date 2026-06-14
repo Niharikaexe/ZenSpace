@@ -164,6 +164,44 @@ export default async function AdminPage() {
     flagsByMatch.set(row.match_id, cur)
   }
 
+  // ── Chat read/unread + activity per match ───────────────────────────────────
+  // Minimal columns only (no content): sender, read flag, timestamp.
+  const matchParties = new Map<string, { client: string; therapist: string }>(
+    (allActiveMatches ?? []).map((m: any) => [m.id, { client: m.client_id, therapist: m.therapist_id }])
+  )
+  const { data: msgRows } = activeMatchIds.length > 0
+    ? await admin
+        .from('messages')
+        .select('match_id, sender_id, is_read, created_at')
+        .in('match_id', activeMatchIds)
+        .order('created_at', { ascending: false })
+    : { data: [] }
+
+  const chatByMatch = new Map<string, ActiveMatch['chatStats']>()
+  for (const r of (msgRows ?? []) as { match_id: string; sender_id: string; is_read: boolean; created_at: string }[]) {
+    const parties = matchParties.get(r.match_id)
+    if (!parties) continue
+    const cur = chatByMatch.get(r.match_id) ?? {
+      total: 0, unreadByClient: 0, unreadByTherapist: 0,
+      lastMessageAt: null, lastSenderRole: null, lastClientReplyAt: null,
+    }
+    cur.total++
+    const fromClient = r.sender_id === parties.client
+    const fromTherapist = r.sender_id === parties.therapist
+    // rows are newest-first → first row seen for a match is its latest message
+    if (cur.lastMessageAt === null) {
+      cur.lastMessageAt = r.created_at
+      cur.lastSenderRole = fromClient ? 'client' : fromTherapist ? 'therapist' : null
+    }
+    if (fromClient && cur.lastClientReplyAt === null) cur.lastClientReplyAt = r.created_at
+    // is_read is flipped on messages the RECIPIENT has read.
+    if (!r.is_read) {
+      if (fromTherapist) cur.unreadByClient++   // therapist→client, client hasn't read
+      if (fromClient) cur.unreadByTherapist++   // client→therapist, therapist hasn't read
+    }
+    chatByMatch.set(r.match_id, cur)
+  }
+
   // ── Session monitoring per match (join punctuality + transcript flags) ───────
   // Populated by the Daily webhook. Most recent 5 sessions per match.
   const { data: monitorSessions } = activeMatchIds.length > 0
@@ -207,6 +245,10 @@ export default async function AdminPage() {
     subscription: (allSubscriptions ?? []).find((s: any) => s.client_id === m.client_id) ?? null,
     flags: flagsByMatch.get(m.id) ?? { count: 0, reasons: [], lastAt: null },
     sessionMonitor: sessionsByMatch.get(m.id) ?? [],
+    chatStats: chatByMatch.get(m.id) ?? {
+      total: 0, unreadByClient: 0, unreadByTherapist: 0,
+      lastMessageAt: null, lastSenderRole: null, lastClientReplyAt: null,
+    },
   }))
 
   const inviteCodes: InviteCode[] = (rawInvites ?? []).map((inv: any) => ({

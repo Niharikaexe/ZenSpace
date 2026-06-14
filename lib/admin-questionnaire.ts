@@ -26,6 +26,7 @@ const INDIVIDUAL_LABELS: LabelMap = {
   q14: 'Other therapist characteristics',
   q15: 'Languages',
   q15Other: 'Other language',
+  q16: 'Session format preference',
 }
 
 const TEEN_LABELS: LabelMap = {
@@ -51,6 +52,7 @@ const TEEN_LABELS: LabelMap = {
   q18: 'Anything else',
   q19: 'Languages',
   q19Other: 'Other language',
+  q20: 'Session format preference',
 }
 
 const COUPLES_COMMON_LABELS: LabelMap = {
@@ -71,6 +73,7 @@ const COUPLES_COMMON_LABELS: LabelMap = {
   c12: 'Specific experiences / identities to be familiar with',
   c13: 'Languages',
   c13Other: 'Other language',
+  c14: 'Session format preference',
 }
 
 // Couples per-partner private answers. Shown ONLY to the therapist (the

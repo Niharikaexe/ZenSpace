@@ -23,7 +23,16 @@ type ClientProfile = {
   previous_therapy: boolean
   preferred_therapist_gender: string | null
   preferred_session_type: string
+  preferred_session_format: string | null
   gender: string | null
+}
+
+// Display label for the questionnaire-captured session-format preference.
+export function sessionFormatLabel(v: string | null | undefined): string {
+  if (v === 'chat') return 'Text/chat'
+  if (v === 'video') return 'Video call'
+  if (v === 'either') return 'Either is fine'
+  return 'Not specified'
 }
 
 type Subscription = {
@@ -155,6 +164,15 @@ export type ActiveMatch = {
     transcript_flagged: boolean
     transcript_flag_reason: string | null
   }[]
+  // Chat read/unread + activity (counts/timestamps only, never content).
+  chatStats: {
+    total: number
+    unreadByClient: number
+    unreadByTherapist: number
+    lastMessageAt: string | null
+    lastSenderRole: 'client' | 'therapist' | null
+    lastClientReplyAt: string | null
+  }
 }
 
 export type TherapistPayoutSummary = {
@@ -889,7 +907,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-white rounded-lg p-4 border border-slate-200">
                             <InfoField label="Gender" value={client.clientProfile?.gender} />
                             <InfoField label="Previous therapy" value={client.clientProfile?.previous_therapy ? 'Yes' : 'No'} />
-                            <InfoField label="Session preference" value={client.clientProfile?.preferred_session_type} />
+                            <InfoField label="Session preference" value={sessionFormatLabel(client.clientProfile?.preferred_session_format)} preserveCase />
                             <InfoField
                               label="Therapist preference"
                               value={client.clientProfile?.preferred_therapist_gender || 'No preference'}
@@ -1124,7 +1142,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                   const isProposal = match.status === 'pending'
                   const hasFlags = match.flags.count > 0
                   const transcriptFlagCount = match.sessionMonitor.filter(s => s.transcript_flagged).length
-                  const hasDetail = hasFlags || match.sessionMonitor.length > 0
+                  const hasDetail = hasFlags || match.sessionMonitor.length > 0 || match.chatStats.total > 0
                   const isExpanded = expandedMatchId === match.id
                   return (
                   <div key={match.id}>
@@ -1207,6 +1225,49 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                           </p>
                         </div>
                       )}
+
+                      {/* Chat activity — counts + timestamps only, never content */}
+                      {match.chatStats.total > 0 && (() => {
+                        const cs = match.chatStats
+                        const daysSinceClientReply = cs.lastClientReplyAt
+                          ? Math.floor((Date.now() - new Date(cs.lastClientReplyAt).getTime()) / 86400000)
+                          : null
+                        return (
+                          <div className="rounded-lg border border-slate-200 bg-white p-4">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Messages</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2.5 text-xs">
+                              <div>
+                                <p className="text-slate-400">Total messages</p>
+                                <p className="text-slate-700 font-semibold mt-0.5">{cs.total}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Unread by client</p>
+                                <p className={`font-semibold mt-0.5 ${cs.unreadByClient > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{cs.unreadByClient}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Unread by therapist</p>
+                                <p className={`font-semibold mt-0.5 ${cs.unreadByTherapist > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{cs.unreadByTherapist}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Last message</p>
+                                <p className="text-slate-700 font-medium mt-0.5">{cs.lastMessageAt ? formatDate(cs.lastMessageAt) : '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Last sender</p>
+                                <p className="text-slate-700 font-medium mt-0.5 capitalize">{cs.lastSenderRole ?? '—'}</p>
+                              </div>
+                              <div>
+                                <p className="text-slate-400">Client last replied</p>
+                                <p className={`font-medium mt-0.5 ${daysSinceClientReply !== null && daysSinceClientReply >= 3 ? 'text-amber-600' : 'text-slate-700'}`}>
+                                  {cs.lastClientReplyAt
+                                    ? daysSinceClientReply === 0 ? 'today' : `${daysSinceClientReply}d ago`
+                                    : 'never'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })()}
 
                       {/* Session monitoring (join punctuality + transcript flags) */}
                       {match.sessionMonitor.length > 0 && (

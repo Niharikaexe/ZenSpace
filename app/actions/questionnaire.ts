@@ -21,6 +21,22 @@ function joinArray(v: unknown): string | null {
   return null
 }
 
+// Maps a session-format answer label to the stored code ('chat'|'video'|'either').
+function sessionFormat(v: unknown): string | null {
+  if (typeof v !== 'string' || !v) return null
+  if (/video/i.test(v)) return 'video'
+  if (/either|both|no preference/i.test(v)) return 'either'
+  if (/chat|text|message/i.test(v)) return 'chat'
+  return null
+}
+
+// Legacy preferred_session_type is the chat|video enum (cannot express 'either').
+// Mirror the captured format into it when it's chat/video, otherwise null — so the
+// column reflects real input instead of its misleading 'chat' default.
+function sessionTypeEnum(format: string | null): 'chat' | 'video' | null {
+  return format === 'chat' || format === 'video' ? format : null
+}
+
 function deriveClientProfileFields(data: QuestionnaireData): Record<string, unknown> {
   const { type, answers } = data
 
@@ -34,11 +50,14 @@ function deriveClientProfileFields(data: QuestionnaireData): Record<string, unkn
       ? answers.q3
       : (typeof answers.q1 === 'string' ? answers.q1 : null)
 
+    const fmt = sessionFormat(answers.q16)
     return {
       primary_concern: joinArray(answers.q2),
       therapy_goals: therapyGoals || null,
       previous_therapy: answers.q12 === 'Yes',
       preferred_therapist_gender: typeof answers.q13 === 'string' ? answers.q13 : null,
+      preferred_session_format: fmt,
+      preferred_session_type: sessionTypeEnum(fmt),
     }
   }
 
@@ -49,11 +68,14 @@ function deriveClientProfileFields(data: QuestionnaireData): Record<string, unkn
     // common.c10: past couples counseling → previous_therapy (anything other than "No")
     // common.c11: gender preference
     const common = (data as unknown as { common?: Record<string, unknown> }).common ?? {}
+    const fmt = sessionFormat(common.c14)
     return {
       primary_concern: joinArray(common.c6),
       therapy_goals: joinArray(common.c9),
       previous_therapy: typeof common.c10 === 'string' && common.c10 !== 'No' && common.c10 !== '',
       preferred_therapist_gender: typeof common.c11 === 'string' ? common.c11 : null,
+      preferred_session_format: fmt,
+      preferred_session_type: sessionTypeEnum(fmt),
     }
   }
 
@@ -61,10 +83,13 @@ function deriveClientProfileFields(data: QuestionnaireData): Record<string, unkn
     // q15: main themes (multi) → primary_concern
     // q17: past therapy Y/N → previous_therapy
     // q18: anything else (text) → therapy_goals
+    const fmt = sessionFormat(answers.q20)
     return {
       primary_concern: joinArray(answers.q15),
       therapy_goals: typeof answers.q18 === 'string' && answers.q18 ? answers.q18 : null,
       previous_therapy: answers.q17 === 'Yes',
+      preferred_session_format: fmt,
+      preferred_session_type: sessionTypeEnum(fmt),
     }
   }
 
