@@ -96,6 +96,7 @@ export default function ClientChatView({
               initialMessages={initialMessages}
               sendDisabled={!canSend}
               onSendDisabled={() => router.push('/dashboard/sessions')}
+              quickReplies={['Hi, How are you?', 'Hi, Nice to meet you', 'Hello, please help me understand how this works']}
             />
           </div>
         </div>
