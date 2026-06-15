@@ -326,6 +326,30 @@ function tplTherapistClientMessage(
   `, 'therapist')
 }
 
+// Client-facing version of the "new message" email (their therapist messaged
+// them). Same look, but the button points at the CLIENT chat (/dashboard/chat)
+// — not the therapist dashboard — and the footer uses the neutral client tone.
+function tplClientMessageFromTherapist(
+  therapistFirstName: string,
+  messageBody: string,
+) {
+  const truncated = messageBody.length > 1000 ? messageBody.slice(0, 1000) + '…' : messageBody
+  const escaped = truncated
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br/>')
+  return base(`
+    ${tag('New Message')}
+    <br/><br/>
+    ${h1(`${therapistFirstName} sent you a message.`)}
+    <div style="margin:20px 0;padding:16px 18px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#233551;line-height:1.7;">${escaped}</div>
+    ${p('Open the chat and reply whenever you&rsquo;re ready — even a line keeps the conversation going.')}
+    ${btn('Open chat →', `${SITE}/dashboard/chat`)}
+    ${signOff}
+  `, 'client')
+}
+
 function tplTherapistProfileVerified(therapistFirstName: string) {
   return base(`
     ${tag('Verified', '#3D8A80')}
@@ -978,10 +1002,17 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       subject = `Your match with ${(meta.clientName ?? 'a client').split(' ')[0]} has ended`
       html = tplTherapistClientUnmatched(name, meta.clientName ?? 'Your client')
       break
-    case 'client_message':
-      subject = `${meta.clientName ?? 'Your client'} sent you a message`
-      html = tplTherapistClientMessage(name, meta.clientName ?? 'Your client', meta.messageBody ?? '')
+    case 'client_message': {
+      // Same notification type fires in both directions; the cron sets
+      // meta.recipientRole so we pick the right template + chat link.
+      const senderName = meta.clientName ?? 'Someone'
+      const senderFirst = senderName.split(' ')[0]
+      subject = `${senderName} sent you a message`
+      html = meta.recipientRole === 'client'
+        ? tplClientMessageFromTherapist(senderFirst, meta.messageBody ?? '')
+        : tplTherapistClientMessage(name, senderName, meta.messageBody ?? '')
       break
+    }
     case 'profile_verified':
       subject = 'You are verified on MindCanopy'
       html = tplTherapistProfileVerified(name)
