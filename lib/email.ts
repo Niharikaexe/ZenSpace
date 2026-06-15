@@ -158,15 +158,48 @@ const signOff = `
   </p>
 `
 
+// Build a one-time login URL for a client's email button: clicking it logs the
+// recipient in (via /auth/confirm → verifyOtp) and lands them on `nextPath`,
+// even in a fresh browser (e.g. Gmail's in-app browser) with no session.
+//
+// Falls back to the plain in-app URL if link generation fails for any reason,
+// so the button always works — at worst it behaves like before (may prompt
+// login). Only used for CLIENT emails; therapist/admin emails keep plain URLs.
+//
+// Security note: this is a full-account login link. Tokens are single-use and
+// expire per the Supabase project's OTP-expiry setting (lower it in Auth
+// settings if forwarded-email risk is a concern on a health platform).
+async function magicLinkFor(email: string, nextPath: string): Promise<string> {
+  const fallback = `${SITE}${nextPath}`
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = createAdminClient() as any
+    const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
+    const hashed = data?.properties?.hashed_token
+    if (error || !hashed) {
+      logger.warn('email/magiclink', 'generateLink failed; using plain URL', {
+        email, err: error?.message,
+      })
+      return fallback
+    }
+    return `${SITE}/auth/confirm?token_hash=${encodeURIComponent(hashed)}&type=magiclink&next=${encodeURIComponent(nextPath)}`
+  } catch (err) {
+    logger.warn('email/magiclink', 'generateLink threw; using plain URL', {
+      email, err: err instanceof Error ? err.message : String(err),
+    })
+    return fallback
+  }
+}
+
 // ── CLIENT TEMPLATES ─────────────────────────────────────────────────────────
 
-function tplClientWelcome(firstName: string) {
+function tplClientWelcome(firstName: string, ctaUrl?: string) {
   return base(`
     ${h1(`Welcome to MindCanopy, ${escapeHtml(firstName)}.`)}
     ${p('Glad you came our way. We hope MindCanopy can be the home your mind has been looking for.')}
     ${p(`When we have a therapist for you, we&rsquo;ll write back with a short introduction. You&rsquo;ll have an intro chat with them first. If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     ${p('You can log in any time.')}
-    ${btn('Go to your dashboard →', `${SITE}/dashboard`)}
+    ${btn('Go to your dashboard →', ctaUrl ?? `${SITE}/dashboard`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">More soon.</p>
     ${signOff}
   `, 'client')
@@ -178,13 +211,14 @@ function tplClientMatchMade(
   therapistFirstName: string,
   therapistFullName: string,
   adminMatchNote: string,
+  ctaUrl?: string,
 ) {
   return base(`
     ${h1(`Meet ${escapeHtml(therapistFullName)}.`)}
     ${p(`We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
     ${p(`Your next step is an intro chat. Say hi when you&rsquo;re ready.`)}
-    ${btn(`Say hi →`, `${SITE}/dashboard`)}
+    ${btn(`Say hi →`, ctaUrl ?? `${SITE}/dashboard`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
     ${signOff}
@@ -198,6 +232,7 @@ function tplClientWelcomeMatched(
   therapistFirstName: string,
   therapistFullName: string,
   adminMatchNote: string,
+  ctaUrl?: string,
 ) {
   return base(`
     ${h1(`Welcome to MindCanopy, ${escapeHtml(clientFirstName)}.`)}
@@ -205,19 +240,19 @@ function tplClientWelcomeMatched(
     ${p(`Meet <strong>${escapeHtml(therapistFullName)}</strong>. We read through your responses and think they&rsquo;ll be a good fit for you.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
     ${p(`Your first step is a free intro chat. ${escapeHtml(therapistFirstName)} is ready when you are &mdash; just open your dashboard and say hi.`)}
-    ${btn(`Say hi to ${escapeHtml(therapistFirstName)} →`, `${SITE}/dashboard`)}
+    ${btn(`Say hi to ${escapeHtml(therapistFirstName)} →`, ctaUrl ?? `${SITE}/dashboard`)}
     ${p(`If it doesn&rsquo;t feel like the right fit, tell us and we&rsquo;ll keep looking. No explanation needed.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Glad you came our way.</p>
     ${signOff}
   `, 'client')
 }
 
-function tplClientProposalsReady(firstName: string) {
+function tplClientProposalsReady(firstName: string, ctaUrl?: string) {
   return base(`
     ${h1(`${escapeHtml(firstName)}, your matches are ready.`)}
     ${p(`We&rsquo;ve gone through your responses and hand-picked two therapists for you &mdash; a Standard and a Professional option.`)}
     ${p(`Take a look at both, read what they&rsquo;re about, and start a free chat with whoever feels right. There&rsquo;s no payment until you book a session.`)}
-    ${btn('See your therapists →', `${SITE}/dashboard`)}
+    ${btn('See your therapists →', ctaUrl ?? `${SITE}/dashboard`)}
     ${p(`If neither feels like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     ${signOff}
   `, 'client')
@@ -227,45 +262,46 @@ function tplClientSessionScheduled(
   firstName: string,
   therapistFirstName: string,
   dateStr: string,
+  ctaUrl?: string,
 ) {
   return base(`
     ${h1(`${therapistFirstName} scheduled a session.`)}
     ${p(`Hi ${firstName}, hope you&rsquo;re doing okay.`)}
     ${p(`Your therapist <strong>${therapistFirstName}</strong> has scheduled a session for <strong>${dateStr}</strong>. We&rsquo;ll send you a reminder the day before.`)}
-    ${btn('View session details →', `${SITE}/dashboard/sessions`)}
+    ${btn('View session details →', ctaUrl ?? `${SITE}/dashboard/sessions`)}
     ${signOff}
   `, 'client')
 }
 
-function tplClientSessionReminder(firstName: string, dateStr: string) {
+function tplClientSessionReminder(firstName: string, dateStr: string, ctaUrl?: string) {
   return base(`
     ${h1('Your session is tomorrow.')}
     ${p(`Hi ${firstName}, hope you&rsquo;re doing okay.`)}
     ${p(`Just a heads-up: you have an upcoming session at <strong>${dateStr}</strong>.`)}
     ${p(`Find a quiet, private spot before it starts. You don&rsquo;t need to prepare. Whatever&rsquo;s on your mind is the right thing to bring.`)}
-    ${btn('View session details →', `${SITE}/dashboard/sessions`)}
+    ${btn('View session details →', ctaUrl ?? `${SITE}/dashboard/sessions`)}
     ${signOff}
   `, 'client')
 }
 
-function tplClientChatNotStarted(firstName: string, therapistFirstName: string) {
+function tplClientChatNotStarted(firstName: string, therapistFirstName: string, ctaUrl?: string) {
   return base(`
     ${h1(`Have you said hi to ${therapistFirstName} yet?`)}
     ${p(`Hi ${firstName}, hope you&rsquo;re doing okay.`)}
     ${p(`We noticed you haven&rsquo;t started chatting with <strong>${therapistFirstName}</strong> yet. The first message doesn&rsquo;t have to be a big one. Even a &ldquo;hi&rdquo; gets the conversation going.`)}
     ${p('Whenever you&rsquo;re ready.')}
-    ${btn(`Say hi to ${therapistFirstName} →`, `${SITE}/dashboard/chat`)}
+    ${btn(`Say hi to ${therapistFirstName} →`, ctaUrl ?? `${SITE}/dashboard/chat`)}
     ${signOff}
   `, 'client')
 }
 
-function tplClientNotSubscribed(firstName: string, therapistFirstName: string) {
+function tplClientNotSubscribed(firstName: string, therapistFirstName: string, ctaUrl?: string) {
   return base(`
     ${h1('Want to try a different therapist?')}
     ${p(`Hi ${firstName}, hope you&rsquo;re doing okay.`)}
     ${p(`You started a chat with <strong>${therapistFirstName}</strong> but haven&rsquo;t subscribed yet. If they didn&rsquo;t feel like the right fit, that&rsquo;s okay. Not every match clicks the first time.`)}
     ${p(`Just let us know and we&rsquo;ll find someone else for you.`)}
-    ${btn('View dashboard →', `${SITE}/dashboard`)}
+    ${btn('View dashboard →', ctaUrl ?? `${SITE}/dashboard`)}
     ${signOff}
   `, 'client')
 }
@@ -332,6 +368,7 @@ function tplTherapistClientMessage(
 function tplClientMessageFromTherapist(
   therapistFirstName: string,
   messageBody: string,
+  ctaUrl?: string,
 ) {
   const truncated = messageBody.length > 1000 ? messageBody.slice(0, 1000) + '…' : messageBody
   const escaped = truncated
@@ -345,7 +382,7 @@ function tplClientMessageFromTherapist(
     ${h1(`${therapistFirstName} sent you a message.`)}
     <div style="margin:20px 0;padding:16px 18px;background:#f8f9fa;border-left:3px solid #7EC0B7;border-radius:4px;font-size:14px;color:#233551;line-height:1.7;">${escaped}</div>
     ${p('Open the chat and reply whenever you&rsquo;re ready — even a line keeps the conversation going.')}
-    ${btn('Open chat →', `${SITE}/dashboard/chat`)}
+    ${btn('Open chat →', ctaUrl ?? `${SITE}/dashboard/chat`)}
     ${signOff}
   `, 'client')
 }
@@ -977,22 +1014,44 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
   let subject = 'Notification from MindCanopy'
   let html = ''
 
+  // For client-facing emails, turn the primary button into a one-time login
+  // link to the destination below, so the recipient lands there already signed
+  // in. Keyed paths must match each template's plain-URL fallback. Therapist /
+  // admin emails are absent here and keep their plain in-app URLs.
+  const CLIENT_CTA_DEST: Partial<Record<EmailNotificationType, string>> = {
+    client_welcome: '/dashboard',
+    client_proposals_ready: '/dashboard',
+    client_match_made: '/dashboard',
+    client_welcome_matched: '/dashboard',
+    session_scheduled_client: '/dashboard/sessions',
+    session_reminder_client: '/dashboard/sessions',
+    client_chat_not_started: '/dashboard/chat',
+    client_not_subscribed: '/dashboard',
+    client_message: '/dashboard/chat',
+  }
+  let ctaUrl: string | undefined
+  const ctaDest = CLIENT_CTA_DEST[type]
+  // client_message fires in both directions — only magic-link the client's copy.
+  if (ctaDest && (type !== 'client_message' || meta.recipientRole === 'client')) {
+    ctaUrl = await magicLinkFor(to, ctaDest)
+  }
+
   switch (type) {
     case 'client_welcome':
       subject = `Welcome, ${name}.`
-      html = tplClientWelcome(name)
+      html = tplClientWelcome(name, ctaUrl)
       break
     case 'client_proposals_ready':
       subject = `${name}, your therapist matches are ready.`
-      html = tplClientProposalsReady(name)
+      html = tplClientProposalsReady(name, ctaUrl)
       break
     case 'client_match_made':
       subject = `Meet ${meta.therapistFirstName ?? 'your therapist'}.`
-      html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '')
+      html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl)
       break
     case 'client_welcome_matched':
       subject = `Welcome to MindCanopy — meet ${meta.therapistFirstName ?? 'your therapist'}.`
-      html = tplClientWelcomeMatched(name, meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '')
+      html = tplClientWelcomeMatched(name, meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl)
       break
     case 'client_matched':
       subject = `You have a new client — ${meta.clientName ?? 'someone new'}`
@@ -1009,7 +1068,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       const senderFirst = senderName.split(' ')[0]
       subject = `${senderName} sent you a message`
       html = meta.recipientRole === 'client'
-        ? tplClientMessageFromTherapist(senderFirst, meta.messageBody ?? '')
+        ? tplClientMessageFromTherapist(senderFirst, meta.messageBody ?? '', ctaUrl)
         : tplTherapistClientMessage(name, senderName, meta.messageBody ?? '')
       break
     }
@@ -1023,7 +1082,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
     case 'session_scheduled_client':
       subject = `${meta.therapistFirstName ?? 'Your therapist'} scheduled a session`
-      html = tplClientSessionScheduled(name, meta.therapistFirstName ?? 'your therapist', meta.dateStr ?? '')
+      html = tplClientSessionScheduled(name, meta.therapistFirstName ?? 'your therapist', meta.dateStr ?? '', ctaUrl)
       break
     case 'session_reminder_therapist':
       subject = `Session with ${meta.clientFirstName ?? 'your client'} tomorrow`
@@ -1031,7 +1090,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
     case 'session_reminder_client':
       subject = 'Your session is tomorrow'
-      html = tplClientSessionReminder(name, meta.dateStr ?? '')
+      html = tplClientSessionReminder(name, meta.dateStr ?? '', ctaUrl)
       break
     case 'switch_request':
       subject = `Switch request, ${meta.clientName ?? 'a client'} wants a new therapist`
@@ -1043,11 +1102,11 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
     case 'client_chat_not_started':
       subject = `Have you said hi to ${meta.therapistFirstName ?? 'your therapist'} yet?`
-      html = tplClientChatNotStarted(name, meta.therapistFirstName ?? 'your therapist')
+      html = tplClientChatNotStarted(name, meta.therapistFirstName ?? 'your therapist', ctaUrl)
       break
     case 'client_not_subscribed':
       subject = 'Want to try a different therapist?'
-      html = tplClientNotSubscribed(name, meta.therapistFirstName ?? 'your therapist')
+      html = tplClientNotSubscribed(name, meta.therapistFirstName ?? 'your therapist', ctaUrl)
       break
     case 'therapist_missed_session':
       subject = 'You missed a session'
