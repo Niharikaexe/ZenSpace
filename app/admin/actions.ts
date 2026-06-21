@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail, sendDiscountOfferBatch } from '@/lib/email'
+import { normalizeSessionCategory } from '@/lib/plans'
 import { logger } from '@/lib/logger'
 import { randomBytes } from 'crypto'
 import { z } from 'zod'
@@ -63,6 +64,11 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
   const therapistFullName = (therapistProfile?.full_name as string | undefined) ?? 'Your therapist'
   const therapistFirstName = therapistFullName.split(' ')[0]
 
+  // Client's category drives the first-session offer shown in the matched email.
+  const { data: cQ } = await (admin as any)
+    .from('questionnaire_responses').select('responses').eq('client_id', clientId).maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
+  const category = normalizeSessionCategory(cQ?.responses?.type)
+
   // after(): deliver post-response so it isn't killed when the action returns.
   after(() => createNotification({
     userId: therapistId,
@@ -83,6 +89,7 @@ export async function createMatch(clientId: string, therapistId: string, notes: 
       therapistFirstName,
       therapistFullName,
       adminMatchNote: notes || '',
+      category,
     },
   }).catch(() => {}))
 
@@ -162,6 +169,11 @@ export async function createMatchProposals(
     const therapistFullName = (therapistP?.full_name as string | undefined) ?? 'your therapist'
     const therapistFirstName = therapistFullName.split(' ')[0]
 
+    // Client's category drives the first-session offer shown in the matched email.
+    const { data: cQ } = await (admin as any)
+      .from('questionnaire_responses').select('responses').eq('client_id', clientId).maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
+    const category = normalizeSessionCategory(cQ?.responses?.type)
+
     // Await both so the emails actually send before the action returns
     // (un-awaited promises are killed on serverless).
     await Promise.allSettled([
@@ -177,7 +189,7 @@ export async function createMatchProposals(
         type: 'client_match_made',
         title: 'Your therapist is ready',
         body: `You’ve been matched with ${therapistFirstName}. Start a free chat whenever you’re ready.`,
-        metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '' },
+        metadata: { therapistFirstName, therapistFullName, adminMatchNote: picked[0].summary || '', category },
       }),
     ])
   } else {
@@ -459,6 +471,41 @@ export async function sendComposedEmail(
   logger.info('admin/sendComposedEmail', 'Custom email sent', { to, subject })
   revalidatePath('/admin')
   return { ok: true }
+}
+
+// Bulk campaign: send the "Special — only for you" first-session discount email
+// to every client. Admin-triggered (one click in the Send Email tab). Each send
+// is logged in email_logs like any other. Returns per-recipient counts so the
+// UI can confirm how many went out.
+//
+// Sends sequentially; fine for the current client count. If the list grows
+// large, move this to a background queue / Resend batch to avoid the serverless
+// function timeout and Resend's per-second rate limit.
+export async function sendDiscountOfferToAllClients(): Promise<{
+  ok: boolean; sent: number; failed: number; total: number; error?: string
+}> {
+  await assertAdmin()
+  const admin = createAdminClient()
+
+  const { data: clients, error } = await (admin as any)
+    .from('profiles')
+    .select('id, email, full_name')
+    .eq('role', 'client') as { data: { id: string; email: string | null; full_name: string | null }[] | null; error: unknown }
+
+  if (error) {
+    logger.error('admin/sendDiscountOfferToAllClients', 'Failed to load clients', error)
+    return { ok: false, sent: 0, failed: 0, total: 0, error: 'Could not load the client list. Please try again.' }
+  }
+
+  const recipients = (clients ?? [])
+    .filter((c) => !!c.email)
+    .map((c) => ({ to: c.email as string, name: c.full_name ?? 'there', userId: c.id }))
+
+  const { sent, failed, total } = await sendDiscountOfferBatch(recipients)
+
+  logger.info('admin/sendDiscountOfferToAllClients', 'Discount campaign sent', { sent, failed, total })
+  revalidatePath('/admin')
+  return { ok: true, sent, failed, total }
 }
 
 export async function sendApplicationVerificationEmail(applicationId: string) {

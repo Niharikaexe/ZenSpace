@@ -1,7 +1,7 @@
 import { createClient, createAdminClient, getAuthClaims } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientSessionsView from '@/components/client/ClientSessionsView'
-import { sessionPriceInr, type SessionCategory, type ProposalTier } from '@/lib/plans'
+import { sessionPriceInr, firstSessionPriceInr, type SessionCategory, type ProposalTier } from '@/lib/plans'
 import { cashfreeConfigured } from '@/lib/cashfree'
 
 export const dynamic = 'force-dynamic'
@@ -54,6 +54,25 @@ export default async function ClientSessionsPage() {
 
   const category = normalizeCategory(questionnaire?.responses?.type)
   const perSessionInr = sessionPriceInr(category, tier)
+
+  // First-session intro price (e.g. ₹799 for individual standard) — shown as the
+  // regular price struck through. Applies until the client has paid for any
+  // session; mirrors the server gate in /api/payment/session-order.
+  const introInr = firstSessionPriceInr(category, tier)
+  let firstSessionInr: number | null = null
+  if (introInr != null) {
+    const { data: clientMatches } = await (admin as any)
+      .from('matches').select('id').eq('client_id', user.id) as { data: { id: string }[] | null; error: unknown }
+    const clientMatchIds = (clientMatches ?? []).map((m: { id: string }) => m.id)
+    let everPaid = false
+    if (clientMatchIds.length > 0) {
+      const { count } = await (admin as any)
+        .from('sessions').select('id', { count: 'exact', head: true })
+        .in('match_id', clientMatchIds).eq('payment_status', 'paid') as { count: number | null }
+      everPaid = (count ?? 0) > 0
+    }
+    if (!everPaid) firstSessionInr = introInr
+  }
 
   const [tProfileResult, tUserResult, sessionsResult, userResult] = await Promise.all([
     (admin as any)
@@ -129,6 +148,7 @@ export default async function ClientSessionsPage() {
       timezone={profile?.timezone ?? null}
       therapistTimezone={therapistTimezone}
       perSessionInr={perSessionInr}
+      firstSessionInr={firstSessionInr}
       paymentsEnabled={cashfreeConfigured()}
       upcoming={upcoming}
       past={past}

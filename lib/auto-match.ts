@@ -4,6 +4,7 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/notifications'
+import { normalizeSessionCategory } from '@/lib/plans'
 import { logger } from '@/lib/logger'
 
 // Therapists that must never receive an auto-match (e.g. the owner's own test/
@@ -137,6 +138,14 @@ export async function autoMatchClient(clientId: string): Promise<void> {
     const clientName = (profiles ?? []).find((p) => p.id === clientId)?.full_name ?? 'A new client'
     const therapistFirstName = therapistFullName.split(' ')[0] || 'there'
 
+    // Client's category drives the first-session offer shown in the matched email.
+    const { data: cQ } = await (admin as any)
+      .from('questionnaire_responses')
+      .select('responses')
+      .eq('client_id', clientId)
+      .maybeSingle() as { data: { responses: Record<string, unknown> } | null; error: unknown }
+    const category = normalizeSessionCategory(cQ?.responses?.type)
+
     // Seed the chat with a greeting from the therapist.
     const { error: msgErr } = await (admin as any)
       .from('messages')
@@ -166,7 +175,7 @@ export async function autoMatchClient(clientId: string): Promise<void> {
         type: 'client_welcome_matched',
         title: `Welcome — meet ${therapistFirstName}`,
         body: `You’ve been matched with ${therapistFirstName}. They’ve already said hello — open your free chat whenever you’re ready.`,
-        metadata: { therapistId, therapistFirstName, therapistFullName, adminMatchNote: '' },
+        metadata: { therapistId, therapistFirstName, therapistFullName, adminMatchNote: '', category },
       }),
       createNotification({
         userId: therapistId,

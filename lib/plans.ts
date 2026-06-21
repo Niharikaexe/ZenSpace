@@ -182,7 +182,7 @@ export const TIER_LABELS: Record<ProposalTier, string> = {
 }
 
 export const SESSION_PRICING: Record<SessionCategory, Record<ProposalTier, number>> = {
-  individual: { standard: 1300, professional: 3200 },
+  individual: { standard: 1100, professional: 3200 },
   teen: { standard: 1800, professional: 4000 },
   couples: { standard: 2400, professional: 5000 },
 }
@@ -190,6 +190,45 @@ export const SESSION_PRICING: Record<SessionCategory, Record<ProposalTier, numbe
 /** Per-session price (INR) for a given category + tier. */
 export function sessionPriceInr(category: SessionCategory, tier: ProposalTier): number {
   return SESSION_PRICING[category][tier]
+}
+
+// ── First-session intro discount ──────────────────────────────────────────────
+// A one-time discounted price for a client's very FIRST paid session. Only the
+// category + tier combos listed here qualify; every other combo has no intro
+// discount (the first session is charged at the regular SESSION_PRICING rate).
+// Enforced server-side in /api/payment/session-order so the client can never
+// pick the price; the booking UI mirrors it for display only.
+export const FIRST_SESSION_PRICING: Partial<
+  Record<SessionCategory, Partial<Record<ProposalTier, number>>>
+> = {
+  individual: { standard: 799 }, // adult/individual standard: ₹799 first session, then ₹1,100
+}
+
+/** Discounted first-session price (INR) for a category + tier, or null if none. */
+export function firstSessionPriceInr(category: SessionCategory, tier: ProposalTier): number | null {
+  return FIRST_SESSION_PRICING[category]?.[tier] ?? null
+}
+
+/**
+ * The price (INR) a client actually pays for one pay-as-you-go session: the
+ * first-session intro price when it's their first paid session and the combo
+ * qualifies, otherwise the regular per-session price.
+ */
+export function effectiveSessionPriceInr(
+  category: SessionCategory,
+  tier: ProposalTier,
+  isFirstSession: boolean,
+): number {
+  if (isFirstSession) {
+    const intro = firstSessionPriceInr(category, tier)
+    if (intro != null) return intro
+  }
+  return sessionPriceInr(category, tier)
+}
+
+/** Normalize a questionnaire `type` value to a SessionCategory (default individual). */
+export function normalizeSessionCategory(raw: unknown): SessionCategory {
+  return raw === 'couples' || raw === 'teen' ? raw : 'individual'
 }
 
 /** Sessions billed in a monthly bundle. */
@@ -205,7 +244,9 @@ export const MONTHLY_BUNDLE_DISCOUNT = 0.10
 export const MONTHLY_BUNDLE_OVERRIDE: Partial<
   Record<SessionCategory, Partial<Record<ProposalTier, number>>>
 > = {
-  individual: { standard: 4700 }, // adult standard bundle, set to a flat ₹4,700
+  // No flat overrides currently — bundles compute as perSession × 4 × (1 − discount).
+  // (The old ₹4,700 override was tuned for the ₹1,300 adult-standard price; with the
+  // new ₹1,100 price the 10%-off bundle is ₹3,960.)
 }
 
 /**

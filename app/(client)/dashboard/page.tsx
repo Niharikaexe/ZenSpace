@@ -17,20 +17,30 @@ export default async function ClientDashboard() {
     redirect('/login')
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .maybeSingle() as { data: { role: string; full_name: string } | null; error: unknown }
+  // Profile (role/name) and the active-match check are independent — run them in
+  // parallel. The match query uses the admin client to bypass any RLS quirks on
+  // `matches`. This is the ONLY work a matched client does before redirecting.
+  const matchAdmin = createAdminClient()
+  const [profileRes, matchRes] = await Promise.all([
+    supabase.from('profiles').select('role, full_name').eq('id', user.id).maybeSingle(),
+    (matchAdmin as any)
+      .from('matches')
+      .select('id, status, therapist_id, created_at')
+      .eq('client_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle(),
+  ])
 
-  if (profileError) {
-    logger.error('dashboard/client', 'Failed to fetch profile', profileError, { userId: user.id })
+  const profile = profileRes.data as { role: string; full_name: string } | null
+  const match = (matchRes as { data: { id: string; status: string; therapist_id: string; created_at: string } | null }).data
+
+  if (profileRes.error) {
+    logger.error('dashboard/client', 'Failed to fetch profile', profileRes.error, { userId: user.id })
   }
 
   if (!profile) {
     logger.warn('dashboard/client', 'Profile row missing — creating via admin client', { userId: user.id })
-    const admin = createAdminClient()
-    const { error: upsertErr } = await (admin as any).from('profiles').upsert({
+    const { error: upsertErr } = await (matchAdmin as any).from('profiles').upsert({
       id: user.id,
       full_name: user.fullName ?? user.email ?? 'User',
       role: user.role ?? 'client',
@@ -46,48 +56,38 @@ export default async function ClientDashboard() {
     redirect(profile.role === 'admin' ? '/admin' : '/therapist/dashboard')
   }
 
-  // Fetch active match — use admin client to bypass any RLS issues on matches table
-  const matchAdmin = createAdminClient()
-  const { data: match, error: matchError } = await (matchAdmin as any)
-    .from('matches')
-    .select('id, status, therapist_id, created_at')
-    .eq('client_id', user.id)
-    .eq('status', 'active')
-    .maybeSingle() as {
-      data: { id: string; status: string; therapist_id: string; created_at: string } | null
-      error: unknown
-    }
-
-  if (matchError) {
-    logger.error('dashboard/client', 'Failed to fetch match', matchError, { userId: user.id })
+  if ((matchRes as { error: unknown }).error) {
+    logger.error('dashboard/client', 'Failed to fetch match', (matchRes as { error: unknown }).error, { userId: user.id })
   }
 
-  // Fetch active subscription
-  const { data: subscription, error: subError } = await supabase
-    .from('subscriptions')
-    .select('id, plan, status, current_period_end')
-    .eq('client_id', user.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle() as {
-      data: { id: string; plan: string; status: string; current_period_end: string | null } | null
-      error: unknown
-    }
-
-  if (subError) {
-    logger.error('dashboard/client', 'Failed to fetch subscription', subError, { userId: user.id })
+  // Matched clients live in the chat. Redirect BEFORE running any pending-state
+  // queries (proposals + questionnaire), so the matched path stays minimal — no
+  // wasted work before the redirect.
+  if (match) {
+    redirect('/dashboard/chat')
   }
 
-  // Fetch questionnaire_responses
-  // Use limit(1) + single() to safely handle any duplicate rows
-  const { data: questionnaireRows } = await supabase
-    .from('questionnaire_responses')
-    .select('responses')
-    .eq('client_id', user.id)
-    .order('submitted_at', { ascending: false })
-    .limit(1) as { data: { responses: unknown }[] | null; error: unknown }
+  // ── Not matched: pending or proposal-selection state ──────────────────────
+  // Pending proposals + the questionnaire are independent — fetch in parallel.
+  const [proposalRes, questionnaireRes] = await Promise.all([
+    (matchAdmin as any)
+      .from('matches')
+      .select('id, therapist_id, tier, admin_summary, created_at')
+      .eq('client_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('questionnaire_responses')
+      .select('responses')
+      .eq('client_id', user.id)
+      .order('submitted_at', { ascending: false })
+      .limit(1),
+  ])
 
+  const proposalRows = (proposalRes as {
+    data: { id: string; therapist_id: string; tier: string | null; admin_summary: string | null; created_at: string }[] | null
+  }).data
+  const questionnaireRows = (questionnaireRes.data ?? null) as { responses: unknown }[] | null
   const questionnaireRow = questionnaireRows?.[0] ?? null
 
   // Extract preferences from questionnaire JSON
@@ -141,34 +141,16 @@ export default async function ClientDashboard() {
     'individual'
   ) as 'individual' | 'couples' | 'teen'
 
-  const isMatched = !!match
-  const hasActiveSubscription = !!subscription
   const hasQuestionnaire = !!questionnaireRow
 
-  logger.info('dashboard/client', 'Dashboard rendered', {
+  logger.info('dashboard/client', 'Pending dashboard rendered', {
     userId: user.id,
-    isMatched,
-    hasActiveSubscription,
     hasQuestionnaire,
+    hasProposals: !!(proposalRows && proposalRows.length > 0),
   })
-
-  // Matched clients go straight to the chat interface
-  if (isMatched) {
-    redirect('/dashboard/chat')
-  }
 
   // Pending proposals: admin has hand-picked a Standard + a Professional therapist.
   // Show the two-tab selection UI so the client can read both and start a free chat.
-  const { data: proposalRows } = await (matchAdmin as any)
-    .from('matches')
-    .select('id, therapist_id, tier, admin_summary, created_at')
-    .eq('client_id', user.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true }) as {
-      data: { id: string; therapist_id: string; tier: string | null; admin_summary: string | null; created_at: string }[] | null
-      error: unknown
-    }
-
   if (proposalRows && proposalRows.length > 0) {
     const therapistIds = proposalRows.map((p) => p.therapist_id)
     const [{ data: tProfiles }, { data: tUsers }] = await Promise.all([

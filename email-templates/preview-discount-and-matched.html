@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>MindCanopy — email previews</title>
+</head>
+<!--
+  PREVIEW ONLY. Open this file in a browser to see exactly how the three new/changed
+  emails render. The markup here is copied verbatim from lib/email.ts (base + h1 + p +
+  btn + tag + offerBox helpers) with sample data: first name "Niharika", therapist
+  "Aisha Khan", first-session price ₹799. The header logo is the same
+  https://mindcanopy.in/icon.svg the real emails embed (loads over the internet).
+-->
+<body style="margin:0;padding:0;background:#FAFAFA;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+
+  <div style="max-width:560px;margin:0 auto;padding:32px 16px 8px;">
+    <p style="font-size:13px;font-weight:800;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">1 · "Special — only for you" — discount campaign (existing clients)</p>
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:8px 16px 32px;"><tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
+      <tr><td style="background:#233551;padding:20px 32px;">
+        <table cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="padding-right:12px;vertical-align:middle;"><img src="https://mindcanopy.in/icon.svg" width="32" height="32" alt="MindCanopy" style="display:block;border-radius:6px;background:#FFF5F2;" /></td>
+          <td style="vertical-align:middle;"><span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;line-height:1.3;">A warm welcome gift to you, Niharika.</h1>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We&rsquo;re really glad you&rsquo;re here, and we want to make it easier for you.</p>
+        <div style="margin:20px 0 0;padding:16px 18px;background:#FFF5F2;border:1px solid #E8926A33;border-radius:12px;">
+          <p style="margin:0;font-size:12px;font-weight:800;color:#C56A42;text-transform:uppercase;letter-spacing:0.06em;">A little something to start</p>
+          <p style="margin:8px 0 0;font-size:16px;color:#233551;line-height:1.6;">Starting therapy can often feel like a big leap. To help you begin your journey, your first session is available for just <strong>₹799</strong>.</p>
+        </div>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Say hi if you haven&rsquo;t already, pick a time that works and meet your therapist.</p>
+        <a href="#" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Book your session at ₹799 →</a>
+        <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">- MindCanopy team</p>
+      </td></tr>
+      <tr><td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
+        <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a></p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px 8px;">
+    <p style="font-size:13px;font-weight:800;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">2 · "You've been matched" — new signup (welcome + matched, with offer)</p>
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:8px 16px 32px;"><tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
+      <tr><td style="background:#233551;padding:20px 32px;">
+        <table cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="padding-right:12px;vertical-align:middle;"><img src="https://mindcanopy.in/icon.svg" width="32" height="32" alt="MindCanopy" style="display:block;border-radius:6px;background:#FFF5F2;" /></td>
+          <td style="vertical-align:middle;"><span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;line-height:1.3;">Welcome to MindCanopy, Niharika.</h1>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">You&rsquo;re in &mdash; and you&rsquo;re not on a waitlist. We&rsquo;ve already matched you with someone.</p>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Meet <strong>Aisha Khan</strong>. We read through your responses and think they&rsquo;ll be a good fit for you.</p>
+        <div style="margin:20px 0 0;padding:16px 18px;background:#FFF5F2;border:1px solid #E8926A33;border-radius:12px;">
+          <p style="margin:0;font-size:12px;font-weight:800;color:#C56A42;text-transform:uppercase;letter-spacing:0.06em;">A little something to start</p>
+          <p style="margin:8px 0 0;font-size:16px;color:#233551;line-height:1.6;">Starting therapy can often feel like a big leap. To help you begin your journey, your first session is available for just <strong>₹799</strong>.</p>
+        </div>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your first step is a free intro chat. Aisha is ready when you are &mdash; just open your dashboard and say hi.</p>
+        <a href="#" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Start your session now at ₹799 →</a>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">If it doesn&rsquo;t feel like the right fit, tell us and we&rsquo;ll keep looking. No explanation needed.</p>
+        <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Glad you came our way.</p>
+        <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">- MindCanopy team</p>
+      </td></tr>
+      <tr><td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
+        <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a></p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+
+  <div style="max-width:560px;margin:0 auto;padding:24px 16px 8px;">
+    <p style="font-size:13px;font-weight:800;color:#9aa3ad;text-transform:uppercase;letter-spacing:0.08em;">3 · "Meet your therapist" — admin manual match (with offer)</p>
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#FAFAFA;padding:8px 16px 48px;"><tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;border:1px solid #e8ecef;overflow:hidden;">
+      <tr><td style="background:#233551;padding:20px 32px;">
+        <table cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="padding-right:12px;vertical-align:middle;"><img src="https://mindcanopy.in/icon.svg" width="32" height="32" alt="MindCanopy" style="display:block;border-radius:6px;background:#FFF5F2;" /></td>
+          <td style="vertical-align:middle;"><span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">MindCanopy</span></td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="padding:32px;">
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:#233551;line-height:1.3;">Meet Aisha Khan.</h1>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.</p>
+        <div style="margin:20px 0 0;padding:16px 18px;background:#FFF5F2;border:1px solid #E8926A33;border-radius:12px;">
+          <p style="margin:0;font-size:12px;font-weight:800;color:#C56A42;text-transform:uppercase;letter-spacing:0.06em;">A little something to start</p>
+          <p style="margin:8px 0 0;font-size:16px;color:#233551;line-height:1.6;">Starting therapy can often feel like a big leap. To help you begin your journey, your first session is available for just <strong>₹799</strong>.</p>
+        </div>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Your next step is an intro chat. Say hi when you&rsquo;re ready.</p>
+        <a href="#" style="display:inline-block;margin-top:24px;padding:12px 28px;background:#233551;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:100px;">Start your session now at ₹799 →</a>
+        <p style="margin:16px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.</p>
+        <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
+        <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">- MindCanopy team</p>
+      </td></tr>
+      <tr><td style="background:#f8f9fa;border-top:1px solid #e8ecef;padding:20px 32px;">
+        <p style="margin:0;font-size:12px;color:#9aa3ad;line-height:1.6;">Questions? Email us at <a href="mailto:admin@mindcanopy.in" style="color:#3D8A80;">admin@mindcanopy.in</a></p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+
+</body>
+</html>

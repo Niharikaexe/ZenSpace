@@ -12,7 +12,8 @@
       "Bash(find /c/Users/91789/therapy-proj -path */node_modules -prune -o -type f \\\\\\(-name layout.tsx -o -name page.tsx \\\\\\) -print)",
       "Bash(xargs cat:*)",
       "Bash(Get-ChildItem -Recurse app/admin -File)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(findstr /C:\"admin.auth.admin\" app\\\\**\\\\*.tsx)"
     ]
   }
 }

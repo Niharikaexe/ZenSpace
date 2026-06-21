@@ -32,6 +32,7 @@ interface Props {
   timezone: string | null
   therapistTimezone: string
   perSessionInr: number
+  firstSessionInr: number | null
   paymentsEnabled: boolean
   upcoming: Session[]
   past: Session[]
@@ -170,6 +171,7 @@ function PaySessionModal({
   therapistName,
   matchId,
   perSessionInr,
+  firstSessionInr,
   paymentsEnabled,
   onClose,
   onBooked,
@@ -179,6 +181,7 @@ function PaySessionModal({
   therapistName: string
   matchId: string
   perSessionInr: number
+  firstSessionInr: number | null
   paymentsEnabled: boolean
   onClose: () => void
   onBooked: (label: string) => void
@@ -187,6 +190,9 @@ function PaySessionModal({
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const busy = phase !== 'idle'
+  // The amount actually charged: the discounted first-session price if this is
+  // the client's first (unpaid) session, otherwise the regular per-session price.
+  const charge = firstSessionInr ?? perSessionInr
 
   // Trigger the enter transition on mount.
   useEffect(() => {
@@ -303,9 +309,27 @@ function PaySessionModal({
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl bg-[#FAFAFA] border border-slate-100 px-4 py-3">
-            <span className="text-sm text-[#233551]/55">Session price</span>
-            <span className="text-lg font-black text-[#233551]">{formatInr(perSessionInr)}</span>
+          <div className="rounded-2xl bg-[#FAFAFA] border border-slate-100 px-4 py-3">
+            {firstSessionInr != null ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#C56A42] uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#E8926A]" /> First session offer
+                  </span>
+                  <span className="text-sm text-[#233551]/40 line-through">{formatInr(perSessionInr)}</span>
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-sm text-[#233551]/55">You pay today</span>
+                  <span className="text-lg font-black text-[#233551]">{formatInr(charge)}</span>
+                </div>
+                <p className="text-[11px] text-[#233551]/40 mt-1">Then {formatInr(perSessionInr)} per session.</p>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[#233551]/55">Session price</span>
+                <span className="text-lg font-black text-[#233551]">{formatInr(charge)}</span>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -322,7 +346,7 @@ function PaySessionModal({
             disabled={busy}
             className="w-full py-3.5 bg-[#233551] text-white font-black text-sm rounded-2xl hover:bg-[#1e2d47] transition-colors disabled:opacity-60 disabled:cursor-wait"
           >
-            {phase === 'opening' ? 'Opening checkout…' : phase === 'confirming' ? 'Confirming…' : `Pay ${formatInr(perSessionInr)} & book`}
+            {phase === 'opening' ? 'Opening checkout…' : phase === 'confirming' ? 'Confirming…' : `Pay ${formatInr(charge)} & book`}
           </button>
           <p className="text-center text-xs text-[#233551]/35 mt-3">
             Secure payment via Cashfree · Pay as you go · Non-refundable
@@ -343,6 +367,7 @@ export default function ClientSessionsView({
   timezone,
   therapistTimezone,
   perSessionInr,
+  firstSessionInr,
   paymentsEnabled,
   upcoming,
   past,
@@ -417,7 +442,14 @@ export default function ClientSessionsView({
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black text-[#233551]/35 uppercase tracking-widest">Book a Session</h2>
-                <span className="text-xs font-semibold text-[#233551]/45">{formatInr(perSessionInr)} / session</span>
+                {firstSessionInr != null ? (
+                  <span className="text-xs font-semibold">
+                    <span className="text-[#233551]/35 line-through">{formatInr(perSessionInr)}</span>{' '}
+                    <span className="text-[#3D8A80]">{formatInr(firstSessionInr)} first session</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-[#233551]/45">{formatInr(perSessionInr)} / session</span>
+                )}
               </div>
 
               {bookedLabel && (
@@ -597,6 +629,7 @@ export default function ClientSessionsView({
           therapistName={therapist.fullName}
           matchId={matchId}
           perSessionInr={perSessionInr}
+          firstSessionInr={firstSessionInr}
           paymentsEnabled={paymentsEnabled}
           onClose={() => setOpenSlot(null)}
           onBooked={handleBooked}

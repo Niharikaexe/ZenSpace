@@ -4,6 +4,7 @@
 
 import { logger } from '@/lib/logger'
 import { createAdminClient } from '@/lib/supabase/server'
+import { firstSessionPriceInr, sessionPriceInr, formatInr, type SessionCategory } from '@/lib/plans'
 
 // ── email_logs audit trail ───────────────────────────────────────────────────
 // Every Resend send attempt is recorded so the admin dashboard can debug
@@ -61,6 +62,51 @@ function parseResendId(body: string): string | null {
   } catch {
     return null
   }
+}
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+// ── Resend transport (rate-limit safe) ───────────────────────────────────────
+// Every Resend HTTP call goes through here. Two protections against the account
+// rate limit (2 req/s):
+//   1. In-process serialization + a minimum gap between calls, so a burst inside
+//      one request (e.g. the 3 emails a new signup fires) is spread under 2/s.
+//   2. Exponential backoff with jitter on 429 / 5xx, honoring Retry-After.
+// Returns the final Response; callers read the body exactly as before.
+let _resendChain: Promise<unknown> = Promise.resolve()
+let _lastResendAt = 0
+const RESEND_MIN_INTERVAL_MS = 550   // ~2 req/s ceiling
+const RESEND_MAX_RETRIES = 4
+
+async function resendFetch(url: string, payload: unknown): Promise<Response> {
+  const run = async (): Promise<Response> => {
+    for (let attempt = 0; ; attempt++) {
+      const gap = RESEND_MIN_INTERVAL_MS - (Date.now() - _lastResendAt)
+      if (gap > 0) await sleep(gap)
+      _lastResendAt = Date.now()
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+        body: JSON.stringify(payload),
+      })
+
+      // Success or a non-retryable client error → return as-is.
+      if (res.status !== 429 && res.status < 500) return res
+      if (attempt >= RESEND_MAX_RETRIES) return res
+
+      const retryAfter = Number(res.headers.get('retry-after'))
+      const backoff = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(8000, 500 * 2 ** attempt) + Math.floor(Math.random() * 250)
+      logger.warn('email/resend', 'Rate-limited / 5xx — backing off', { status: res.status, attempt, backoff })
+      await sleep(backoff)
+    }
+  }
+  // Chain so concurrent callers in the same process run one-at-a-time.
+  const result = _resendChain.then(run, run)
+  _resendChain = result.then(() => undefined, () => undefined)
+  return result
 }
 
 const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
@@ -158,6 +204,21 @@ const signOff = `
   </p>
 `
 
+// First-session discount callout, used in the client "matched" emails and the
+// standalone discount-offer email. Only ever mentions the discounted first-
+// session price (we don't anchor on or announce the regular price in emails).
+function offerBox(firstInr: number) {
+  return `
+    <div style="margin:20px 0 0;padding:16px 18px;background:#FFF5F2;border:1px solid #E8926A33;border-radius:12px;">
+      <p style="margin:0;font-size:12px;font-weight:800;color:#C56A42;text-transform:uppercase;letter-spacing:0.06em;">A little something to start</p>
+      <p style="margin:8px 0 0;font-size:16px;color:#233551;line-height:1.6;">
+        Starting therapy can often feel like a big leap. To help you begin your journey, your first session is available for just <strong>${formatInr(firstInr)}</strong>.
+      </p>
+    </div>`
+}
+
+type FirstSessionOffer = { firstInr: number; regularInr: number }
+
 // Build a one-time login URL for a client's email button: clicking it logs the
 // recipient in (via /auth/confirm → verifyOtp) and lands them on `nextPath`,
 // even in a fresh browser (e.g. Gmail's in-app browser) with no session.
@@ -212,13 +273,18 @@ function tplClientMatchMade(
   therapistFullName: string,
   adminMatchNote: string,
   ctaUrl?: string,
+  offer?: FirstSessionOffer,
 ) {
+  const cta = offer
+    ? btn(`Start your session now at ${formatInr(offer.firstInr)} →`, ctaUrl ?? `${SITE}/dashboard/sessions`)
+    : btn(`Say hi →`, ctaUrl ?? `${SITE}/dashboard`)
   return base(`
     ${h1(`Meet ${escapeHtml(therapistFullName)}.`)}
     ${p(`We&rsquo;ve gone through your responses and matched you with someone we think will be a good fit.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
+    ${offer ? offerBox(offer.firstInr) : ''}
     ${p(`Your next step is an intro chat. Say hi when you&rsquo;re ready.`)}
-    ${btn(`Say hi →`, ctaUrl ?? `${SITE}/dashboard`)}
+    ${cta}
     ${p(`If it doesn&rsquo;t feel like the right fit, just let us know and we&rsquo;ll keep looking.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">We hope they&rsquo;re the right one.</p>
     ${signOff}
@@ -233,16 +299,35 @@ function tplClientWelcomeMatched(
   therapistFullName: string,
   adminMatchNote: string,
   ctaUrl?: string,
+  offer?: FirstSessionOffer,
 ) {
+  const cta = offer
+    ? btn(`Start your session now at ${formatInr(offer.firstInr)} →`, ctaUrl ?? `${SITE}/dashboard/sessions`)
+    : btn(`Say hi to ${escapeHtml(therapistFirstName)} →`, ctaUrl ?? `${SITE}/dashboard`)
   return base(`
     ${h1(`Welcome to MindCanopy, ${escapeHtml(clientFirstName)}.`)}
     ${p(`You&rsquo;re in &mdash; and you&rsquo;re not on a waitlist. We&rsquo;ve already matched you with someone.`)}
     ${p(`Meet <strong>${escapeHtml(therapistFullName)}</strong>. We read through your responses and think they&rsquo;ll be a good fit for you.`)}
     ${adminMatchNote ? p(escapeHtml(adminMatchNote)) : ''}
+    ${offer ? offerBox(offer.firstInr) : ''}
     ${p(`Your first step is a free intro chat. ${escapeHtml(therapistFirstName)} is ready when you are &mdash; just open your dashboard and say hi.`)}
-    ${btn(`Say hi to ${escapeHtml(therapistFirstName)} →`, ctaUrl ?? `${SITE}/dashboard`)}
+    ${cta}
     ${p(`If it doesn&rsquo;t feel like the right fit, tell us and we&rsquo;ll keep looking. No explanation needed.`)}
     <p style="margin:32px 0 0;font-size:15px;color:#4a5568;line-height:1.7;">Glad you came our way.</p>
+    ${signOff}
+  `, 'client')
+}
+
+// Standalone discount-offer email for existing clients ("Special — only for
+// you"). Same brand shell + helpers as every other template. Mentions only the
+// discounted ₹799 first session — no old/new regular price.
+function tplClientDiscountOffer(firstName: string, firstInr: number, ctaUrl?: string) {
+  return base(`
+    ${h1(`A warm welcome gift to you, ${escapeHtml(firstName)}.`)}
+    ${p(`We&rsquo;re really glad you&rsquo;re here, and we want to make it easier for you.`)}
+    ${offerBox(firstInr)}
+    ${p(`Say hi if you haven&rsquo;t already, pick a time that works and meet your therapist.`)}
+    ${btn(`Book your session at ${formatInr(firstInr)} →`, ctaUrl ?? `${SITE}/dashboard/sessions`)}
     ${signOff}
   `, 'client')
 }
@@ -812,11 +897,7 @@ async function sendAdminEmail(subject: string, html: string, ctx: string, relate
     return false
   }
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: FROM, to: ADMIN_EMAIL, subject, html }),
-    })
+    const res = await resendFetch('https://api.resend.com/emails', { from: FROM, to: ADMIN_EMAIL, subject, html })
     const body = await res.text()
     if (!res.ok) {
       logger.error(`email/${ctx}`, 'Resend rejected', null, { subject, status: res.status, body })
@@ -858,11 +939,7 @@ async function sendEmail(
     return false
   }
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from, to, subject, html }),
-    })
+    const res = await resendFetch('https://api.resend.com/emails', { from, to, subject, html })
     const body = await res.text()
     if (!res.ok) {
       logger.error(`email/${ctx}`, 'Resend rejected', null, { to, status: res.status, body })
@@ -941,6 +1018,124 @@ export async function sendCustomEmail({
   `, 'client')
 
   return sendEmail(to, fromAdmin ? FROM_ADMIN : FROM, subject, html, 'admin-compose')
+}
+
+// ── Exported sender, client discount campaign ────────────────────────────────
+// Sends the "Special — only for you" first-session discount email to ONE client.
+// Used by the admin "send the offer to all clients" action. The CTA is a
+// one-time login link so the recipient lands on their booking page signed in.
+export async function sendDiscountOfferEmail({
+  to, name, userId,
+}: { to: string; name: string; userId?: string }): Promise<boolean> {
+  const firstInr = firstSessionPriceInr('individual', 'standard') ?? 799
+  const first = name?.trim()?.split(' ')[0] || 'there'
+  const ctaUrl = await magicLinkFor(to, '/dashboard/sessions')
+  const subject = first === 'there' ? 'Something special — just for you' : `${first}, something special — just for you`
+  return sendEmail(
+    to, FROM, subject,
+    tplClientDiscountOffer(first, firstInr, ctaUrl),
+    'client-discount-offer',
+    userId ? { userId } : undefined,
+  )
+}
+
+// Bulk variant: sends the discount offer to many clients using Resend's BATCH
+// endpoint (POST /emails/batch, ≤100 emails per request) so we don't trip the
+// 2 req/s per-email rate limit. Each recipient still gets their own one-time
+// login CTA, and each send is recorded in email_logs. Chunks are spaced out to
+// stay under the API rate limit. Returns { sent, failed, total }.
+const RESEND_BATCH_SIZE = 100
+
+export async function sendDiscountOfferBatch(
+  recipients: { to: string; name: string; userId?: string }[],
+): Promise<{ sent: number; failed: number; total: number }> {
+  const total = recipients.length
+  if (total === 0) return { sent: 0, failed: 0, total: 0 }
+
+  const subjectFor = (name: string) => {
+    const first = name?.trim()?.split(' ')[0] || 'there'
+    return first === 'there' ? 'Something special — just for you' : `${first}, something special — just for you`
+  }
+
+  if (!process.env.RESEND_API_KEY) {
+    for (const r of recipients) {
+      await logEmailAttempt({
+        recipient: r.to, template: 'client-discount-offer', subject: subjectFor(r.name),
+        send_status: 'failed_no_api_key', related: r.userId ? { userId: r.userId } : undefined,
+      })
+    }
+    return { sent: 0, failed: total, total }
+  }
+
+  const firstInr = firstSessionPriceInr('individual', 'standard') ?? 799
+
+  // Build each recipient's payload (own magic-link CTA + subject). magicLinkFor
+  // hits Supabase, not Resend, so it isn't subject to the Resend rate limit.
+  const built = await Promise.all(recipients.map(async (r) => {
+    const first = r.name?.trim()?.split(' ')[0] || 'there'
+    const subject = subjectFor(r.name)
+    const ctaUrl = await magicLinkFor(r.to, '/dashboard/sessions')
+    return {
+      recipient: r,
+      subject,
+      payload: { from: FROM, to: r.to, subject, html: tplClientDiscountOffer(first, firstInr, ctaUrl) },
+    }
+  }))
+
+  let sent = 0
+  let failed = 0
+
+  for (let i = 0; i < built.length; i += RESEND_BATCH_SIZE) {
+    const chunk = built.slice(i, i + RESEND_BATCH_SIZE)
+
+    try {
+      // resendFetch handles inter-call spacing + 429/5xx backoff for us.
+      const res = await resendFetch('https://api.resend.com/emails/batch', chunk.map((c) => c.payload))
+      const bodyText = await res.text()
+
+      if (!res.ok) {
+        logger.error('email/discount-batch', 'Resend batch rejected', null, { status: res.status, body: bodyText.slice(0, 500), size: chunk.length })
+        for (const c of chunk) {
+          failed += 1
+          await logEmailAttempt({
+            recipient: c.recipient.to, template: 'client-discount-offer', subject: c.subject,
+            send_status: 'failed_resend_rejected', resend_status_code: res.status, send_error: bodyText.slice(0, 500),
+            related: c.recipient.userId ? { userId: c.recipient.userId } : undefined,
+          })
+        }
+        continue
+      }
+
+      // Success: { data: [{ id }, …] } aligned to the input order.
+      let ids: (string | null)[] = []
+      try {
+        const json = JSON.parse(bodyText) as { data?: { id?: string }[] }
+        ids = (json.data ?? []).map((d) => d?.id ?? null)
+      } catch { /* keep ids empty — still count as sent */ }
+
+      for (let j = 0; j < chunk.length; j++) {
+        sent += 1
+        await logEmailAttempt({
+          recipient: chunk[j].recipient.to, template: 'client-discount-offer', subject: chunk[j].subject,
+          send_status: 'sent', resend_id: ids[j] ?? null, resend_status_code: res.status,
+          related: chunk[j].recipient.userId ? { userId: chunk[j].recipient.userId } : undefined,
+        })
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      logger.error('email/discount-batch', 'Resend batch threw', err, { size: chunk.length })
+      for (const c of chunk) {
+        failed += 1
+        await logEmailAttempt({
+          recipient: c.recipient.to, template: 'client-discount-offer', subject: c.subject,
+          send_status: 'failed_threw', send_error: msg.slice(0, 500),
+          related: c.recipient.userId ? { userId: c.recipient.userId } : undefined,
+        })
+      }
+    }
+  }
+
+  return { sent, failed, total }
 }
 
 // ── Exported senders, admin-facing ───────────────────────────────────────────
@@ -1029,8 +1224,20 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
     client_not_subscribed: '/dashboard',
     client_message: '/dashboard/chat',
   }
+  // First-session offer shown in the client "matched" emails — individual
+  // standard only, driven by the client's category passed in meta. When present,
+  // the CTA points at the booking page instead of the dashboard.
+  const offerCategory = meta.category as SessionCategory | undefined
+  const offerFirst = offerCategory ? firstSessionPriceInr(offerCategory, 'standard') : null
+  const offerRegular = offerCategory ? sessionPriceInr(offerCategory, 'standard') : null
+  const matchOffer: FirstSessionOffer | undefined =
+    offerFirst != null && offerRegular != null ? { firstInr: offerFirst, regularInr: offerRegular } : undefined
+
   let ctaUrl: string | undefined
-  const ctaDest = CLIENT_CTA_DEST[type]
+  let ctaDest = CLIENT_CTA_DEST[type]
+  if (matchOffer && (type === 'client_welcome_matched' || type === 'client_match_made')) {
+    ctaDest = '/dashboard/sessions'
+  }
   // client_message fires in both directions — only magic-link the client's copy.
   if (ctaDest && (type !== 'client_message' || meta.recipientRole === 'client')) {
     ctaUrl = await magicLinkFor(to, ctaDest)
@@ -1047,11 +1254,11 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
     case 'client_match_made':
       subject = `Meet ${meta.therapistFirstName ?? 'your therapist'}.`
-      html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl)
+      html = tplClientMatchMade(meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl, matchOffer)
       break
     case 'client_welcome_matched':
       subject = `Welcome to MindCanopy — meet ${meta.therapistFirstName ?? 'your therapist'}.`
-      html = tplClientWelcomeMatched(name, meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl)
+      html = tplClientWelcomeMatched(name, meta.therapistFirstName ?? 'your therapist', meta.therapistFullName ?? 'Your therapist', meta.adminMatchNote ?? '', ctaUrl, matchOffer)
       break
     case 'client_matched':
       subject = `You have a new client — ${meta.clientName ?? 'someone new'}`
@@ -1132,11 +1339,7 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
 
   const template = `notification:${type}`
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-      body: JSON.stringify({ from: FROM, to, subject, html }),
-    })
+    const res = await resendFetch('https://api.resend.com/emails', { from: FROM, to, subject, html })
     const body = await res.text()
     if (!res.ok) {
       logger.warn('email/notification', 'Resend rejected', { to, type, status: res.status, body })
