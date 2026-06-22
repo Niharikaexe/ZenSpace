@@ -16,7 +16,9 @@ export default async function TherapistChatPage() {
     .eq('id', user.id)
     .single() as { data: { role: string; full_name: string } | null; error: unknown }
 
-  if (profile?.role !== 'therapist') redirect('/login')
+  // A logged-in non-therapist (e.g. a client who tapped a mislinked email)
+  // belongs on their own dashboard, not the login screen.
+  if (profile?.role !== 'therapist') redirect(profile?.role === 'client' ? '/dashboard' : '/login')
 
   const admin = createAdminClient()
 

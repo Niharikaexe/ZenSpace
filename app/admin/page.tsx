@@ -360,10 +360,23 @@ export default async function AdminPage() {
     .order('created_at', { ascending: false })
     .limit(200)
 
+  // Resolve recipient names so the admin can search the Emails tab by person,
+  // not just by email address. related_user_id is the recipient where known.
+  const emailUserIds = Array.from(
+    new Set((rawEmailLogs ?? []).map((r: any) => r.related_user_id).filter(Boolean)),
+  ) as string[]
+  const { data: emailUserProfiles } = emailUserIds.length > 0
+    ? await admin.from('profiles').select('id, full_name').in('id', emailUserIds)
+    : { data: [] as { id: string; full_name: string }[] }
+  const emailNameById = new Map<string, string>(
+    (emailUserProfiles ?? []).map((p: any) => [p.id, p.full_name as string]),
+  )
+
   const emailLogs: EmailLog[] = (rawEmailLogs ?? []).map((row: any) => ({
     id: row.id,
     resend_id: row.resend_id ?? null,
     recipient: row.recipient,
+    recipient_name: row.related_user_id ? (emailNameById.get(row.related_user_id) ?? null) : null,
     template: row.template,
     subject: row.subject ?? null,
     related_user_id: row.related_user_id ?? null,

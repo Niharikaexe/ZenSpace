@@ -26,14 +26,22 @@ diagnostic or prescription services.
 
 ### PER-SESSION PRICING (dual-therapist match flow)
 After matching, the client picks between a **Standard** and a **Professional** therapist and pays
-**per session** (or a monthly bundle of 4 sessions at 15% off). Per-session prices vary by category
+**per session** (or a monthly bundle of 4 sessions at 10% off). Per-session prices vary by category
 and tier — single source of truth is `SESSION_PRICING` in `lib/plans.ts`:
 
 | Category | Standard | Professional |
 |---|---|---|
-| Adult / Individual | ₹1,300 | ₹3,200 |
+| Adult / Individual | ₹1,100 | ₹3,200 |
 | Teen | ₹1,800 | ₹4,000 |
 | Couples | ₹2,400 | ₹5,000 |
+
+**First-session intro discount:** a client's **first paid session** is discounted when their
+category + tier qualifies — currently **Adult/Individual Standard at ₹799** (shown as ₹1,100 struck
+through). Single source of truth is `FIRST_SESSION_PRICING` / `effectiveSessionPriceInr()` in
+`lib/plans.ts`, enforced server-side in `app/api/payment/session-order`. The therapist payout is
+unaffected (the discount is borne by the platform). Advertised in the client "matched" emails and a
+standalone "Special — only for you" campaign email (admin → Send Email tab → "Send the offer to all
+clients").
 
 ---
 
@@ -114,7 +122,7 @@ A BetterHelp/TalkSpace-style therapy marketplace MVP where:
 | Database | Supabase (Postgres) |
 | Auth | Supabase Auth |
 | Realtime | Supabase Realtime (chat) |
-| Payments | Razorpay Subscriptions |
+| Payments | Cashfree (Payment Gateway · Orders API) |
 | Video | Daily.co |
 | State | Zustand |
 | Forms | React Hook Form + Zod |

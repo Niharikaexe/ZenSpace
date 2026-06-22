@@ -155,6 +155,9 @@ export async function GET(request: NextRequest) {
           matchId: m.match_id,
           clientName: senderName,
           messageBody: m.content,
+          // Picks the right template + chat link in the email: a client
+          // recipient gets /dashboard/chat, a therapist gets /therapist/dashboard/chat.
+          recipientRole: recipientId === match.client_id ? 'client' : 'therapist',
         },
       })
 

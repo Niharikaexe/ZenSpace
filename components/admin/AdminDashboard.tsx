@@ -126,6 +126,7 @@ export type EmailLog = {
   id: string
   resend_id: string | null
   recipient: string
+  recipient_name: string | null
   template: string
   subject: string | null
   related_user_id: string | null
@@ -137,6 +138,16 @@ export type EmailLog = {
   last_status: string | null
   last_status_at: string | null
   created_at: string
+}
+
+// Live delivery status (from the Resend webhook) → chip styling for the Emails tab.
+const EMAIL_DELIVERY_META: Record<string, { label: string; cls: string; dot: string }> = {
+  delivered:        { label: 'Delivered', cls: 'bg-blue-50 text-blue-700 border-blue-200',     dot: 'bg-blue-500' },
+  opened:           { label: 'Opened',    cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
+  clicked:          { label: 'Clicked',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  bounced:          { label: 'Bounced',   cls: 'bg-red-50 text-red-700 border-red-200',         dot: 'bg-red-500' },
+  complained:       { label: 'Spam',      cls: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
+  delivery_delayed: { label: 'Delayed',   cls: 'bg-amber-50 text-amber-700 border-amber-200',    dot: 'bg-amber-500' },
 }
 
 export type ActiveMatch = {
@@ -314,6 +325,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appFilter, setAppFilter] = useState<AppFilter>('all')
   const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
+  const [emailSearch, setEmailSearch] = useState('')
   // Two-step confirm for settling a payout (avoids a native confirm() dialog).
   const [confirmPayoutId, setConfirmPayoutId] = useState<string | null>(null)
   // Active Matches: "Flagged only" filter + click-to-expand flag details.
@@ -415,10 +427,20 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
 
   const filteredApplications = applications.filter(a => appMatchesFilter(a, appFilter))
 
+  const emailQuery = emailSearch.trim().toLowerCase()
   const filteredEmailLogs = emailLogs.filter(e => {
-    if (emailFilter === 'all') return true
-    if (emailFilter === 'sent') return e.send_status === 'sent'
-    return e.send_status !== 'sent'
+    // Status filter
+    if (emailFilter === 'sent' && e.send_status !== 'sent') return false
+    if (emailFilter === 'failed' && e.send_status === 'sent') return false
+    // Search by client name / email / subject / template
+    if (emailQuery) {
+      const haystack = [e.recipient_name, e.recipient, e.subject, e.template]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(emailQuery)) return false
+    }
+    return true
   })
 
   return (
@@ -1472,9 +1494,16 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                     </button>
                   )
                 })}
-                <p className="text-[11px] text-slate-400 ml-auto">
-                  Last 200 sends · live delivery / bounce / click status not synced yet
-                </p>
+                <div className="ml-auto flex items-center gap-2">
+                  <input
+                    type="search"
+                    value={emailSearch}
+                    onChange={e => setEmailSearch(e.target.value)}
+                    placeholder="Search name, email, subject…"
+                    className="w-56 text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                  />
+                  <span className="text-[11px] text-slate-400 whitespace-nowrap">Last 200 sends</span>
+                </div>
               </div>
 
               {filteredEmailLogs.length === 0 ? (
@@ -1491,9 +1520,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                       failed_resend_rejected: 'Resend rejected',
                       failed_threw: 'Network error',
                     }[log.send_status]
+                    const delivery = log.last_status
+                      ? (EMAIL_DELIVERY_META[log.last_status] ?? null)
+                      : null
                     return (
                       <div key={log.id} className="px-6 py-3 flex items-start gap-4">
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 flex flex-col gap-1 items-start w-28">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
                             isFailed
                               ? 'bg-red-50 text-red-700 border-red-200'
@@ -1502,10 +1534,19 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
                             <span className={`w-1.5 h-1.5 rounded-full ${isFailed ? 'bg-red-500' : 'bg-emerald-500'}`} />
                             {statusLabel}
                           </span>
+                          {delivery && (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${delivery.cls}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${delivery.dot}`} />
+                              {delivery.label}
+                            </span>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium text-slate-900 break-all">{log.recipient}</span>
+                            {log.recipient_name && (
+                              <span className="text-sm font-semibold text-slate-900">{log.recipient_name}</span>
+                            )}
+                            <span className="text-xs text-slate-500 break-all">{log.recipient}</span>
                             <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{log.template}</span>
                           </div>
                           {log.subject && (
