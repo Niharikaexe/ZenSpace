@@ -29,10 +29,11 @@ type MatchWithSessions = {
 type UpcomingEntry = SessionRow & { clientName: string; matchId: string }
 
 function formatDateTime(iso: string) {
+  // Uniform IST across the product.
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  })
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  }) + ' IST'
 }
 
 export default async function TherapistSessionsPage() {
@@ -139,7 +140,7 @@ export default async function TherapistSessionsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? 'Video' : 'Chat'} with {s.clientName}
+                          Video with {s.clientName}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           s.status === 'scheduled' ? 'bg-[#233551]/8 text-[#233551]' :
@@ -205,7 +206,7 @@ export default async function TherapistSessionsPage() {
                     <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-[#233551]">
-                          {s.session_type === 'video' ? 'Video Session' : 'Chat Session'}
+                          Video Session
                         </p>
                         <p className="text-xs text-[#233551]/40 mt-0.5">{formatDateTime(s.scheduled_at)}</p>
                       </div>

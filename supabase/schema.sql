@@ -226,6 +226,59 @@ CREATE TABLE sessions (
 
 CREATE INDEX idx_sessions_razorpay_order_id ON sessions(razorpay_order_id);
 
+-- A session can be 'scheduled'/'ongoing'/'completed' ONLY if it is paid. This is
+-- the hard guarantee that no code path can create an unpaid scheduled session.
+-- 'cancelled' is exempt so an unpaid order can always be voided.
+CREATE OR REPLACE FUNCTION enforce_session_paid_before_active()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status IN ('scheduled','ongoing','completed')
+     AND NEW.payment_status IS DISTINCT FROM 'paid' THEN
+    RAISE EXCEPTION
+      'session % cannot be % while payment_status=% (must be paid)',
+      NEW.id, NEW.status, COALESCE(NEW.payment_status,'null')
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_enforce_session_paid
+  BEFORE INSERT OR UPDATE ON sessions
+  FOR EACH ROW EXECUTE FUNCTION enforce_session_paid_before_active();
+
+-- ============================================================
+-- SESSION ORDERS (pay-as-you-go checkout intents)
+-- ============================================================
+-- A row here means "client opened a payment order" — it is NOT a session and
+-- does NOT mean paid. Only when Cashfree confirms payment do we create the
+-- session row (status='scheduled') and flip this order to 'paid'. Source of
+-- truth for the admin Payments tab.
+
+CREATE TABLE session_orders (
+  id                     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id               TEXT UNIQUE NOT NULL,        -- Cashfree order id (sess_...)
+  match_id               UUID NOT NULL REFERENCES matches(id)  ON DELETE CASCADE,
+  client_id              UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  therapist_id           UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  scheduled_at           TIMESTAMPTZ NOT NULL,        -- the slot the client picked
+  category               TEXT,
+  tier                   TEXT,
+  client_amount_paise    INTEGER NOT NULL,            -- server-computed expected amount
+  therapist_payout_paise INTEGER,
+  status                 TEXT NOT NULL DEFAULT 'created', -- created | paid | failed | expired
+  cf_payment_id          TEXT,
+  session_id             UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  paid_at                TIMESTAMPTZ,
+  updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_session_orders_status ON session_orders(status, created_at DESC);
+CREATE INDEX idx_session_orders_match  ON session_orders(match_id);
+
+ALTER TABLE session_orders ENABLE ROW LEVEL SECURITY; -- service-role only
+
 -- ============================================================
 -- MESSAGES (real-time chat)
 -- ============================================================

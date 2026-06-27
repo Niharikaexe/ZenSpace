@@ -8,21 +8,19 @@ import { WeeklyAvailabilityEditor } from '@/components/therapist/WeeklyAvailabil
 import { RangeAvailabilityEditor } from '@/components/therapist/RangeAvailabilityEditor'
 import type { WeeklyAvailability } from '@/app/actions/therapist-availability'
 import { logger } from '@/lib/logger'
-import { toIanaTimeZone } from '@/lib/timezones'
 
 export const dynamic = 'force-dynamic'
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
 }
 
-function formatDateTime(iso: string, tz?: string | null) {
-  const zone = toIanaTimeZone(tz)
+function formatDateTime(iso: string) {
+  // Uniform IST across the product.
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-    ...(zone ? { timeZone: zone } : {}),
-  })
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  }) + ' IST'
 }
 
 function Initials({ name }: { name: string }) {
@@ -295,7 +293,7 @@ export default async function TherapistDashboard() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-[#233551] truncate">{s.clientName}</p>
-                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt, tProfile?.timezone as string | null)}</p>
+                          <p className="text-xs text-[#233551]/45">{formatDateTime(s.scheduledAt)}</p>
                         </div>
                       </div>
                       {s.roomUrl ? (

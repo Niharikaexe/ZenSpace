@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/notifications'
+import { formatIST } from '@/lib/datetime'
 
 // Vercel Cron — runs once daily at 5:00 AM UTC (10:30 AM IST).
 // Finds all sessions scheduled in the next 25 hours and sends a
@@ -28,6 +29,11 @@ export async function GET(request: NextRequest) {
     .from('sessions')
     .select('id, scheduled_at, session_type, match_id')
     .eq('status', 'scheduled')
+    // Only remind for CONFIRMED (paid) sessions. A pending row exists the moment
+    // a client opens checkout — having a razorpay_order_id does NOT mean paid;
+    // only payment_status='paid' does. Without this gate, abandoned/unpaid
+    // bookings (no session link, no money taken) would trigger reminder emails.
+    .eq('payment_status', 'paid')
     .gte('scheduled_at', now.toISOString())
     .lte('scheduled_at', windowEnd)
 
@@ -58,10 +64,7 @@ export async function GET(request: NextRequest) {
 
     if (!match) continue
 
-    const dateStr = new Date(s.scheduled_at).toLocaleString('en-IN', {
-      weekday: 'short', day: 'numeric', month: 'short',
-      hour: '2-digit', minute: '2-digit', hour12: true,
-    })
+    const dateStr = `${formatIST(s.scheduled_at)} IST`
 
     // Determine if the session is today or tomorrow
     const sessionDate = new Date(s.scheduled_at)

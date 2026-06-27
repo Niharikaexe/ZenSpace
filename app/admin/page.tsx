@@ -11,6 +11,7 @@ import type {
   EmailLog,
   Lead,
   TherapistPayoutSummary,
+  PaymentRow,
 } from '@/components/admin/AdminDashboard'
 
 export const dynamic = 'force-dynamic'
@@ -518,6 +519,38 @@ export default async function AdminPage() {
     }
   })
 
+  // ── Payments (session orders) for the Payments tab ──────────────────────────
+  // session_orders is the full payment audit: created (checkout opened) → paid /
+  // failed / expired. Newest 200.
+  const { data: rawOrders } = await admin
+    .from('session_orders')
+    .select('order_id, status, client_id, therapist_id, scheduled_at, client_amount_paise, cf_payment_id, created_at, paid_at')
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  const orderPartyIds = [...new Set<string>([
+    ...(rawOrders ?? []).map((o: any) => o.client_id),
+    ...(rawOrders ?? []).map((o: any) => o.therapist_id),
+  ])]
+  const { data: orderPartyProfiles } = orderPartyIds.length > 0
+    ? await admin.from('profiles').select('id, full_name').in('id', orderPartyIds)
+    : { data: [] }
+  const orderNameById = new Map<string, string>(
+    (orderPartyProfiles ?? []).map((p: any) => [p.id, p.full_name])
+  )
+
+  const payments: PaymentRow[] = (rawOrders ?? []).map((o: any) => ({
+    orderId: o.order_id,
+    status: o.status,
+    clientName: orderNameById.get(o.client_id) ?? 'Unknown',
+    therapistName: orderNameById.get(o.therapist_id) ?? 'Unknown',
+    scheduledAt: o.scheduled_at,
+    amountPaise: o.client_amount_paise ?? 0,
+    cfPaymentId: o.cf_payment_id ?? null,
+    createdAt: o.created_at,
+    paidAt: o.paid_at ?? null,
+  }))
+
   return (
     <AdminDashboard
       adminName={profile!.full_name}
@@ -531,6 +564,7 @@ export default async function AdminPage() {
       emailLogs={emailLogs}
       leads={leads}
       therapistPayouts={therapistPayouts}
+      payments={payments}
     />
   )
 }

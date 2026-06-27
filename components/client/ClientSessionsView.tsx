@@ -9,7 +9,7 @@ import LiveRefresh from '@/components/shared/LiveRefresh'
 import TherapistSidePanel, { type TherapistPanelData } from '@/components/client/TherapistSidePanel'
 import JoinButton from '@/components/shared/JoinButton'
 import { formatInr, MIN_BOOKING_LEAD_MS } from '@/lib/plans'
-import { toIanaTimeZone } from '@/lib/timezones'
+import { formatIST, formatISTTime, istWallClockToUTC, istCalendarDate } from '@/lib/datetime'
 
 type Session = {
   id: string
@@ -54,103 +54,48 @@ function loadCashfreeScript(): Promise<boolean> {
   })
 }
 
-/**
- * Converts a wall-clock time (hour, minute) in the therapist's timezone on a given
- * calendar date to a UTC Date. Uses the Intl trick: interpret the naive UTC guess in
- * the target timezone to derive the actual offset, then apply the correction.
- */
-function localTimeToUTC(year: number, month: number, day: number, hour: number, minute: number, tz: string): Date {
-  const naive = new Date(Date.UTC(year, month, day, hour, minute, 0))
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour12: false,
-    year: 'numeric', month: 'numeric', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).formatToParts(naive)
-  const g = Object.fromEntries(parts.filter(p => p.type !== 'literal').map(p => [p.type, parseInt(p.value)]))
-  const tzUTC = Date.UTC(g.year, g.month - 1, g.day, g.hour === 24 ? 0 : g.hour, g.minute, 0)
-  return new Date(naive.getTime() * 2 - tzUTC)
-}
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-const DOW_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-
+// UNIFORM IST: weekly availability hour/minute are treated as IST wall-clock,
+// the slot grid is built on IST calendar days, and every label is shown in IST.
+// No per-user / per-therapist timezone conversion anymore.
 function buildWeek(
   weeklyAvailability: Record<string, { hour: number; minute: number }[]>,
-  therapistTimezone: string,
 ): DayEntry[] {
-  // Normalize the stored timezone (may be a legacy label like "IST (India)")
-  // into a valid IANA zone before it reaches Intl. Falls back to UTC.
-  const tz = toIanaTimeZone(therapistTimezone) ?? 'UTC'
-  const now = new Date()
-  const cutoff = now.getTime() + MIN_BOOKING_LEAD_MS // hide slots less than 1h away
-
-  // The availability is a weekly schedule keyed by day-of-week in the THERAPIST's
-  // timezone. A slot's real instant therefore depends on the therapist's calendar
-  // date — and an overnight block (e.g. Thu 10pm–Fri 6:30am Dubai) spills across
-  // two *client* days once converted. So: generate every future slot instant by
-  // walking the therapist's local dates, then bucket each by the CLIENT's local
-  // date. (The old code keyed slots by the client's day-of-week, which mis-placed
-  // and dropped overnight cross-timezone slots.)
-  const dowFmt = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' })
-  const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
-
-  const byClientDate = new Map<string, TimeSlot[]>()
-
-  // Walk a window of therapist-local dates wide enough to cover the next 7 client
-  // days plus overnight spill at both ends.
-  for (let i = -1; i <= 8; i++) {
-    const base = new Date(now.getTime() + i * 86_400_000)
-    const dow = DOW_INDEX[dowFmt.format(base)]
-    const [ty, tm, td] = ymdFmt.format(base).split('-').map(Number) // therapist-local Y-M-D
-    for (const { hour, minute } of weeklyAvailability[String(dow)] ?? []) {
-      const slotDate = localTimeToUTC(ty, tm - 1, td, hour, minute, tz)
-      if (slotDate.getTime() <= cutoff) continue
-      const clientDateStr = slotDate.toLocaleDateString('en-CA') // client-local day
-      const arr = byClientDate.get(clientDateStr) ?? []
-      arr.push({
-        time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-        label12: slotDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }),
-        date: clientDateStr,
-        iso: slotDate.toISOString(),
-      })
-      byClientDate.set(clientDateStr, arr) // ← was missing: fresh arrays were never stored
-    }
-  }
+  const cutoff = Date.now() + MIN_BOOKING_LEAD_MS // hide slots less than 1h away
 
   const days: DayEntry[] = []
   for (let i = 0; i < 7; i++) {
-    const d = new Date(now)
-    d.setDate(now.getDate() + i)
-    d.setHours(0, 0, 0, 0)
-    const dateStr = d.toLocaleDateString('en-CA')
-    const slots = (byClientDate.get(dateStr) ?? []).sort((a, b) => a.iso.localeCompare(b.iso))
+    const { year, month, day, dow } = istCalendarDate(i)
+    const slots: TimeSlot[] = []
+    for (const { hour, minute } of weeklyAvailability[String(dow)] ?? []) {
+      const slotDate = istWallClockToUTC(year, month, day, hour, minute)
+      if (slotDate.getTime() <= cutoff) continue
+      slots.push({
+        time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+        label12: formatISTTime(slotDate),
+        date: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+        iso: slotDate.toISOString(),
+      })
+    }
+    slots.sort((a, b) => a.iso.localeCompare(b.iso))
+    // A Date positioned at IST noon so the row's weekday/day labels read as IST.
+    const labelDate = new Date(Date.UTC(year, month, day, 12, 0, 0))
     days.push({
-      date: d,
-      dateStr,
-      dayName: d.toLocaleDateString(undefined, { weekday: 'short' }),
-      dayNum: String(d.getDate()),
+      date: labelDate,
+      dateStr: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      dayName: DOW[dow],
+      dayNum: String(day),
       slots,
-    })
-  }
-
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.log('[buildWeek]', {
-      therapistTimezone, resolvedTz: tz,
-      inputKeys: Object.keys(weeklyAvailability ?? {}),
-      inputSlotCounts: Object.fromEntries(Object.entries(weeklyAvailability ?? {}).map(([k, v]) => [k, (v as unknown[]).length])),
-      outputSlotsPerDay: days.map(d => `${d.dateStr}:${d.slots.length}`),
     })
   }
 
   return days
 }
 
-function formatDT(iso: string, timezone?: string | null) {
-  return new Date(iso).toLocaleString('en-IN', {
-    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-    timeZone: toIanaTimeZone(timezone),
-  })
+// All session times are displayed in IST, uniformly across the product.
+function formatDT(iso: string) {
+  return `${formatIST(iso)} IST`
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -234,7 +179,7 @@ function PaySessionModal({
         return
       }
 
-      const { order_id, payment_session_id, mode, sessionId } = orderData
+      const { order_id, payment_session_id, mode } = orderData
 
       // Open Cashfree checkout in a modal. The promise resolves when the modal
       // closes (success, failure, or dismissal); order status is then confirmed
@@ -252,7 +197,7 @@ function PaySessionModal({
       const verifyRes = await fetch('/api/payment/session-verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id, sessionId }),
+        body: JSON.stringify({ order_id }),
       })
       const verifyData = await verifyRes.json()
       if (!verifyRes.ok) {
@@ -364,8 +309,6 @@ export default function ClientSessionsView({
   therapistUserId,
   clientName,
   therapist,
-  timezone,
-  therapistTimezone,
   perSessionInr,
   firstSessionInr,
   paymentsEnabled,
@@ -373,6 +316,8 @@ export default function ClientSessionsView({
   past,
   weeklyAvailability,
 }: Props) {
+  // NOTE: `timezone` / `therapistTimezone` props are intentionally unused — the
+  // whole product runs on uniform IST now (see lib/datetime.ts).
   const router = useRouter()
 
   // Live availability: when the therapist edits their weekly slots, their
@@ -402,7 +347,7 @@ export default function ClientSessionsView({
   const [bookedLabel, setBookedLabel]     = useState<string | null>(null)
   const [expandedNotes, setExpandedNotes] = useState<string | null>(null)
 
-  const week = buildWeek(weeklyAvailability, therapistTimezone)
+  const week = buildWeek(weeklyAvailability)
   const selectedDayEntry = week.find(d => d.dateStr === selectedDay) ?? null
   // Did the therapist publish ANY weekly slots at all? (Distinguishes "no
   // availability set" from "nothing free in the next 7 days".)
@@ -483,7 +428,7 @@ export default function ClientSessionsView({
                 {week.map(entry => {
                   const isSelected  = selectedDay === entry.dateStr
                   const hasSlots    = entry.slots.length > 0
-                  const isToday     = entry.date.toDateString() === new Date().toDateString()
+                  const isToday     = entry.dateStr === week[0].dateStr
 
                   return (
                     <button
@@ -523,7 +468,7 @@ export default function ClientSessionsView({
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs text-[#233551]/40 font-semibold">
-                      {selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      {selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })}
                     </p>
                     <p className="text-[11px] text-[#233551]/40 font-semibold">Each session 50 min</p>
                   </div>
@@ -561,11 +506,11 @@ export default function ClientSessionsView({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-sm font-semibold text-[#233551]">
-                            {s.session_type === 'video' ? 'Video session' : 'Chat session'}
+                            Video session
                           </span>
                           <StatusBadge status={s.status} />
                         </div>
-                        <p className="text-sm text-[#233551]/60">{formatDT(s.scheduled_at, timezone)}</p>
+                        <p className="text-sm text-[#233551]/60">{formatDT(s.scheduled_at)}</p>
                       </div>
                       <div className="flex-shrink-0">
                         {s.session_type === 'video' ? (
@@ -591,7 +536,7 @@ export default function ClientSessionsView({
                     <div key={s.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                       <div className="px-5 py-4 flex items-center justify-between gap-4">
                         <p className="text-sm font-semibold text-[#233551] min-w-0 truncate">
-                          {s.session_type === 'video' ? 'Video' : 'Chat'} · {formatDT(s.scheduled_at, timezone)}
+                          Video · {formatDT(s.scheduled_at)}
                         </p>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <StatusBadge status={s.status} />
@@ -625,7 +570,7 @@ export default function ClientSessionsView({
       {openSlot && selectedDayEntry && (
         <PaySessionModal
           slot={openSlot}
-          dayLabel={selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+          dayLabel={selectedDayEntry.date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}
           therapistName={therapist.fullName}
           matchId={matchId}
           perSessionInr={perSessionInr}
