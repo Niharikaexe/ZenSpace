@@ -7,14 +7,15 @@ import QuestionnaireDetails from '@/components/admin/QuestionnaireDetails'
 export const dynamic = 'force-dynamic'
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
 }
 
 function formatDateTime(iso: string) {
+  // Uniform IST across the product.
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  })
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  }) + ' IST'
 }
 
 export default async function TherapistClientDetailPage({

@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { createNotification, shouldNotifyMessage } from '@/lib/notifications'
 import { scanText } from '@/lib/message-flags'
 import { logger } from '@/lib/logger'
+import { formatIST } from '@/lib/datetime'
 
 async function getAuthUser() {
   const supabase = await createClient()
@@ -250,10 +251,7 @@ export async function scheduleSession(
       ? matchOwnership.therapist_id
       : matchOwnership.client_id
 
-    const dateStr = new Date(scheduledAt).toLocaleString('en-IN', {
-      weekday: 'short', day: 'numeric', month: 'short',
-      hour: '2-digit', minute: '2-digit', hour12: true,
-    })
+    const dateStr = `${formatIST(scheduledAt)} IST`
 
     // Look up the OTHER party's first name for the email body
     const { data: otherProfiles } = await (admin as any)

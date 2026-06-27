@@ -251,40 +251,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create payment order' }, { status: 502 })
   }
 
-  // Persist a PENDING session — confirmed on verify. The Daily.co room is only
-  // created after payment succeeds, in /api/payment/session-verify.
-  const { data: inserted, error: dbErr } = await (admin as any)
-    .from('sessions')
+  // Record the ORDER INTENT only — NOT a session. Having an order id does not
+  // mean paid. No session row, no Daily room, no emails happen here. The actual
+  // session is created (status='scheduled') only when Cashfree confirms payment,
+  // by fulfillSessionOrder (via the webhook, or the return-verify backstop).
+  const { error: orderErr } = await (admin as any)
+    .from('session_orders')
     .insert({
+      order_id: order.orderId,
       match_id: matchId,
-      session_type: 'video',
-      status: 'scheduled',
+      client_id: match.client_id,
+      therapist_id: match.therapist_id,
       scheduled_at: scheduledDate.toISOString(),
-      payment_status: 'pending',
-      client_amount_paise: chargePaise,
-      therapist_payout_paise: payoutPaise,
       category,
       tier,
-      razorpay_order_id: order.orderId, // reused column → holds Cashfree order_id
+      // Store the ACTUAL charged amount (first-session discount applies) so the
+      // fulfilment amount-check matches what Cashfree captures. Therapist payout
+      // is unaffected by the client-side discount.
+      client_amount_paise: chargePaise,
+      therapist_payout_paise: payoutPaise,
+      status: 'created',
     })
-    .select('id')
-    .single() as { data: { id: string } | null; error: unknown }
 
-  if (dbErr || !inserted) {
-    logger.error('api/payment/session-order', 'Failed to insert pending session', dbErr, {
+  if (orderErr) {
+    logger.error('api/payment/session-order', 'Failed to record session order', orderErr, {
       userId: user.id, matchId, orderId: order.orderId,
     })
-    return NextResponse.json({ error: 'Failed to create session' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to create payment order' }, { status: 500 })
   }
 
-  logger.info('api/payment/session-order', 'Pending session created (Cashfree)', {
-    userId: user.id, matchId, sessionId: inserted.id, orderId: order.orderId, category, tier, chargePaise, isFirstSession,
+  logger.info('api/payment/session-order', 'Session order recorded (Cashfree) — awaiting payment', {
+    userId: user.id, matchId, orderId: order.orderId, category, tier, chargePaise, isFirstSession,
   })
 
   return NextResponse.json({
     order_id: order.orderId,
     payment_session_id: order.paymentSessionId,
     mode: cashfreeMode(),
-    sessionId: inserted.id,
   })
 }

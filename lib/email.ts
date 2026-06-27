@@ -785,6 +785,25 @@ function tplAdminNewSubscription(clientName: string, planName: string) {
   `, 'admin')
 }
 
+function tplAdminSessionPayment(params: {
+  clientName: string
+  therapistName: string
+  amountInr: string
+  dateStr: string
+  paymentId: string
+}) {
+  return base(`
+    ${tag('Payment Received', '#3D8A80')}
+    <br/><br/>
+    ${h1(`${escapeHtml(params.clientName)} paid for a session.`)}
+    ${p(`Amount: <strong>${escapeHtml(params.amountInr)}</strong><br/>
+        Therapist: <strong>${escapeHtml(params.therapistName)}</strong><br/>
+        Session: <strong>${escapeHtml(params.dateStr)} IST</strong><br/>
+        Payment ID: <strong>${escapeHtml(params.paymentId)}</strong>`)}
+    ${btn('Open Admin Panel →', `${SITE}/admin`)}
+  `, 'admin')
+}
+
 function tplAdminTherapistOnboarded(therapistName: string) {
   return base(`
     ${tag('Therapist Onboarded', '#7EC0B7')}
@@ -1150,6 +1169,20 @@ export async function sendAdminNewClientSignupEmail(clientName: string, email: s
 
 export async function sendAdminNewSubscriptionEmail(clientName: string, planName: string): Promise<boolean> {
   return sendAdminEmail(`New subscription, ${clientName} (${planName})`, tplAdminNewSubscription(clientName, planName), 'admin-new-subscription')
+}
+
+export async function sendAdminSessionPaymentEmail(params: {
+  clientName: string
+  therapistName: string
+  amountInr: string
+  dateStr: string
+  paymentId: string
+}): Promise<boolean> {
+  return sendAdminEmail(
+    `Payment received, ${params.clientName} (${params.amountInr})`,
+    tplAdminSessionPayment(params),
+    'admin-session-payment',
+  )
 }
 
 export async function sendAdminTherapistOnboardedEmail(therapistName: string): Promise<boolean> {

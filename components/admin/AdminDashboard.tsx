@@ -12,6 +12,7 @@ import QuestionnaireDetails from './QuestionnaireDetails'
 import { LeadsTab } from './LeadsTab'
 import { ComposeTab } from './ComposeTab'
 import { labelReasons } from '@/lib/message-flags'
+import { formatIST } from '@/lib/datetime'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -194,6 +195,18 @@ export type TherapistPayoutSummary = {
   paidOutPaise: number
 }
 
+export interface PaymentRow {
+  orderId: string
+  status: string            // created | paid | failed | expired
+  clientName: string
+  therapistName: string
+  scheduledAt: string
+  amountPaise: number
+  cfPaymentId: string | null
+  createdAt: string
+  paidAt: string | null
+}
+
 interface Props {
   adminName: string
   unmatchedClients: UnmatchedClient[]
@@ -206,6 +219,7 @@ interface Props {
   emailLogs: EmailLog[]
   leads: Lead[]
   therapistPayouts: TherapistPayoutSummary[]
+  payments: PaymentRow[]
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -289,7 +303,7 @@ export interface Lead {
   device_os: string | null
 }
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails' | 'payouts'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails' | 'payouts' | 'payments'
 type View = 'dashboard' | 'leads' | 'compose'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
@@ -314,7 +328,7 @@ function formatPay(amount: number | null, currency: string | null): string | nul
   return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
 }
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads, therapistPayouts }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads, therapistPayouts, payments }: Props) {
   const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
@@ -408,6 +422,7 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'clients', label: 'Pending Clients', count: unmatchedClients.length },
     { key: 'therapists', label: 'Therapists', count: therapists.length },
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
+    { key: 'payments', label: 'Payments', count: payments.filter(p => p.status === 'paid').length },
     { key: 'payouts', label: 'Payouts', count: therapistPayouts.filter(p => p.outstandingPaise > 0).length },
     { key: 'emails', label: 'Emails', count: emailLogs.length },
   ]
@@ -1462,6 +1477,75 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
               </div>
             )
           )}
+
+          {/* ── Payments Tab ── */}
+          {tab === 'payments' && (() => {
+            const paid = payments.filter(p => p.status === 'paid')
+            const collectedPaise = paid.reduce((s, p) => s + p.amountPaise, 0)
+            const pendingCount = payments.filter(p => p.status === 'created').length
+            const failedCount = payments.filter(p => p.status === 'failed' || p.status === 'expired').length
+            const statusChip = (status: string) => {
+              const cls =
+                status === 'paid' ? 'bg-emerald-50 text-emerald-700' :
+                status === 'created' ? 'bg-amber-50 text-amber-600' :
+                status === 'failed' ? 'bg-red-50 text-red-600' :
+                'bg-slate-100 text-slate-500'
+              const label = status === 'created' ? 'pending' : status
+              return <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${cls}`}>{label}</span>
+            }
+            return payments.length === 0 ? (
+              <div className="py-20 text-center">
+                <p className="font-semibold text-slate-700">No payments yet</p>
+                <p className="text-sm text-slate-400 mt-1">Session orders appear here the moment a client opens checkout.</p>
+              </div>
+            ) : (
+              <>
+                {/* Totals */}
+                <div className="px-6 py-4 border-b border-slate-100 grid grid-cols-3 gap-4 bg-slate-50/60">
+                  <div>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Collected</p>
+                    <p className="text-lg font-black text-slate-900">{inr(collectedPaise)}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{paid.length} paid</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Pending</p>
+                    <p className="text-lg font-black text-amber-600">{pendingCount}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">awaiting payment</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wide">Failed / expired</p>
+                    <p className="text-lg font-black text-red-600">{failedCount}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">no money taken</p>
+                  </div>
+                </div>
+
+                <div className="divide-y divide-slate-100">
+                  {payments.map(p => (
+                    <div key={p.orderId} className="px-6 py-4 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-slate-900 truncate">{p.clientName}</p>
+                          {statusChip(p.status)}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5 truncate">
+                          → {p.therapistName} · session {formatIST(p.scheduledAt)} IST
+                        </p>
+                        <p className="text-[11px] text-slate-300 mt-0.5 font-mono truncate">
+                          {p.orderId}{p.cfPaymentId ? ` · pay ${p.cfPaymentId}` : ''}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-black text-slate-900">{inr(p.amountPaise)}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {p.paidAt ? `paid ${formatIST(p.paidAt)}` : `opened ${formatIST(p.createdAt)}`}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          })()}
 
           {/* ── Emails Tab ── */}
           {tab === 'emails' && (

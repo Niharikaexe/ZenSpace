@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/notifications'
+import { formatIST } from '@/lib/datetime'
 
 // Vercel Cron, runs hourly.
 // Finds sessions whose scheduled_at + grace window has passed but status is
@@ -32,6 +33,10 @@ export async function GET(request: NextRequest) {
     .from('sessions')
     .select('id, match_id, scheduled_at, session_type, status')
     .eq('status', 'scheduled')
+    // Only flag CONFIRMED (paid) sessions as missed. An unpaid/abandoned booking
+    // was never a real appointment — having a razorpay_order_id does NOT mean
+    // paid; only payment_status='paid' does.
+    .eq('payment_status', 'paid')
     .lte('scheduled_at', cutoff)
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
@@ -64,10 +69,7 @@ export async function GET(request: NextRequest) {
     const clientFirstName = (clientProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
     const therapistFirstName = (therapistProfile?.full_name as string | undefined)?.split(' ')[0] ?? 'there'
 
-    const dateStr = new Date(s.scheduled_at).toLocaleString('en-IN', {
-      weekday: 'short', day: 'numeric', month: 'short',
-      hour: '2-digit', minute: '2-digit', hour12: true,
-    })
+    const dateStr = `${formatIST(s.scheduled_at)} IST`
 
     await createNotification({
       userId: match.therapist_id,

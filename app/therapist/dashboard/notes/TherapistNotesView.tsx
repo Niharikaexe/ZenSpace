@@ -20,8 +20,8 @@ type SessionGroup = {
 function formatDT(iso: string) {
   return new Date(iso).toLocaleString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  })
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  }) + ' IST'
 }
 
 function NoteEditor({ session, onSaved }: { session: Session; onSaved: (id: string, notes: string) => void }) {
@@ -47,7 +47,7 @@ function NoteEditor({ session, onSaved }: { session: Session; onSaved: (id: stri
         className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/70 transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-[10px] font-bold text-[#233551]/40 flex-shrink-0">{session.session_type === 'video' ? 'VID' : 'CHT'}</span>
+          <span className="text-[10px] font-bold text-[#233551]/40 flex-shrink-0">VID</span>
           <div className="min-w-0">
             <p className="text-sm font-medium text-[#233551] truncate">{formatDT(session.scheduled_at)}</p>
             <p className="text-xs text-[#233551]/40 mt-0.5 capitalize">{session.status}</p>

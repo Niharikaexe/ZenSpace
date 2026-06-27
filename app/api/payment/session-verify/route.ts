@@ -1,19 +1,21 @@
-import { NextResponse, after } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import { createNotification } from '@/lib/notifications'
 import { getCashfreeOrder, getSuccessfulPaymentId } from '@/lib/cashfree'
+import { fulfillSessionOrder } from '@/lib/payments-fulfill'
 import { z } from 'zod'
 
-// Confirms a pay-as-you-go session after Cashfree checkout. Fetches the order
-// status from Cashfree (order_status === 'PAID' is the source of truth — no
-// client signature), marks the session 'paid', creates the Daily.co room, and
-// notifies the therapist. Idempotent — a re-posted verify for an already-paid
-// session is a no-op success.
+// Synchronous BACKSTOP to the Cashfree webhook. When the client returns from
+// checkout we re-check the order status server-side (order_status === 'PAID' is
+// the source of truth — no client signature) and fulfil the order if the
+// webhook hasn't already. fulfillSessionOrder is idempotent, so the webhook and
+// this verify can both fire for the same order without double-applying.
+//
+// The session is created HERE/in the webhook on confirmed payment — never at
+// order-open time. An order id alone is not payment.
 
 const schema = z.object({
   order_id: z.string(),
-  sessionId: z.string().uuid(),
 })
 
 export async function POST(request: Request) {
@@ -38,157 +40,46 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const { order_id, sessionId } = parsed.data
-
+  const { order_id } = parsed.data
   const admin = createAdminClient()
 
-  // Load the pending session and verify ownership + order match.
-  const { data: session } = await (admin as any)
-    .from('sessions')
-    .select('id, match_id, scheduled_at, payment_status, razorpay_order_id, client_amount_paise, therapist_payout_paise')
-    .eq('id', sessionId)
-    .maybeSingle() as {
-      data: { id: string; match_id: string; scheduled_at: string; payment_status: string; razorpay_order_id: string | null; client_amount_paise: number | null; therapist_payout_paise: number | null } | null
-      error: unknown
-    }
+  // Ownership: the order must belong to the caller (IDOR guard).
+  const { data: order } = await (admin as any)
+    .from('session_orders')
+    .select('client_id, status, session_id')
+    .eq('order_id', order_id)
+    .maybeSingle() as { data: { client_id: string; status: string; session_id: string | null } | null; error: unknown }
 
-  if (!session || session.razorpay_order_id !== order_id) {
-    logger.error('api/payment/session-verify', 'Session not found or order mismatch', { userId: user.id, sessionId })
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  if (!order || order.client_id !== user.id) {
+    logger.warn('api/payment/session-verify', 'Order not found or not owned by caller', { userId: user.id, order_id })
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }
 
-  const { data: match } = await (admin as any)
-    .from('matches')
-    .select('client_id, therapist_id')
-    .eq('id', session.match_id)
-    .single() as { data: { client_id: string; therapist_id: string } | null; error: unknown }
-
-  if (!match || match.client_id !== user.id) {
-    logger.warn('api/payment/session-verify', 'Caller does not own this session', { userId: user.id, sessionId })
-    return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
-  }
-
-  // Idempotency — already paid, nothing to do.
-  if (session.payment_status === 'paid') {
+  // Already fulfilled (webhook beat us) — success.
+  if (order.status === 'paid' && order.session_id) {
     return NextResponse.json({ success: true })
   }
 
-
-  // ── CASHFREE: order status is the source of truth ───────────────────────────
+  // Cashfree order status is the source of truth.
   const cfOrder = await getCashfreeOrder(order_id)
   if (!cfOrder.ok) {
-    logger.error('api/payment/session-verify', 'Cashfree order lookup failed', { userId: user.id, sessionId, order_id, status: cfOrder.status, error: cfOrder.error })
+    logger.error('api/payment/session-verify', 'Cashfree order lookup failed', { userId: user.id, order_id, status: cfOrder.status, error: cfOrder.error })
     return NextResponse.json({ error: 'Could not verify payment. Please try again.' }, { status: 502 })
   }
   if (cfOrder.status !== 'PAID') {
-    logger.warn('api/payment/session-verify', 'Cashfree order not paid', { userId: user.id, sessionId, order_id, orderStatus: cfOrder.status })
+    logger.warn('api/payment/session-verify', 'Cashfree order not paid', { userId: user.id, order_id, orderStatus: cfOrder.status })
     return NextResponse.json({ error: 'Payment not completed.' }, { status: 400 })
   }
 
-  // cf_payment_id for the ledger (best-effort).
-  const razorpay_payment_id = (await getSuccessfulPaymentId(order_id)) ?? order_id
+  const paymentId = (await getSuccessfulPaymentId(order_id)) ?? order_id
+  const result = await fulfillSessionOrder(order_id, paymentId, cfOrder.amount)
 
-  // Create the Daily.co room now that payment is confirmed.
-  let dailyRoomUrl: string | null = null
-  let dailyRoomName: string | null = null
-  if (process.env.DAILY_API_KEY) {
-    try {
-      const roomName = `mindcanopy-${session.match_id.slice(0, 8)}-${Date.now()}`
-      const sessionStart = new Date(session.scheduled_at).getTime()
-      const exp = Math.floor(Math.max(sessionStart, Date.now()) / 1000) + 7200
-
-      const res = await fetch('https://api.daily.co/v1/rooms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.DAILY_API_KEY}`,
-        },
-        body: JSON.stringify({
-          name: roomName,
-          privacy: 'private',
-          properties: { exp, max_participants: 2 },
-        }),
-      })
-
-      if (res.ok) {
-        const room = await res.json()
-        dailyRoomUrl = room.url
-        dailyRoomName = room.name
-      } else {
-        const text = await res.text().catch(() => '<no body>')
-        logger.warn('api/payment/session-verify', 'Daily.co room creation rejected', { sessionId, status: res.status, body: text })
-      }
-    } catch (err) {
-      // Non-fatal — the session is still confirmed; the therapist will see "no link".
-      logger.warn('api/payment/session-verify', 'Daily.co room creation threw', { sessionId, err: err instanceof Error ? err.message : String(err) })
-    }
-  }
-
-  const { error: dbErr } = await (admin as any)
-    .from('sessions')
-    .update({
-      payment_status: 'paid',
-      paid_at: new Date().toISOString(),
-      razorpay_payment_id,
-      daily_room_url: dailyRoomUrl,
-      daily_room_name: dailyRoomName,
-    })
-    .eq('id', sessionId)
-    .eq('payment_status', 'pending')
-
-  if (dbErr) {
-    logger.error('api/payment/session-verify', 'Failed to confirm session', dbErr, { userId: user.id, sessionId })
-    return NextResponse.json({ error: 'Failed to confirm session' }, { status: 500 })
-  }
-
-  logger.info('api/payment/session-verify', 'Session confirmed', {
-    userId: user.id, sessionId, paymentId: razorpay_payment_id,
-  })
-
-  // Record the charge in the unified payment ledger. Deduped on
-  // razorpay_payment_id (unique) so a re-posted verify can't double-insert.
-  const { error: payErr } = await (admin as any)
-    .from('payments')
-    .upsert({
-      client_id: match.client_id,
-      therapist_id: match.therapist_id,
-      match_id: session.match_id,
-      kind: 'session',
-      session_id: sessionId,
-      amount_paise: session.client_amount_paise ?? 0,
-      therapist_payout_paise: session.therapist_payout_paise ?? null,
-      razorpay_order_id: order_id, // reused column → Cashfree order_id
-      razorpay_payment_id,
-      status: 'paid',
-    }, { onConflict: 'razorpay_payment_id', ignoreDuplicates: true })
-  if (payErr) {
-    logger.error('api/payment/session-verify', 'Failed to write payment ledger row', payErr, { sessionId, paymentId: razorpay_payment_id })
-  }
-
-  // Notify the therapist about the newly booked session (fire-and-forget).
-  try {
-    const dateStr = new Date(session.scheduled_at).toLocaleString('en-IN', {
-      weekday: 'short', day: 'numeric', month: 'short',
-      hour: '2-digit', minute: '2-digit', hour12: true,
-    })
-    const { data: profiles } = await (admin as any)
-      .from('profiles').select('id, full_name')
-      .in('id', [match.therapist_id, match.client_id])
-    const therapistFirstName = ((profiles ?? []).find((p: any) => p.id === match.therapist_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your therapist'
-    const clientFirstName = ((profiles ?? []).find((p: any) => p.id === match.client_id)?.full_name as string | undefined)?.split(' ')[0] ?? 'your client'
-
-    after(() => createNotification({
-      userId: match.therapist_id,
-      type: 'session_scheduled_therapist',
-      title: 'Session booked',
-      body: `A video session has been booked for ${dateStr}.`,
-      metadata: {
-        matchId: session.match_id, scheduledAt: session.scheduled_at, sessionType: 'video', dateStr,
-        therapistFirstName, clientFirstName,
-      },
-    }).catch((err) => logger.error('api/payment/session-verify', 'Failed to send booking notification', err)))
-  } catch (err) {
-    logger.warn('api/payment/session-verify', 'Booking notification dispatch failed', { sessionId, err: err instanceof Error ? err.message : String(err) })
+  if (!result.ok) {
+    logger.error('api/payment/session-verify', 'Fulfilment failed', null, { userId: user.id, order_id, reason: result.reason })
+    const msg = result.reason === 'amount_mismatch'
+      ? 'Payment amount mismatch. Please contact support.'
+      : `Payment went through but we couldn’t confirm the session. Contact support with order ID: ${order_id}`
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

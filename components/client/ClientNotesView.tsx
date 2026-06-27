@@ -23,6 +23,7 @@ function formatDT(iso: string) {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Asia/Kolkata',
   })
 }
 
@@ -31,7 +32,8 @@ function formatTime(iso: string) {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
-  })
+    timeZone: 'Asia/Kolkata',
+  }) + ' IST'
 }
 
 export default function ClientNotesView({ clientName, therapist, sessions }: Props) {
@@ -84,7 +86,7 @@ export default function ClientNotesView({ clientName, therapist, sessions }: Pro
                     <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between gap-4">
                       <div>
                         <p className="text-sm font-bold text-[#233551]">
-                          {s.session_type === 'video' ? 'Video Session' : 'Chat Session'}
+                          Video Session
                         </p>
                         <p className="text-xs text-[#233551]/45 mt-0.5">
                           {formatDT(s.scheduled_at)} · {formatTime(s.scheduled_at)}
