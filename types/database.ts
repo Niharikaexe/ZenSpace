@@ -166,6 +166,7 @@ export interface Database {
           duration_minutes: number | null
           daily_room_url: string | null
           daily_room_name: string | null
+          daily_room_id: string | null
           therapist_notes: string | null
           client_joined_at: string | null
           therapist_joined_at: string | null
@@ -185,6 +186,7 @@ export interface Database {
           scheduled_at: string
           daily_room_url?: string | null
           daily_room_name?: string | null
+          daily_room_id?: string | null
           client_joined_at?: string | null
           therapist_joined_at?: string | null
           client_on_time?: boolean | null

@@ -145,6 +145,7 @@ export async function POST(request: Request) {
           therapist_payout_paise: payoutPaise,
           category,
           tier,
+          daily_room_id: room.id,
           daily_room_url: room.url,
           daily_room_name: room.name,
         })

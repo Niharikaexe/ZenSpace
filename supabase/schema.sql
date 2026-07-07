@@ -199,6 +199,7 @@ CREATE TABLE sessions (
   -- Daily.co fields
   daily_room_url TEXT,
   daily_room_name TEXT,
+  daily_room_id TEXT,   -- room UUID; matches transcript.* webhook events (which carry room_id, not room name)
   -- Notes (therapist only)
   therapist_notes TEXT,
   -- Session monitoring (Daily webhook; see 20260614_session_monitoring.sql).

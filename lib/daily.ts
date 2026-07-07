@@ -1,16 +1,20 @@
 import { logger } from '@/lib/logger'
 
-export type DailyRoom = { url: string | null; name: string | null }
+export type DailyRoom = { id: string | null; url: string | null; name: string | null }
 
 /**
  * Creates a private Daily.co room for a session. Non-fatal: returns nulls (and
  * logs) on any failure, so callers can still confirm the session — the UI just
  * shows "no video link". Mirrors the room config used elsewhere (2h expiry from
  * the scheduled start, max 2 participants).
+ *
+ * Returns the room `id` (UUID) as well as name/url: transcript.* webhook events
+ * identify the room by its UUID (room_id), not its name, so we persist it to map
+ * those events back to the session.
  */
 export async function createDailyRoom(matchId: string, scheduledAtIso: string): Promise<DailyRoom> {
   const apiKey = process.env.DAILY_API_KEY
-  if (!apiKey) return { url: null, name: null }
+  if (!apiKey) return { id: null, url: null, name: null }
 
   try {
     const roomName = `mindcanopy-${matchId.slice(0, 8)}-${Date.now()}`
@@ -41,12 +45,12 @@ export async function createDailyRoom(matchId: string, scheduledAtIso: string): 
 
     if (res.ok) {
       const room = await res.json()
-      return { url: room.url, name: room.name }
+      return { id: room.id ?? null, url: room.url, name: room.name }
     }
     const body = await res.text().catch(() => '<no body>')
     logger.warn('lib/daily', 'Daily.co room creation rejected', { matchId, status: res.status, body })
   } catch (err) {
     logger.warn('lib/daily', 'Daily.co room creation threw', { matchId, err: err instanceof Error ? err.message : String(err) })
   }
-  return { url: null, name: null }
+  return { id: null, url: null, name: null }
 }
