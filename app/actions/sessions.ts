@@ -190,6 +190,7 @@ export async function scheduleSession(
 
   let dailyRoomUrl: string | null = null
   let dailyRoomName: string | null = null
+  let dailyRoomId: string | null = null
 
   if (sessionType === 'video' && process.env.DAILY_API_KEY) {
     try {
@@ -214,6 +215,7 @@ export async function scheduleSession(
         const room = await res.json()
         dailyRoomUrl = room.url
         dailyRoomName = room.name
+        dailyRoomId = room.id ?? null   // room UUID — matches transcript.* webhook events
       } else {
         const body = await res.text().catch(() => '<no body>')
         logger.warn('sessions/scheduleSession', 'Daily.co room creation rejected', { matchId, status: res.status, body })
@@ -236,6 +238,7 @@ export async function scheduleSession(
     status: 'scheduled',
     payment_status: 'paid',
     paid_at: new Date().toISOString(),
+    daily_room_id: dailyRoomId,
     daily_room_url: dailyRoomUrl,
     daily_room_name: dailyRoomName,
   })

@@ -123,6 +123,7 @@ export async function fulfillSessionOrder(
       tier: order.tier,
       razorpay_order_id: order.order_id,    // reused column → Cashfree order id
       razorpay_payment_id: paymentId,
+      daily_room_id: room.id,               // room UUID — used to match transcript.* webhook events
       daily_room_url: room.url,
       daily_room_name: room.name,
     })

@@ -29,9 +29,19 @@ import { sendAdminTranscriptFlagEmail } from '@/lib/email'
 
 const ON_TIME_GRACE_MS = 5 * 60 * 1000 // joined within 5 min of scheduled = on time
 
-// Daily signs as base64( HMAC-SHA256( timestamp + rawBody, secret ) ).
+// Daily signs: base64( HMAC-SHA256( `${timestamp}.${rawBody}`, base64Decode(secret) ) )
+//
+// Two things that are easy to get wrong (and were, previously):
+//   1. the timestamp and body are joined with a DOT ('.') separator, and
+//   2. the `hmac` secret Daily gives you is itself BASE-64 encoded — it must be
+//      decoded to raw bytes before being used as the HMAC key.
+// The signed body is the exact bytes Daily POSTed, i.e. rawBody === their
+// JSON.stringify(event), so we sign rawBody (never a re-stringified copy, which
+// could reorder keys and break the match).
+// Ref: https://docs.daily.co/reference/rest-api/webhooks (Verifying webhooks).
 function verifySignature(rawBody: string, timestamp: string, signature: string, secret: string): boolean {
-  const expected = crypto.createHmac('sha256', secret).update(timestamp + rawBody).digest('base64')
+  const key = Buffer.from(secret, 'base64')
+  const expected = crypto.createHmac('sha256', key).update(`${timestamp}.${rawBody}`).digest('base64')
   try {
     const a = Buffer.from(expected)
     const b = Buffer.from(signature)
@@ -55,24 +65,49 @@ function toMs(ts: unknown): number | null {
   return null
 }
 
+type SessionLookup = {
+  id: string; match_id: string; scheduled_at: string; started_at: string | null
+  status: string; client_joined_at: string | null; therapist_joined_at: string | null
+  transcript_status: string | null
+}
+
+const SESSION_LOOKUP_COLS =
+  'id, match_id, scheduled_at, started_at, status, client_joined_at, therapist_joined_at, transcript_status'
+
+// meeting.* / participant.* events carry the room NAME in `room`.
 function findRoomName(payload: Record<string, unknown>): string | null {
   return (payload.room ?? payload.room_name ?? payload.roomName ?? null) as string | null
 }
 
-async function sessionByRoom(admin: Admin, room: string | null) {
-  if (!room) return null
+// transcript.* events carry the room UUID in `room_id` (there is NO room name in
+// those payloads) — this is why transcripts never matched a session before.
+function findRoomId(payload: Record<string, unknown>): string | null {
+  return (payload.room_id ?? payload.roomId ?? null) as string | null
+}
+
+async function sessionByColumn(
+  admin: Admin,
+  column: 'daily_room_name' | 'daily_room_id',
+  value: string | null,
+): Promise<SessionLookup | null> {
+  if (!value) return null
   const { data } = await admin
     .from('sessions')
-    .select('id, match_id, scheduled_at, started_at, status, client_joined_at, therapist_joined_at, transcript_status')
-    .eq('daily_room_name', room)
+    .select(SESSION_LOOKUP_COLS)
+    .eq(column, value)
     .order('scheduled_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  return data as {
-    id: string; match_id: string; scheduled_at: string; started_at: string | null
-    status: string; client_joined_at: string | null; therapist_joined_at: string | null
-    transcript_status: string | null
-  } | null
+  return (data as SessionLookup | null) ?? null
+}
+
+// Resolve the session behind ANY Daily event: try the room name (meeting/
+// participant events), then fall back to the room UUID (transcript events).
+async function findSession(admin: Admin, payload: Record<string, unknown>): Promise<SessionLookup | null> {
+  return (
+    (await sessionByColumn(admin, 'daily_room_name', findRoomName(payload))) ??
+    (await sessionByColumn(admin, 'daily_room_id', findRoomId(payload)))
+  )
 }
 
 // Strip a WebVTT file down to plain caption text. Cheap, single-pass.
@@ -91,7 +126,7 @@ function vttToText(vtt: string): string {
 
 // ── participant.joined: attribute join + punctuality ─────────────────────────
 async function handleParticipantJoined(admin: Admin, payload: Record<string, unknown>) {
-  const session = await sessionByRoom(admin, findRoomName(payload))
+  const session = await findSession(admin, payload)
   if (!session) return
 
   const { data: match } = await admin
@@ -124,7 +159,7 @@ async function handleParticipantJoined(admin: Admin, payload: Record<string, unk
 
 // ── meeting.started / meeting.ended ──────────────────────────────────────────
 async function handleMeeting(admin: Admin, type: string, payload: Record<string, unknown>) {
-  const session = await sessionByRoom(admin, findRoomName(payload))
+  const session = await findSession(admin, payload)
   if (!session) return
 
   if (type === 'meeting.started') {
@@ -154,7 +189,7 @@ async function handleMeeting(admin: Admin, type: string, payload: Record<string,
 async function handleTranscriptReady(admin: Admin, payload: Record<string, unknown>) {
   const apiKey = process.env.DAILY_API_KEY
   const transcriptId = (payload.transcriptId ?? payload.recordingId ?? payload.id) as string | undefined
-  const session = await sessionByRoom(admin, findRoomName(payload))
+  const session = await findSession(admin, payload)
   if (!apiKey || !transcriptId || !session) {
     logger.warn('webhook/daily', 'transcript.ready missing apiKey/id/session', { transcriptId, hasSession: !!session })
     return
@@ -227,14 +262,14 @@ async function handleEvent(type: string, payload: Record<string, unknown>) {
     case 'meeting.ended':
       return handleMeeting(admin, type, payload)
     case 'transcript.started': {
-      const session = await sessionByRoom(admin, findRoomName(payload))
+      const session = await findSession(admin, payload)
       if (session) await admin.from('sessions').update({ transcript_status: 'started' }).eq('id', session.id)
       return
     }
     case 'transcript.ready-to-download':
       return handleTranscriptReady(admin, payload)
     case 'transcript.error': {
-      const session = await sessionByRoom(admin, findRoomName(payload))
+      const session = await findSession(admin, payload)
       if (session) await admin.from('sessions').update({ transcript_status: 'error' }).eq('id', session.id)
       return
     }
@@ -270,7 +305,16 @@ export async function POST(req: Request) {
     const signature = req.headers.get('X-Webhook-Signature')
     const timestamp = req.headers.get('X-Webhook-Timestamp')
     if (!signature || !timestamp || !verifySignature(rawBody, timestamp, signature, secret)) {
-      logger.warn('webhook/daily', 'Rejected: bad signature')
+      // Visible in Vercel Runtime Logs for /api/webhooks/daily. We log the shape
+      // (never the secret or signature values) so a persistent mismatch is
+      // diagnosable — a run of these means Daily's requests are being rejected.
+      logger.warn('webhook/daily', 'Rejected: signature mismatch', {
+        type: (event.type as string | undefined) ?? 'unknown',
+        hasSignature: !!signature,
+        hasTimestamp: !!timestamp,
+        bodyLen: rawBody.length,
+        secretLen: secret.length,
+      })
       return new NextResponse('invalid signature', { status: 401 })
     }
   } else {
@@ -280,6 +324,16 @@ export async function POST(req: Request) {
   const type = event.type as string | undefined
   const payload = (event.payload ?? {}) as Record<string, unknown>
   if (!type) return NextResponse.json({ ok: true })
+
+  // Confirms events are arriving AND passing auth. Logs the room field so you can
+  // see, per event, whether it matches a session (transcript events carry room_id
+  // rather than `room`, so this reveals mismatches). No sensitive content.
+  logger.info('webhook/daily', 'Event accepted', {
+    type,
+    payloadKeys: Object.keys(payload).join(','),
+    room: findRoomName(payload) ?? 'none',
+    roomId: findRoomId(payload) ?? 'none',
+  })
 
   // Ack immediately; do all I/O after the response so Daily isn't kept waiting.
   after(() =>
