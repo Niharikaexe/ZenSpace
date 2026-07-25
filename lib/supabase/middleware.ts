@@ -104,6 +104,7 @@ export async function updateSession(request: NextRequest) {
     pathname === '/contact' ||                  // public contact page
     pathname === '/privacy' ||                  // legal
     pathname === '/terms' ||                    // legal
+    pathname === '/feedback' ||                 // post-session feedback; the session id in the link is the credential, and mail apps open links with no session cookie
     pathname.startsWith('/api/webhooks/') ||        // all webhook endpoints (called by external services)
     pathname.startsWith('/api/cron/')    
 
