@@ -10,7 +10,7 @@ import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 import QuestionnaireDetails from './QuestionnaireDetails'
 import { LeadsTab } from './LeadsTab'
-import { ComposeTab } from './ComposeTab'
+import { EmailStudio, type TemplateStat, type MailRecipient } from './EmailStudio'
 import { labelReasons } from '@/lib/message-flags'
 import { formatIST } from '@/lib/datetime'
 
@@ -141,15 +141,6 @@ export type EmailLog = {
   created_at: string
 }
 
-// Live delivery status (from the Resend webhook) → chip styling for the Emails tab.
-const EMAIL_DELIVERY_META: Record<string, { label: string; cls: string; dot: string }> = {
-  delivered:        { label: 'Delivered', cls: 'bg-blue-50 text-blue-700 border-blue-200',     dot: 'bg-blue-500' },
-  opened:           { label: 'Opened',    cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500' },
-  clicked:          { label: 'Clicked',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  bounced:          { label: 'Bounced',   cls: 'bg-red-50 text-red-700 border-red-200',         dot: 'bg-red-500' },
-  complained:       { label: 'Spam',      cls: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
-  delivery_delayed: { label: 'Delayed',   cls: 'bg-amber-50 text-amber-700 border-amber-200',    dot: 'bg-amber-500' },
-}
 
 export type ActiveMatch = {
   id: string
@@ -217,6 +208,8 @@ interface Props {
   applications: TherapistApplication[]
   switchRequests: SwitchRequest[]
   emailLogs: EmailLog[]
+  templateStats: Record<string, TemplateStat>
+  mailRecipients: MailRecipient[]
   leads: Lead[]
   therapistPayouts: TherapistPayoutSummary[]
   payments: PaymentRow[]
@@ -303,8 +296,8 @@ export interface Lead {
   device_os: string | null
 }
 
-type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'emails' | 'payouts' | 'payments'
-type View = 'dashboard' | 'leads' | 'compose'
+type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'payouts' | 'payments'
+type View = 'dashboard' | 'leads' | 'emails'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
 
@@ -328,7 +321,7 @@ function formatPay(amount: number | null, currency: string | null): string | nul
   return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
 }
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, leads, therapistPayouts, payments }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, templateStats, mailRecipients, leads, therapistPayouts, payments }: Props) {
   const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
@@ -338,8 +331,6 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
   const [isPending, startTransition] = useTransition()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [appFilter, setAppFilter] = useState<AppFilter>('all')
-  const [emailFilter, setEmailFilter] = useState<'all' | 'sent' | 'failed'>('all')
-  const [emailSearch, setEmailSearch] = useState('')
   // Two-step confirm for settling a payout (avoids a native confirm() dialog).
   const [confirmPayoutId, setConfirmPayoutId] = useState<string | null>(null)
   // Active Matches: "Flagged only" filter + click-to-expand flag details.
@@ -424,7 +415,6 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
     { key: 'matches', label: 'Active Matches', count: activeMatches.length },
     { key: 'payments', label: 'Payments', count: payments.filter(p => p.status === 'paid').length },
     { key: 'payouts', label: 'Payouts', count: therapistPayouts.filter(p => p.outstandingPaise > 0).length },
-    { key: 'emails', label: 'Emails', count: emailLogs.length },
   ]
 
   const inr = (paise: number) =>
@@ -442,21 +432,6 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
 
   const filteredApplications = applications.filter(a => appMatchesFilter(a, appFilter))
 
-  const emailQuery = emailSearch.trim().toLowerCase()
-  const filteredEmailLogs = emailLogs.filter(e => {
-    // Status filter
-    if (emailFilter === 'sent' && e.send_status !== 'sent') return false
-    if (emailFilter === 'failed' && e.send_status === 'sent') return false
-    // Search by client name / email / subject / template
-    if (emailQuery) {
-      const haystack = [e.recipient_name, e.recipient, e.subject, e.template]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      if (!haystack.includes(emailQuery)) return false
-    }
-    return true
-  })
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -517,12 +492,12 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
             </button>
             <button
               type="button"
-              onClick={() => setView('compose')}
+              onClick={() => setView('emails')}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                view === 'compose' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+                view === 'emails' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Send Email
+              Emails
             </button>
           </nav>
         </aside>
@@ -534,9 +509,13 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
         <div className="px-4 md:px-6 py-8">
           <LeadsTab leads={leads} />
         </div>
-      ) : view === 'compose' ? (
+      ) : view === 'emails' ? (
         <div className="px-4 md:px-6 py-8">
-          <ComposeTab />
+          <EmailStudio
+            emailLogs={emailLogs}
+            templateStats={templateStats}
+            recipients={mailRecipients}
+          />
         </div>
       ) : (
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">
@@ -1548,116 +1527,6 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
           })()}
 
           {/* ── Emails Tab ── */}
-          {tab === 'emails' && (
-            <>
-              <div className="px-6 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2 bg-slate-50/60">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-2">Filter</span>
-                {([
-                  { key: 'all' as const, label: 'All' },
-                  { key: 'sent' as const, label: 'Accepted by Resend' },
-                  { key: 'failed' as const, label: 'Failed' },
-                ]).map(f => {
-                  const count = f.key === 'all'
-                    ? emailLogs.length
-                    : f.key === 'sent'
-                      ? emailLogs.filter(e => e.send_status === 'sent').length
-                      : emailLogs.filter(e => e.send_status !== 'sent').length
-                  const isActive = emailFilter === f.key
-                  return (
-                    <button
-                      key={f.key}
-                      onClick={() => setEmailFilter(f.key)}
-                      className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-colors ${
-                        isActive
-                          ? 'bg-slate-800 text-white border-slate-800'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
-                    >
-                      {f.label}
-                      <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-slate-400'}`}>{count}</span>
-                    </button>
-                  )
-                })}
-                <div className="ml-auto flex items-center gap-2">
-                  <input
-                    type="search"
-                    value={emailSearch}
-                    onChange={e => setEmailSearch(e.target.value)}
-                    placeholder="Search name, email, subject…"
-                    className="w-56 text-xs px-3 py-1.5 rounded-full border border-slate-200 bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                  <span className="text-[11px] text-slate-400 whitespace-nowrap">Last 200 sends</span>
-                </div>
-              </div>
-
-              {filteredEmailLogs.length === 0 ? (
-                <div className="py-16 text-center text-sm text-slate-400">
-                  No email logs match this filter.
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {filteredEmailLogs.map(log => {
-                    const isFailed = log.send_status !== 'sent'
-                    const statusLabel = {
-                      sent: 'Accepted',
-                      failed_no_api_key: 'No API key',
-                      failed_resend_rejected: 'Resend rejected',
-                      failed_threw: 'Network error',
-                    }[log.send_status]
-                    const delivery = log.last_status
-                      ? (EMAIL_DELIVERY_META[log.last_status] ?? null)
-                      : null
-                    return (
-                      <div key={log.id} className="px-6 py-3 flex items-start gap-4">
-                        <div className="flex-shrink-0 flex flex-col gap-1 items-start w-28">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
-                            isFailed
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isFailed ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                            {statusLabel}
-                          </span>
-                          {delivery && (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${delivery.cls}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${delivery.dot}`} />
-                              {delivery.label}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {log.recipient_name && (
-                              <span className="text-sm font-semibold text-slate-900">{log.recipient_name}</span>
-                            )}
-                            <span className="text-xs text-slate-500 break-all">{log.recipient}</span>
-                            <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{log.template}</span>
-                          </div>
-                          {log.subject && (
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">{log.subject}</p>
-                          )}
-                          {log.send_error && (
-                            <p className="text-xs text-red-600 mt-1 font-mono break-words whitespace-pre-wrap">
-                              {log.send_error}
-                            </p>
-                          )}
-                          <div className="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                            <span>{new Date(log.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                            {log.resend_id && (
-                              <span className="font-mono">Resend: {log.resend_id.slice(0, 8)}…</span>
-                            )}
-                            {log.resend_status_code != null && (
-                              <span>HTTP {log.resend_status_code}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
-          )}
 
         </div>
       </main>

@@ -96,10 +96,10 @@ export default async function AdminPage() {
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ])
 
-  // Map<userId, { email_confirmed_at: string | null }>
-  const authMap = new Map<string, { email_confirmed_at: string | null }>()
+  // Map<userId, { email_confirmed_at: string | null; email: string | null }>
+  const authMap = new Map<string, { email_confirmed_at: string | null; email: string | null }>()
   for (const u of (authUsersResp?.data?.users ?? [])) {
-    authMap.set(u.id, { email_confirmed_at: u.email_confirmed_at ?? null })
+    authMap.set(u.id, { email_confirmed_at: u.email_confirmed_at ?? null, email: u.email ?? null })
   }
 
   // ── Build unmatched clients ──────────────────────────────────────────────────
@@ -391,6 +391,43 @@ export default async function AdminPage() {
     created_at: row.created_at,
   }))
 
+  // Per-template "last sent" + lifetime totals for the Emails > Templates view.
+  // Counted over ALL rows (not just the 200 shown in the log) so the numbers are
+  // real, and `test:` rows are excluded so test sends never skew them.
+  const { data: templateCountRows } = await admin
+    .from('email_logs')
+    .select('template, created_at')
+    .not('template', 'like', 'test:%')
+    .order('created_at', { ascending: false })
+    .limit(5000)
+
+  const templateStats: Record<string, { lastSentAt: string | null; total: number }> = {}
+  for (const row of (templateCountRows ?? []) as { template: string; created_at: string }[]) {
+    const existing = templateStats[row.template]
+    if (existing) {
+      existing.total += 1
+    } else {
+      // Rows arrive newest-first, so the first one seen is the most recent send.
+      templateStats[row.template] = { lastSentAt: row.created_at, total: 1 }
+    }
+  }
+
+  // People a test email can be addressed to, without typing an address.
+  // Emails come from authMap (already fetched above) rather than a lookup per row.
+  const { data: recipientRows } = await admin
+    .from('profiles')
+    .select('id, full_name, role')
+    .order('created_at', { ascending: false })
+    .limit(60)
+
+  const mailRecipients = (recipientRows ?? [])
+    .map((r: any) => ({
+      email: authMap.get(r.id)?.email ?? '',
+      name: (r.full_name as string | null) ?? 'Unnamed',
+      role: (r.role as string | null) ?? 'client',
+    }))
+    .filter((r: { email: string }) => r.email !== '')
+
   const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
     const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)
     const matchRow = (switchMatches ?? []).find((m: any) => m.id === r.match_id)
@@ -562,6 +599,8 @@ export default async function AdminPage() {
       applications={applications}
       switchRequests={switchRequests}
       emailLogs={emailLogs}
+      templateStats={templateStats}
+      mailRecipients={mailRecipients}
       leads={leads}
       therapistPayouts={therapistPayouts}
       payments={payments}

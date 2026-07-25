@@ -5,6 +5,7 @@
 import { logger } from '@/lib/logger'
 import { createAdminClient } from '@/lib/supabase/server'
 import { firstSessionPriceInr, sessionPriceInr, formatInr, type SessionCategory } from '@/lib/plans'
+import { catalogueEntry } from '@/lib/email-catalogue'
 
 // ── email_logs audit trail ───────────────────────────────────────────────────
 // Every Resend send attempt is recorded so the admin dashboard can debug
@@ -1230,9 +1231,16 @@ interface EmailParams {
   name: string
   type: EmailNotificationType
   meta?: Record<string, string>
+  /**
+   * Admin test send. Renders through the exact same path as a real send (so a
+   * test can never drift from what clients actually receive), but prefixes the
+   * subject with [TEST] and logs under `test:notification:<type>` so it doesn't
+   * pollute the per-template stats in the admin console.
+   */
+  testMode?: boolean
 }
 
-export async function sendNotificationEmail({ to, name, type, meta = {} }: EmailParams): Promise<void> {
+export async function sendNotificationEmail({ to, name, type, meta = {}, testMode = false }: EmailParams): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     // Still log the skip so admin can see what would have gone out
     await logEmailAttempt({ recipient: to, template: `notification:${type}`, subject: 'Notification from MindCanopy', send_status: 'failed_no_api_key' })
@@ -1370,7 +1378,8 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       break
   }
 
-  const template = `notification:${type}`
+  if (testMode) subject = `[TEST] ${subject}`
+  const template = testMode ? `test:notification:${type}` : `notification:${type}`
   try {
     const res = await resendFetch('https://api.resend.com/emails', { from: FROM, to, subject, html })
     const body = await res.text()
@@ -1394,4 +1403,119 @@ export async function sendNotificationEmail({ to, name, type, meta = {} }: Email
       send_error: msg.slice(0, 500),
     })
   }
+}
+
+// ── Admin test sends ─────────────────────────────────────────────────────────
+// Sends any template in the catalogue to an arbitrary address so the admin can
+// see exactly what lands in an inbox. Notification templates go through the real
+// sendNotificationEmail path (testMode), so a test can never drift from the live
+// email. The standalone senders are rendered here with sample data.
+//
+// Every test is subject-prefixed [TEST] and logged under `test:<key>`, keeping
+// the per-template "last sent" and totals in the admin console honest.
+
+export async function sendTemplateTest(
+  key: string,
+  to: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!process.env.RESEND_API_KEY) {
+    return { ok: false, error: 'RESEND_API_KEY is not set in this environment.' }
+  }
+
+  const entry = catalogueEntry(key)
+  if (!entry) return { ok: false, error: `Unknown template: ${key}` }
+
+  const meta = entry.sampleMeta ?? {}
+  const name = entry.audience === 'therapist' ? 'Priya' : 'Tanisha'
+
+  // Notification templates: reuse the live rendering + send path.
+  if (key.startsWith('notification:')) {
+    const type = key.slice('notification:'.length) as EmailNotificationType
+    await sendNotificationEmail({ to, name, type, meta, testMode: true })
+    return { ok: true }
+  }
+
+  const S = {
+    clientName: 'Tanisha Rao',
+    therapistName: 'Priya Menon',
+    dateStr: 'Thu, 16 Jul, 06:30 PM',
+  }
+  const testSubject = (s: string) => `[TEST] ${s}`
+  const ctx = `test:${key}`
+
+  switch (key) {
+    case 'application-received':
+      return okFrom(await sendEmail(to, FROM_ADMIN, testSubject('Your MindCanopy therapist application, please verify your email'),
+        tplApplicationReceived(name, `${SITE}/therapist/verify-email?token=SAMPLE_TOKEN`), ctx))
+
+    case 'application-invite':
+      return okFrom(await sendEmail(to, FROM_ADMIN, testSubject('Your MindCanopy therapist application has been approved'),
+        tplApplicationApproved(name, `${SITE}/therapist/onboard`, 'ZSAB12CD',
+          'Strong fit on the cultural-context angle, schedule the intro call this week.'), ctx))
+
+    case 'client-discount-offer': {
+      const firstInr = firstSessionPriceInr('individual', 'standard') ?? 799
+      return okFrom(await sendEmail(to, FROM, testSubject(`${name}, something special — just for you`),
+        tplClientDiscountOffer(name, firstInr, `${SITE}/dashboard/sessions`), ctx))
+    }
+
+    case 'admin-new-application':
+      return okFrom(await sendEmail(to, FROM, testSubject(`New therapist application, ${S.therapistName}`),
+        tplAdminNewApplication(S.therapistName), ctx))
+
+    case 'admin-client-signup':
+      return okFrom(await sendEmail(to, FROM, testSubject(`New client signup, ${S.clientName}`),
+        tplAdminNewClientSignup(S.clientName, 'tanisha@example.com'), ctx))
+
+    case 'admin-new-subscription':
+      return okFrom(await sendEmail(to, FROM, testSubject(`New subscription, ${S.clientName} (Monthly bundle)`),
+        tplAdminNewSubscription(S.clientName, 'Monthly bundle'), ctx))
+
+    case 'admin-session-payment':
+      return okFrom(await sendEmail(to, FROM, testSubject(`Session payment, ${S.clientName}`),
+        tplAdminSessionPayment({
+          clientName: S.clientName, therapistName: S.therapistName,
+          amountInr: '₹1,300', dateStr: S.dateStr, paymentId: 'pay_SAMPLE123',
+        }), ctx))
+
+    case 'admin-therapist-onboarded':
+      return okFrom(await sendEmail(to, FROM, testSubject(`Therapist onboarded, ${S.therapistName}`),
+        tplAdminTherapistOnboarded(S.therapistName), ctx))
+
+    case 'admin-contact-form':
+      return okFrom(await sendEmail(to, FROM, testSubject('Contact form, Tanisha Rao'),
+        tplAdminContactForm(S.clientName, 'tanisha@example.com',
+          'Hi, I wanted to ask whether sessions can happen on weekends.'), ctx))
+
+    case 'admin-transcript-flag':
+      return okFrom(await sendEmail(to, FROM, testSubject('Session flagged for review'),
+        tplAdminTranscriptFlag(S.clientName, S.therapistName, S.dateStr,
+          ['Contact details shared', 'Off-platform payment']), ctx))
+
+    case 'payout-request':
+      return okFrom(await sendEmail(to, FROM, testSubject(`Payout request, ${S.therapistName}`),
+        tplAdminPayoutRequest({
+          therapistName: S.therapistName, sessionsCompleted: 6, pendingPayout: '₹5,850',
+          paypalEmail: null, bankAccountName: 'Priya Menon',
+          bankAccountNumber: 'XXXXXX4321', bankIfsc: 'HDFC0001234',
+        }), ctx))
+
+    case 'admin-compose':
+      return okFrom(await sendCustomEmail({
+        to,
+        subject: testSubject('A quick note from MindCanopy'),
+        heading: `Hi ${name},`,
+        body: 'This is what a custom one-off email looks like.\n\nEach blank line becomes a new paragraph, and the button below is optional.',
+        ctaLabel: 'Open your dashboard →',
+        ctaUrl: `${SITE}/dashboard`,
+        fromAdmin: true,
+      }))
+
+    default:
+      return { ok: false, error: `No test renderer for ${key}` }
+  }
+}
+
+function okFrom(sent: boolean): { ok: boolean; error?: string } {
+  return sent ? { ok: true } : { ok: false, error: 'Resend rejected the send. Check the Log tab for the error.' }
 }

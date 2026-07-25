@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { createNotification } from '@/lib/notifications'
-import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail, sendDiscountOfferBatch } from '@/lib/email'
+import { sendApplicationInviteEmail, sendApplicationReceivedEmail, sendCustomEmail, sendDiscountOfferBatch, sendTemplateTest } from '@/lib/email'
 import { normalizeSessionCategory } from '@/lib/plans'
 import { logger } from '@/lib/logger'
 import { randomBytes } from 'crypto'
@@ -471,6 +471,39 @@ export async function sendComposedEmail(
   logger.info('admin/sendComposedEmail', 'Custom email sent', { to, subject })
   revalidatePath('/admin')
   return { ok: true }
+}
+
+// Send a [TEST] copy of any template in the catalogue to any address, so the
+// admin can check how it actually renders in an inbox. Rendered with sample
+// data and logged under `test:<key>` so real per-template stats stay clean.
+const templateTestSchema = z.object({
+  key: z.string().trim().min(1),
+  to: z.string().trim().email('Enter a valid email address.'),
+})
+
+export async function sendTestEmail(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin()
+
+  const parsed = templateTestSchema.safeParse({
+    key: formData.get('key') ?? '',
+    to: formData.get('to') ?? '',
+  })
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Pick a template and a recipient.' }
+  }
+
+  const { key, to } = parsed.data
+  const result = await sendTemplateTest(key, to)
+
+  if (result.ok) {
+    logger.info('admin/sendTestEmail', 'Test email sent', { key, to })
+    revalidatePath('/admin')
+  } else {
+    logger.warn('admin/sendTestEmail', 'Test email failed', { key, to, err: result.error })
+  }
+  return result
 }
 
 // Bulk campaign: send the "Special — only for you" first-session discount email
