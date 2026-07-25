@@ -16,6 +16,15 @@ import {
 
 export type TemplateStat = { lastSentAt: string | null; total: number }
 
+/** Who a given template actually went to, newest first. */
+export type TemplateRecipient = {
+  email: string
+  name: string | null
+  at: string
+  failed: boolean
+  lastStatus: string | null
+}
+
 /** Someone a test email can be sent to, picked from real users. */
 export type MailRecipient = { email: string; name: string; role: string }
 
@@ -23,6 +32,8 @@ interface Props {
   emailLogs: EmailLog[]
   /** Keyed by catalogue key (matches email_logs.template). */
   templateStats: Record<string, TemplateStat>
+  /** Recent recipients per template, keyed the same way. */
+  templateRecipients: Record<string, TemplateRecipient[]>
   recipients: MailRecipient[]
 }
 
@@ -57,7 +68,9 @@ function relative(iso: string | null): string {
 
 type SubTab = 'templates' | 'log' | 'compose'
 
-export function EmailStudio({ emailLogs, templateStats, recipients }: Props) {
+export function EmailStudio({ emailLogs, templateStats, templateRecipients, recipients }: Props) {
+  // Which template's recipient list is open.
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [subTab, setSubTab] = useState<SubTab>('templates')
 
   // ── Templates tab state ────────────────────────────────────────────────────
@@ -250,8 +263,11 @@ export function EmailStudio({ emailLogs, templateStats, recipients }: Props) {
                   const stat = templateStats[entry.key] ?? { lastSentAt: null, total: 0 }
                   const busy = isPending && sendingKey === entry.key
                   const res = result?.key === entry.key ? result : null
+                  const sentTo = templateRecipients[entry.key] ?? []
+                  const isOpen = expanded === entry.key
                   return (
-                    <div key={entry.key} className="px-4 py-3.5 flex flex-wrap items-start gap-3">
+                    <div key={entry.key} className="px-4 py-3.5">
+                    <div className="flex flex-wrap items-start gap-3">
                       <div className="flex-1 min-w-[16rem]">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold text-slate-900">{entry.label}</span>
@@ -273,12 +289,20 @@ export function EmailStudio({ emailLogs, templateStats, recipients }: Props) {
                         <p className="text-[11px] text-slate-400 mt-1 font-mono">{entry.key}</p>
                       </div>
 
-                      <div className="text-right min-w-[7rem]">
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(isOpen ? null : entry.key)}
+                        disabled={sentTo.length === 0}
+                        className="text-right min-w-[7rem] rounded-lg px-2 py-1 -mr-2 enabled:hover:bg-slate-50 disabled:cursor-default transition-colors"
+                        title={sentTo.length ? 'Show who this went to' : undefined}
+                      >
                         <p className="text-xs font-semibold text-slate-700">{relative(stat.lastSentAt)}</p>
                         <p className="text-[11px] text-slate-400">
-                          {stat.total === 0 ? 'no sends yet' : `${stat.total} sent`}
+                          {stat.total === 0
+                            ? 'no sends yet'
+                            : <>{stat.total} sent <span className="text-slate-300">{isOpen ? '▴' : '▾'}</span></>}
                         </p>
-                      </div>
+                      </button>
 
                       <div className="flex flex-col items-end gap-1 min-w-[6.5rem]">
                         <button
@@ -294,6 +318,50 @@ export function EmailStudio({ emailLogs, templateStats, recipients }: Props) {
                           <span className="text-[11px] font-medium text-red-600 text-right max-w-[12rem]">{res.error}</span>
                         )}
                       </div>
+                    </div>
+
+                    {isOpen && (
+                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/60 overflow-hidden">
+                        <div className="px-3 py-2 border-b border-slate-200 flex items-baseline gap-2">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
+                            Sent to
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {stat.total > sentTo.length
+                              ? `most recent ${sentTo.length} of ${stat.total}`
+                              : `${sentTo.length} ${sentTo.length === 1 ? 'person' : 'people'}`}
+                          </span>
+                        </div>
+                        <div className="max-h-72 overflow-y-auto divide-y divide-slate-200/70">
+                          {sentTo.map((r, i) => {
+                            const d = r.lastStatus ? DELIVERY_META[r.lastStatus] : null
+                            return (
+                              <div key={`${r.email}-${r.at}-${i}`} className="px-3 py-2 flex flex-wrap items-center gap-2">
+                                {r.name && (
+                                  <span className="text-xs font-semibold text-slate-800">{r.name}</span>
+                                )}
+                                <span className="text-xs text-slate-500 break-all">{r.email}</span>
+                                {r.failed && (
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">
+                                    failed
+                                  </span>
+                                )}
+                                {d && (
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${d.cls}`}>
+                                    {d.label}
+                                  </span>
+                                )}
+                                <span className="ml-auto text-[11px] text-slate-400 whitespace-nowrap">
+                                  {new Date(r.at).toLocaleString('en-IN', {
+                                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+                                  })}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                     </div>
                   )
                 })}

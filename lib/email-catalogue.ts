@@ -129,6 +129,21 @@ export const EMAIL_CATALOGUE: EmailCatalogueEntry[] = [
     sampleMeta: { therapistFirstName: SAMPLE.therapistFirstName },
   },
   {
+    key: 'notification:client_session_feedback',
+    label: 'How was your session? (feedback)',
+    audience: 'client',
+    trigger: 'The morning after a session they actually attended. Once per session. Stars and options are tappable in the email; the written note is on the page.',
+    schedule: { cron: '30 5 * * *', human: 'Daily, 11:00 AM IST' },
+    wired: true,
+    sampleMeta: {
+      therapistFirstName: SAMPLE.therapistFirstName,
+      dateStr: 'Thursday',
+      // A real send passes the session's UUID; this is a harmless placeholder so
+      // a test email renders with working-looking links.
+      sessionId: '00000000-0000-0000-0000-000000000000',
+    },
+  },
+  {
     key: 'client-discount-offer',
     label: 'First-session discount offer',
     audience: 'client',

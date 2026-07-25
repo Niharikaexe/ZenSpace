@@ -10,7 +10,8 @@ import { OwlLogo } from '@/components/home/OwlLogo'
 import MatchModal from './MatchModal'
 import QuestionnaireDetails from './QuestionnaireDetails'
 import { LeadsTab } from './LeadsTab'
-import { EmailStudio, type TemplateStat, type MailRecipient } from './EmailStudio'
+import { EmailStudio, type TemplateStat, type TemplateRecipient, type MailRecipient } from './EmailStudio'
+import { FeedbackTab, type FeedbackRow } from './FeedbackTab'
 import { labelReasons } from '@/lib/message-flags'
 import { formatIST } from '@/lib/datetime'
 
@@ -209,7 +210,9 @@ interface Props {
   switchRequests: SwitchRequest[]
   emailLogs: EmailLog[]
   templateStats: Record<string, TemplateStat>
+  templateRecipients: Record<string, TemplateRecipient[]>
   mailRecipients: MailRecipient[]
+  feedback: FeedbackRow[]
   leads: Lead[]
   therapistPayouts: TherapistPayoutSummary[]
   payments: PaymentRow[]
@@ -297,7 +300,7 @@ export interface Lead {
 }
 
 type Tab = 'clients' | 'therapists' | 'matches' | 'applications' | 'switches' | 'payouts' | 'payments'
-type View = 'dashboard' | 'leads' | 'emails'
+type View = 'dashboard' | 'leads' | 'emails' | 'feedback'
 
 type AppFilter = 'all' | '0-3y' | '3-5y' | '5-8y' | '8+y' | 'foreign'
 
@@ -321,7 +324,7 @@ function formatPay(amount: number | null, currency: string | null): string | nul
   return `${symbol}${Number(amount).toLocaleString('en-IN')} / session`
 }
 
-export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, templateStats, mailRecipients, leads, therapistPayouts, payments }: Props) {
+export default function AdminDashboard({ adminName, unmatchedClients, therapists, activeMatches, totalClientCount, inviteCodes, applications, switchRequests, emailLogs, templateStats, templateRecipients, mailRecipients, feedback, leads, therapistPayouts, payments }: Props) {
   const [view, setView] = useState<View>('dashboard')
   const [tab, setTab] = useState<Tab>('clients')
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null)
@@ -499,6 +502,20 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
             >
               Emails
             </button>
+            <button
+              type="button"
+              onClick={() => setView('feedback')}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-between ${
+                view === 'feedback' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Feedback
+              {feedback.length > 0 && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${view === 'feedback' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                  {feedback.length}
+                </span>
+              )}
+            </button>
           </nav>
         </aside>
 
@@ -514,8 +531,13 @@ export default function AdminDashboard({ adminName, unmatchedClients, therapists
           <EmailStudio
             emailLogs={emailLogs}
             templateStats={templateStats}
+            templateRecipients={templateRecipients}
             recipients={mailRecipients}
           />
+        </div>
+      ) : view === 'feedback' ? (
+        <div className="px-4 md:px-6 py-8">
+          <FeedbackTab feedback={feedback} />
         </div>
       ) : (
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8">

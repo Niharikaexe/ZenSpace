@@ -13,6 +13,7 @@ import type {
   TherapistPayoutSummary,
   PaymentRow,
 } from '@/components/admin/AdminDashboard'
+import type { FeedbackRow } from '@/components/admin/FeedbackTab'
 
 export const dynamic = 'force-dynamic'
 
@@ -396,13 +397,33 @@ export default async function AdminPage() {
   // real, and `test:` rows are excluded so test sends never skew them.
   const { data: templateCountRows } = await admin
     .from('email_logs')
-    .select('template, created_at')
+    .select('template, created_at, recipient, related_user_id, send_status, last_status')
     .not('template', 'like', 'test:%')
     .order('created_at', { ascending: false })
     .limit(5000)
 
+  // Names for whoever received these, so "who got it" reads as people not addresses.
+  const { data: allProfiles } = await admin.from('profiles').select('id, full_name, role')
+  const profileById = new Map<string, { name: string; role: string }>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (allProfiles ?? []).map((p: any) => [p.id, {
+      name: (p.full_name as string | null) ?? 'Unnamed',
+      role: (p.role as string | null) ?? 'client',
+    }]),
+  )
+
   const templateStats: Record<string, { lastSentAt: string | null; total: number }> = {}
-  for (const row of (templateCountRows ?? []) as { template: string; created_at: string }[]) {
+  // Per-template recipient list, newest first, capped so one busy template can't
+  // bloat the payload sent to the browser.
+  const RECIPIENTS_PER_TEMPLATE = 50
+  const templateRecipients: Record<string, {
+    email: string; name: string | null; at: string; failed: boolean; lastStatus: string | null
+  }[]> = {}
+
+  for (const row of (templateCountRows ?? []) as {
+    template: string; created_at: string; recipient: string
+    related_user_id: string | null; send_status: string; last_status: string | null
+  }[]) {
     const existing = templateStats[row.template]
     if (existing) {
       existing.total += 1
@@ -410,23 +431,80 @@ export default async function AdminPage() {
       // Rows arrive newest-first, so the first one seen is the most recent send.
       templateStats[row.template] = { lastSentAt: row.created_at, total: 1 }
     }
+
+    const list = (templateRecipients[row.template] ??= [])
+    if (list.length < RECIPIENTS_PER_TEMPLATE) {
+      list.push({
+        email: row.recipient,
+        name: row.related_user_id ? (profileById.get(row.related_user_id)?.name ?? null) : null,
+        at: row.created_at,
+        failed: row.send_status !== 'sent',
+        lastStatus: row.last_status ?? null,
+      })
+    }
   }
 
-  // People a test email can be addressed to, without typing an address.
-  // Emails come from authMap (already fetched above) rather than a lookup per row.
-  const { data: recipientRows } = await admin
-    .from('profiles')
-    .select('id, full_name, role')
-    .order('created_at', { ascending: false })
-    .limit(60)
+  // ── Session feedback ────────────────────────────────────────────────────────
+  // Wrapped in try/catch so the whole admin page still renders if the
+  // session_feedback migration has not been run in this environment yet.
+  let feedback: FeedbackRow[] = []
+  try {
+    const { data: rawFeedback } = await admin
+      .from('session_feedback')
+      .select('id, session_id, client_id, therapist_id, rating, felt_heard, book_again, note, submitted_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(300)
 
-  const mailRecipients = (recipientRows ?? [])
-    .map((r: any) => ({
-      email: authMap.get(r.id)?.email ?? '',
-      name: (r.full_name as string | null) ?? 'Unnamed',
-      role: (r.role as string | null) ?? 'client',
-    }))
-    .filter((r: { email: string }) => r.email !== '')
+    if (rawFeedback?.length) {
+      const fbIds = Array.from(new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rawFeedback.flatMap((r: any) => [r.client_id, r.therapist_id]).filter(Boolean),
+      )) as string[]
+      const { data: fbProfiles } = fbIds.length
+        ? await admin.from('profiles').select('id, full_name').in('id', fbIds)
+        : { data: [] as { id: string; full_name: string }[] }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fbName = new Map<string, string>((fbProfiles ?? []).map((p: any) => [p.id, p.full_name as string]))
+
+      const sessionIds = Array.from(new Set(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        rawFeedback.map((r: any) => r.session_id).filter(Boolean),
+      )) as string[]
+      const { data: fbSessions } = sessionIds.length
+        ? await admin.from('sessions').select('id, scheduled_at').in('id', sessionIds)
+        : { data: [] as { id: string; scheduled_at: string }[] }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sessionAt = new Map<string, string>((fbSessions ?? []).map((s: any) => [s.id, s.scheduled_at as string]))
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      feedback = rawFeedback.map((r: any) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        clientName: fbName.get(r.client_id) ?? 'Unknown client',
+        therapistName: fbName.get(r.therapist_id) ?? 'Unknown therapist',
+        rating: r.rating ?? null,
+        feltHeard: r.felt_heard ?? null,
+        bookAgain: r.book_again ?? null,
+        note: r.note ?? null,
+        sessionAt: sessionAt.get(r.session_id) ?? null,
+        submitted: !!r.submitted_at,
+        createdAt: r.created_at,
+      }))
+    }
+  } catch {
+    // Table not present yet. Feedback view will show its empty state.
+  }
+
+  // People a test email can be addressed to, without typing an address. Built
+  // from the profile map plus authMap (both already fetched above), so this adds
+  // no extra queries. Admins first, since they are the usual test target.
+  const ROLE_ORDER: Record<string, number> = { admin: 0, therapist: 1, client: 2 }
+  const mailRecipients = Array.from(profileById.entries())
+    .map(([id, p]) => ({ email: authMap.get(id)?.email ?? '', name: p.name, role: p.role }))
+    .filter(r => r.email !== '')
+    .sort((a, b) =>
+      (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || a.name.localeCompare(b.name))
+    .slice(0, 150)
 
   const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
     const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)
@@ -600,7 +678,9 @@ export default async function AdminPage() {
       switchRequests={switchRequests}
       emailLogs={emailLogs}
       templateStats={templateStats}
+      templateRecipients={templateRecipients}
       mailRecipients={mailRecipients}
+      feedback={feedback}
       leads={leads}
       therapistPayouts={therapistPayouts}
       payments={payments}

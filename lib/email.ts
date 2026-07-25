@@ -392,6 +392,64 @@ function tplClientNotSubscribed(firstName: string, therapistFirstName: string, c
   `, 'client')
 }
 
+// Post-session feedback. Mail clients strip forms and scripts, so every answer
+// is a link: tapping one records that answer and opens /feedback with it already
+// filled in, where the free-text box lives. The session id doubles as the token
+// (it's an unguessable UUID), so no login is needed and the link keeps working
+// in whichever browser their mail app opens.
+function tplClientSessionFeedback(
+  clientFirstName: string,
+  therapistFirstName: string,
+  sessionDateStr: string,
+  sessionId: string,
+) {
+  // Answer taps go through the tap handler, which saves then redirects to the
+  // page. The plain "write a note" button goes straight to the page.
+  const tap = (params: string) => `${SITE}/api/feedback/tap?s=${encodeURIComponent(sessionId)}${params}`
+  const page = `${SITE}/feedback?s=${encodeURIComponent(sessionId)}`
+
+  const star = (n: number) =>
+    `<td style="padding-right:6px;"><a href="${tap(`&r=${n}`)}" aria-label="${n} out of 5" style="display:block;width:46px;height:44px;line-height:44px;text-align:center;border:1px solid #e2e8ee;border-radius:10px;font-size:22px;color:#E8926A;text-decoration:none;background:#ffffff;">&#9733;</a></td>`
+
+  const pill = (label: string, qs: string, last = false) =>
+    `<a href="${tap(qs)}" style="display:inline-block;padding:9px 16px;border:1px solid #dbe3ea;border-radius:100px;font-size:14px;font-weight:600;color:#233551;text-decoration:none;background:#ffffff;${last ? '' : 'margin-right:6px;'}">${label}</a>`
+
+  const rule = `<div style="height:1px;background:#eef2f5;margin-top:28px;"></div>`
+  const question = (text: string) =>
+    `<p style="margin:28px 0 0;font-size:15px;font-weight:700;color:#233551;">${text}</p>`
+
+  const t = escapeHtml(therapistFirstName)
+
+  return base(`
+    ${tag('Your session')}
+    <br/><br/>
+    ${h1(`How was your session with ${t}?`)}
+    ${p(`Hi ${escapeHtml(clientFirstName)},`)}
+    ${p(`You met ${t} on ${escapeHtml(sessionDateStr)}. We&rsquo;d like to know how it went.`)}
+
+    ${question('How would you rate the session?')}
+    <table cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;"><tr>
+      ${[1, 2, 3, 4, 5].map(star).join('')}
+    </tr></table>
+
+    ${rule}
+    ${question('Did you feel heard?')}
+    <p style="margin:10px 0 0;line-height:2.2;">
+      ${pill('Yes', '&heard=yes')}${pill('Somewhat', '&heard=somewhat')}${pill('Not really', '&heard=no', true)}
+    </p>
+
+    ${question(`Would you book with ${t} again?`)}
+    <p style="margin:10px 0 0;line-height:2.2;">
+      ${pill('Definitely', '&again=yes')}${pill('Not sure yet', '&again=unsure')}${pill('I&rsquo;d rather switch', '&again=switch', true)}
+    </p>
+
+    ${rule}
+    ${p('Anything you want to tell us in your own words?')}
+    ${btn('Write a note →', page)}
+    ${signOff}
+  `, 'client')
+}
+
 // ── THERAPIST TEMPLATES ──────────────────────────────────────────────────────
 
 function tplTherapistClientMatched(
@@ -1220,6 +1278,7 @@ export type EmailNotificationType =
   | 'therapist_availability_nudge'
   | 'client_chat_not_started'
   | 'client_not_subscribed'
+  | 'client_session_feedback'   // client, day after an attended session
   | 'therapist_missed_session'
   | 'therapist_reply_overdue'
   | 'therapist_cancellation_pattern'
@@ -1355,6 +1414,15 @@ export async function sendNotificationEmail({ to, name, type, meta = {}, testMod
     case 'client_not_subscribed':
       subject = 'Want to try a different therapist?'
       html = tplClientNotSubscribed(name, meta.therapistFirstName ?? 'your therapist', ctaUrl)
+      break
+    case 'client_session_feedback':
+      subject = `How was your session with ${meta.therapistFirstName ?? 'your therapist'}?`
+      html = tplClientSessionFeedback(
+        name,
+        meta.therapistFirstName ?? 'your therapist',
+        meta.dateStr ?? 'your last session',
+        meta.sessionId ?? '',
+      )
       break
     case 'therapist_missed_session':
       subject = 'You missed a session'
