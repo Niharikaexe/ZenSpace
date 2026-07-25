@@ -504,7 +504,9 @@ export default async function AdminPage() {
     .filter(r => r.email !== '')
     .sort((a, b) =>
       (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9) || a.name.localeCompare(b.name))
-    .slice(0, 150)
+    // Generous cap: the field is searchable, and each entry is only a name,
+    // email and role, so the whole list stays a small payload.
+    .slice(0, 1000)
 
   const switchRequests: SwitchRequest[] = (rawSwitchRequests ?? []).map((r: any) => {
     const clientProfile = (switchClientProfiles ?? []).find((p: any) => p.id === r.client_id)

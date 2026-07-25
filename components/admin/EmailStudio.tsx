@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { sendTestEmail } from '@/app/admin/actions'
 import { ComposeTab } from './ComposeTab'
 import type { EmailLog } from './AdminDashboard'
@@ -75,9 +75,11 @@ export function EmailStudio({ emailLogs, templateStats, templateRecipients, reci
 
   // ── Templates tab state ────────────────────────────────────────────────────
   const [audienceFilter, setAudienceFilter] = useState<EmailAudience | 'all'>('all')
-  const [testTo, setTestTo] = useState('')
-  const [customTo, setCustomTo] = useState('')
-  const [useCustom, setUseCustom] = useState(false)
+  // One field for both jobs: search the people we know, or type any address.
+  const [toQuery, setToQuery] = useState('')
+  const [picked, setPicked] = useState<MailRecipient | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const [isPending, startTransition] = useTransition()
   const [sendingKey, setSendingKey] = useState<string | null>(null)
   const [result, setResult] = useState<{ key: string; ok: boolean; error?: string } | null>(null)
@@ -86,7 +88,27 @@ export function EmailStudio({ emailLogs, templateStats, templateRecipients, reci
   const [logFilter, setLogFilter] = useState<'all' | 'sent' | 'failed'>('all')
   const [logSearch, setLogSearch] = useState('')
 
-  const resolvedTo = (useCustom ? customTo : testTo).trim()
+  const typedTo = toQuery.trim()
+  const typedIsEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(typedTo)
+  const resolvedTo = picked ? picked.email : (typedIsEmail ? typedTo : '')
+
+  const toMatches = useMemo(() => {
+    const q = typedTo.toLowerCase()
+    const pool = q
+      ? recipients.filter(r =>
+          r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q))
+      : recipients
+    return pool.slice(0, 30)
+  }, [recipients, typedTo])
+
+  // Close the picker on an outside click, so it behaves like a real dropdown.
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) setPickerOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
 
   const visibleTemplates = useMemo(
     () => (audienceFilter === 'all'
@@ -185,39 +207,85 @@ export function EmailStudio({ emailLogs, templateStats, templateRecipients, reci
           {/* who tests go to */}
           <div className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs font-semibold text-slate-700 mb-2">Send test emails to</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={useCustom ? '__custom__' : testTo}
-                onChange={e => {
-                  if (e.target.value === '__custom__') { setUseCustom(true) }
-                  else { setUseCustom(false); setTestTo(e.target.value) }
-                }}
-                className="min-w-[16rem] rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              >
-                <option value="">Pick a person…</option>
-                {recipients.map(r => (
-                  <option key={r.email} value={r.email}>
-                    {r.name} ({r.role}) — {r.email}
-                  </option>
-                ))}
-                <option value="__custom__">Type another address…</option>
-              </select>
-
-              {useCustom && (
+            <div className="flex flex-wrap items-start gap-3">
+              <div ref={pickerRef} className="relative w-full max-w-sm">
                 <input
-                  type="email"
-                  value={customTo}
-                  onChange={e => setCustomTo(e.target.value)}
-                  placeholder="someone@example.com"
-                  className="min-w-[16rem] rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  type="text"
+                  value={toQuery}
+                  onChange={e => { setToQuery(e.target.value); setPicked(null); setPickerOpen(true) }}
+                  onFocus={() => setPickerOpen(true)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') setPickerOpen(false)
+                    if (e.key === 'Enter' && pickerOpen && toMatches.length > 0) {
+                      e.preventDefault()
+                      const first = toMatches[0]
+                      setPicked(first); setToQuery(first.email); setPickerOpen(false)
+                    }
+                  }}
+                  placeholder="Search a name, or type any address"
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={pickerOpen}
+                  aria-controls="test-recipient-list"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 />
-              )}
 
-              {resolvedTo && (
-                <span className="text-xs text-slate-500">
-                  Tests go to <b className="text-slate-700">{resolvedTo}</b>
-                </span>
-              )}
+                {toQuery && (
+                  <button
+                    type="button"
+                    onClick={() => { setToQuery(''); setPicked(null); setPickerOpen(false) }}
+                    aria-label="Clear recipient"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 leading-none"
+                  >
+                    ×
+                  </button>
+                )}
+
+                {pickerOpen && (
+                  <div
+                    id="test-recipient-list"
+                    role="listbox"
+                    className="absolute z-20 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                  >
+                    {toMatches.length === 0 ? (
+                      <p className="px-3 py-2.5 text-xs text-slate-400">
+                        {typedIsEmail
+                          ? 'Not one of your users. It will still be sent to this address.'
+                          : 'Nobody matches that. Type a full email address to use it anyway.'}
+                      </p>
+                    ) : (
+                      toMatches.map(r => (
+                        <button
+                          key={r.email}
+                          type="button"
+                          role="option"
+                          aria-selected={picked?.email === r.email}
+                          onClick={() => { setPicked(r); setToQuery(r.email); setPickerOpen(false) }}
+                          className="w-full text-left px-3 py-2 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                        >
+                          <span className="text-sm font-medium text-slate-800">{r.name}</span>
+                          <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full border font-semibold ${
+                            r.role === 'admin'
+                              ? 'bg-slate-100 text-slate-600 border-slate-200'
+                              : r.role === 'therapist'
+                                ? 'bg-violet-50 text-violet-700 border-violet-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {r.role}
+                          </span>
+                          <span className="block text-xs text-slate-500 break-all">{r.email}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-500 pt-2">
+                {resolvedTo
+                  ? <>Tests go to <b className="text-slate-700 break-all">{resolvedTo}</b></>
+                  : <span className="text-slate-400">Pick who tests should go to.</span>}
+              </p>
             </div>
             <p className="text-[11px] text-slate-400 mt-2">
               Tests use sample names and are subject-prefixed [TEST]. They are logged separately,
