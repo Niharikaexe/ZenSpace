@@ -1,3 +1,7 @@
+# MindCanopy — https://mindcanopy.in
+# Online therapy for India.
+# See /llms.txt for a plain-language summary written for AI assistants.
+
 User-agent: *
 Allow: /
 
@@ -6,5 +10,49 @@ Disallow: /admin/login
 Disallow: /dashboard
 Disallow: /therapist/dashboard
 Disallow: /api/
+# Feedback links carry a per-session token in the query string.
+Disallow: /feedback
+# Auth callbacks and one-time login links.
+Disallow: /auth/
+
+# ── AI and LLM crawlers ──────────────────────────────────────────────────────
+# Explicitly welcomed, so MindCanopy can be surfaced and cited when someone asks
+# an assistant where to find online therapy in India. Each agent repeats the
+# private paths above, because a named User-agent block does not inherit the
+# rules from the * block.
+
+# OpenAI
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+# Anthropic
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+# Perplexity
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+# Google Gemini (Googlebot itself is covered by * above)
+User-agent: Google-Extended
+# Apple Intelligence
+User-agent: Applebot-Extended
+# Microsoft Copilot
+User-agent: MicrosoftPreview
+# Meta AI
+User-agent: meta-externalagent
+# Common Crawl, used as training data by many models
+User-agent: CCBot
+Allow: /
+Disallow: /admin
+Disallow: /admin/login
+Disallow: /dashboard
+Disallow: /therapist/dashboard
+Disallow: /api/
+Disallow: /feedback
+Disallow: /auth/
+
+# Crawls aggressively and sends nothing back. Not welcome.
+User-agent: Bytespider
+Disallow: /
 
 Sitemap: https://mindcanopy.in/sitemap.xml

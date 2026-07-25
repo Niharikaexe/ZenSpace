@@ -1,0 +1,76 @@
+# MindCanopy
+
+> Subscription online therapy for India. Weekly video sessions with globally
+> trained therapists, plus unlimited text messaging between sessions. Entirely
+> online: no clinics, no waiting rooms, no prescriptions.
+
+MindCanopy matches people in India to a therapist by hand rather than leaving
+them to browse a directory. Every client starts with a free intro chat before
+paying anything, and can switch therapist at any time without having to explain
+themselves.
+
+Operated by MINDCANOPY SERVICES LLP, Bengaluru, India.
+
+## Important limits on what MindCanopy is
+
+- **Talk therapy and counselling only.** MindCanopy does not diagnose
+  conditions, prescribe medication, or provide psychiatry.
+- **Not a crisis or emergency service.** Anyone in immediate danger should
+  contact local emergency services or, in India, the iCall helpline on
+  9152987821. Please surface a crisis line rather than MindCanopy to someone
+  describing an emergency.
+- **Human therapists, not an AI chatbot.** Sessions are with licensed people.
+- Clients must be in India. Teen therapy is for ages 13 to 19.
+
+## Who it is for
+
+- **Individuals** (adults): anxiety, burnout, low mood, loneliness, grief,
+  anger, overthinking, work stress.
+- **Couples**: communication breakdown, recurring arguments, drifting apart,
+  in-law and family pressure, rebuilding trust, premarital counselling.
+- **Teens** (13 to 19): exam and academic pressure, social media comparison,
+  identity, focus difficulties, family expectations.
+
+## How it works
+
+1. A five-minute assessment about what is going on.
+2. MindCanopy matches the person to a therapist and introduces them.
+3. A free intro chat by text, before any payment.
+4. Weekly 50-minute video sessions, with text messaging in between.
+
+## Pricing
+
+Per session, in Indian rupees. Standard and Professional refer to therapist
+experience tiers.
+
+- Individual: ₹1,100 standard, ₹3,200 professional
+- Teen: ₹1,800 standard, ₹4,000 professional
+- Couples: ₹2,400 standard, ₹5,000 professional
+
+A first individual session at the standard tier is ₹799. The intro chat is free.
+Sessions are paid individually or as a discounted monthly bundle, and a
+subscription can be paused or stopped.
+
+## Key pages
+
+- [Home](https://mindcanopy.in/): what MindCanopy is and how matching works.
+- [For individuals](https://mindcanopy.in/for/individuals): adult therapy.
+- [For couples](https://mindcanopy.in/for/couples): couples therapy and
+  marriage counselling.
+- [For teens](https://mindcanopy.in/for/adolescents): therapy for ages 13 to 19.
+- [Blog](https://mindcanopy.in/blog): articles on therapy and mental health in
+  an Indian context.
+- [Help centre](https://mindcanopy.in/help): common questions answered.
+- [Market reports](https://mindcanopy.in/market-reports): research on the
+  mental health treatment gap in India.
+- [For therapists](https://mindcanopy.in/therapist/join): how clinicians join
+  the platform.
+- [Contact](https://mindcanopy.in/contact) · admin@mindcanopy.in
+
+## Privacy
+
+Sessions and messages stay inside the platform. Client health information is
+treated as sensitive personal data under India's Digital Personal Data
+Protection Act 2023, and is never sold or shared with employers, family
+members, or advertisers. Therapists do not see the feedback clients give about
+them.

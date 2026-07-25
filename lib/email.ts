@@ -392,65 +392,32 @@ function tplClientNotSubscribed(firstName: string, therapistFirstName: string, c
   `, 'client')
 }
 
-// Post-session feedback. Mail clients strip forms and scripts, so every answer
-// is a link: tapping one records that answer and opens /feedback with it already
-// filled in, where the free-text box lives. The session id doubles as the token
-// (it's an unguessable UUID), so no login is needed and the link keeps working
-// in whichever browser their mail app opens.
+// Post-session feedback. One button into the feedback page, where the questions
+// live. Deliberately not asking anything in the email itself: mail clients strip
+// forms, so in-email answers have to be links, and link-prefetching by mail
+// servers can record answers the person never gave.
+//
+// The session id doubles as the token (it is an unguessable UUID), so nobody has
+// to log in and the link works in whichever browser their mail app opens.
 function tplClientSessionFeedback(
   clientFirstName: string,
   therapistFirstName: string,
   sessionDateStr: string,
   sessionId: string,
 ) {
-  // Answer taps go through the tap handler, which saves then redirects to the
-  // page. The plain "write a note" button goes straight to the page.
-  const tap = (params: string) => `${SITE}/api/feedback/tap?s=${encodeURIComponent(sessionId)}${params}`
-  const page = `${SITE}/feedback?s=${encodeURIComponent(sessionId)}`
-
-  const star = (n: number) =>
-    `<td style="padding-right:6px;"><a href="${tap(`&r=${n}`)}" aria-label="${n} out of 5" style="display:block;width:46px;height:44px;line-height:44px;text-align:center;border:1px solid #e2e8ee;border-radius:10px;font-size:22px;color:#E8926A;text-decoration:none;background:#ffffff;">&#9733;</a></td>`
-
-  const pill = (label: string, qs: string, last = false) =>
-    `<a href="${tap(qs)}" style="display:inline-block;padding:9px 16px;border:1px solid #dbe3ea;border-radius:100px;font-size:14px;font-weight:600;color:#233551;text-decoration:none;background:#ffffff;${last ? '' : 'margin-right:6px;'}">${label}</a>`
-
-  const rule = `<div style="height:1px;background:#eef2f5;margin-top:28px;"></div>`
-  const question = (text: string) =>
-    `<p style="margin:28px 0 0;font-size:15px;font-weight:700;color:#233551;">${text}</p>`
-
   const t = escapeHtml(therapistFirstName)
-
   return base(`
     ${tag('Your session')}
     <br/><br/>
     ${h1(`How was your session with ${t}?`)}
     ${p(`Hi ${escapeHtml(clientFirstName)},`)}
     ${p(`You met ${t} on ${escapeHtml(sessionDateStr)}. We&rsquo;d like to know how it went.`)}
-
-    ${question('How would you rate the session?')}
-    <table cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;"><tr>
-      ${[1, 2, 3, 4, 5].map(star).join('')}
-    </tr></table>
-
-    ${rule}
-    ${question('Did you feel heard?')}
-    <p style="margin:10px 0 0;line-height:2.2;">
-      ${pill('Yes', '&heard=yes')}${pill('Somewhat', '&heard=somewhat')}${pill('Not really', '&heard=no', true)}
-    </p>
-
-    ${question(`Would you book with ${t} again?`)}
-    <p style="margin:10px 0 0;line-height:2.2;">
-      ${pill('Definitely', '&again=yes')}${pill('Not sure yet', '&again=unsure')}${pill('I&rsquo;d rather switch', '&again=switch', true)}
-    </p>
-
-    ${rule}
-    ${p('Anything you want to tell us in your own words?')}
-    ${btn('Write a note →', page)}
+    ${p(`It takes a minute, and it tells us whether we matched you well. If something wasn&rsquo;t right, we would much rather hear it from you than not know. It is how we get better at this.`)}
+    ${btn('Share feedback →', `${SITE}/feedback?s=${encodeURIComponent(sessionId)}`)}
+    ${p(`Only the MindCanopy team sees this. ${t} does not.`)}
     ${signOff}
   `, 'client')
 }
-
-// ── THERAPIST TEMPLATES ──────────────────────────────────────────────────────
 
 function tplTherapistClientMatched(
   therapistFirstName: string,

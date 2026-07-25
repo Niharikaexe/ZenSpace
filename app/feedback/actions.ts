@@ -97,11 +97,11 @@ export async function loadFeedbackContext(sessionId: string): Promise<FeedbackCo
 }
 
 /**
- * Upsert whatever answers we have. Called twice in the flow:
- *  - once server-side when they tap a star or option in the email (partial), and
- *  - once when they submit the form on the page (final, stamps submitted_at).
- * Never overwrites an existing answer with null, so a partial save cannot wipe
- * something they already told us.
+ * Upsert the answers from the feedback page.
+ *
+ * Only fields actually supplied are written, so re-submitting with one question
+ * left blank never wipes an answer already given. The columns are all nullable
+ * for the same reason: a rating with no note is a perfectly useful response.
  */
 export async function saveFeedback(input: {
   sessionId: string
@@ -182,17 +182,4 @@ export async function submitFeedback(formData: FormData): Promise<{ ok: boolean;
     note: formData.get('note') ?? undefined,
     final: true,
   })
-}
-
-/**
- * first_answered_at should reflect the first tap, not the latest save. Kept
- * separate from the upsert above so the column is only set when the row is new.
- */
-export async function recordEmailTap(input: {
-  sessionId: string
-  rating?: unknown
-  feltHeard?: unknown
-  bookAgain?: unknown
-}): Promise<void> {
-  await saveFeedback({ ...input, final: false })
 }
