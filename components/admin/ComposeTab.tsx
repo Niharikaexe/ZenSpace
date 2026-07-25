@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { sendComposedEmail, sendDiscountOfferToAllClients } from '@/app/admin/actions'
+import { sendComposedEmail } from '@/app/admin/actions'
 import { OwlLogo } from '@/components/home/OwlLogo'
 
 // Admin "Send Email" tab. Lets the admin send a one-off, on-brand email to
@@ -26,22 +26,6 @@ export function ComposeTab() {
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null)
   const [sentTo, setSentTo] = useState('')
-
-  // First-session discount campaign (bulk send to all clients).
-  const [blastPending, startBlast] = useTransition()
-  const [confirmingBlast, setConfirmingBlast] = useState(false)
-  const [blastResult, setBlastResult] = useState<
-    { ok: boolean; sent: number; failed: number; total: number; error?: string } | null
-  >(null)
-
-  function handleBlast() {
-    setBlastResult(null)
-    startBlast(async () => {
-      const res = await sendDiscountOfferToAllClients()
-      setBlastResult(res)
-      setConfirmingBlast(false)
-    })
-  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -270,57 +254,6 @@ export function ComposeTab() {
         </div>
       </div>
 
-      {/* ── Campaign: first-session discount to all clients ── */}
-      <div className="mt-10 border-t border-slate-200 pt-8">
-        <div className="rounded-xl border border-[#E8926A]/30 bg-[#FFF5F2] p-5 max-w-2xl">
-          <h2 className="text-sm font-bold text-[#233551]">First-session discount campaign</h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Email every client the “Special — only for you” offer (₹799 first session). Each send is
-            on-brand and recorded in the Emails tab. Goes to all clients — send it once.
-          </p>
-
-          {!confirmingBlast ? (
-            <button
-              type="button"
-              onClick={() => { setBlastResult(null); setConfirmingBlast(true) }}
-              disabled={blastPending}
-              className="mt-4 inline-flex items-center rounded-lg bg-[#233551] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e2d47] disabled:opacity-60 transition-colors"
-            >
-              Send the offer to all clients
-            </button>
-          ) : (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold text-[#233551]">Send to every client now?</span>
-              <button
-                type="button"
-                onClick={handleBlast}
-                disabled={blastPending}
-                className="inline-flex items-center rounded-lg bg-[#C56A42] px-4 py-2 text-sm font-semibold text-white hover:bg-[#b35e39] disabled:opacity-60 transition-colors"
-              >
-                {blastPending ? 'Sending…' : 'Yes, send it'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmingBlast(false)}
-                disabled={blastPending}
-                className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {blastResult?.ok && (
-            <p className="mt-3 text-sm font-medium text-emerald-700">
-              Sent to {blastResult.sent} of {blastResult.total} client{blastResult.total === 1 ? '' : 's'}
-              {blastResult.failed > 0 ? ` · ${blastResult.failed} failed (check the Emails tab)` : ''}. ✓
-            </p>
-          )}
-          {blastResult && !blastResult.ok && (
-            <p className="mt-3 text-sm font-medium text-red-600">{blastResult.error}</p>
-          )}
-        </div>
-      </div>
     </div>
   )
 }
