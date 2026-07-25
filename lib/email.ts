@@ -112,7 +112,22 @@ async function resendFetch(url: string, payload: unknown): Promise<Response> {
 
 const FROM = process.env.RESEND_FROM ?? 'MindCanopy <marketing@mindcanopy.in>'
 const FROM_ADMIN = process.env.RESEND_FROM_ADMIN ?? 'MindCanopy Admin <admin@mindcanopy.in>'
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
+// Base URL every link in every email is built from.
+//
+// On a Vercel PREVIEW deployment we deliberately ignore NEXT_PUBLIC_SITE_URL and
+// point back at the preview itself. Without this, an email sent from a preview
+// links to production, so you cannot test an email end to end against unreleased
+// pages: you click the button and land on the live site, which does not have them.
+//
+// Production and local are unaffected: VERCEL_ENV is 'production' or unset there.
+function resolveSiteUrl(): string {
+  if (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://mindcanopy.in'
+}
+
+const SITE = resolveSiteUrl()
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@mindcanopy.in'
 
 const LOGO_URL = `${SITE}/icon.svg`
@@ -1460,8 +1475,46 @@ export async function sendTemplateTest(
   const entry = catalogueEntry(key)
   if (!entry) return { ok: false, error: `Unknown template: ${key}` }
 
-  const meta = entry.sampleMeta ?? {}
+  const meta = { ...(entry.sampleMeta ?? {}) }
   const name = entry.audience === 'therapist' ? 'Priya' : 'Tanisha'
+
+  // The feedback email is only useful as a test if its button actually opens a
+  // working page, so point it at a real recent session instead of the catalogue's
+  // placeholder id. Falls back to the placeholder when there are no sessions yet,
+  // in which case the page shows its "link is not working" state.
+  if (key === 'notification:client_session_feedback') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const admin = createAdminClient() as any
+      const { data: recent } = await admin
+        .from('sessions')
+        .select('id, scheduled_at, match_id')
+        .order('scheduled_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (recent?.id) {
+        meta.sessionId = recent.id
+        meta.dateStr = new Date(recent.scheduled_at).toLocaleDateString('en-IN', {
+          weekday: 'long', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata',
+        })
+        // Use that session's real therapist, so the name in the email matches
+        // the name the page will show.
+        const { data: m } = await admin
+          .from('matches').select('therapist_id').eq('id', recent.match_id).maybeSingle()
+        if (m?.therapist_id) {
+          const { data: p } = await admin
+            .from('profiles').select('full_name').eq('id', m.therapist_id).maybeSingle()
+          const first = (p?.full_name as string | undefined)?.split(' ')[0]
+          if (first) meta.therapistFirstName = first
+        }
+      }
+    } catch (err) {
+      logger.warn('email/test', 'Could not resolve a real session for the feedback test', {
+        err: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
 
   // Notification templates: reuse the live rendering + send path.
   if (key.startsWith('notification:')) {
